@@ -1,11 +1,156 @@
 using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Threading;
+using Lyrow.Core.Contracts;
+using Lyrow.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Lyrow.App;
 
 public partial class MainWindow : Window
 {
-    public MainWindow()
+    private readonly IModuleManager _moduleManager;
+    private readonly ISettingsManager _settingsManager;
+
+    // Parameterless constructor for XAML Designer / Previewer
+    public MainWindow() : this(
+        App.Services?.GetService<IModuleManager>() ?? new Core.Services.ModuleManager(),
+        App.Services?.GetService<ISettingsManager>() ?? new Core.Services.SettingsManager())
+    {
+    }
+
+    public MainWindow(IModuleManager moduleManager, ISettingsManager settingsManager)
     {
         InitializeComponent();
+        _moduleManager = moduleManager;
+        _settingsManager = settingsManager;
+
+        _moduleManager.ModuleStateChanged += OnModuleStateChanged;
+        
+        Loaded += OnWindowLoaded;
+    }
+
+    private void OnWindowLoaded(object? sender, RoutedEventArgs e)
+    {
+        LoadSettingsToUi();
+        RefreshUiStates();
+    }
+
+    private void LoadSettingsToUi()
+    {
+        var settings = _settingsManager.Current;
+
+        RbThemeDark.IsChecked = settings.Theme == ThemeMode.Dark;
+        RbThemeLight.IsChecked = settings.Theme == ThemeMode.Light;
+        RbThemeSystem.IsChecked = settings.Theme == ThemeMode.SystemDefault;
+
+        ChkClickThrough.IsChecked = settings.ClickThroughEnabled;
+    }
+
+    private void OnModuleStateChanged(object? sender, ModuleStateChangedEventArgs e)
+    {
+        Dispatcher.UIThread.Post(RefreshUiStates);
+    }
+
+    private void RefreshUiStates()
+    {
+        // 1. Update overall execution mode badge
+        var mode = _moduleManager.CurrentExecutionMode;
+        ModeBadgeText.Text = mode switch
+        {
+            ModuleExecutionMode.BothDisabled => "Mod: İkisi Kapalı",
+            ModuleExecutionMode.LumnOnly => "Mod: Yalnızca Lumn",
+            ModuleExecutionMode.VerciOnly => "Mod: Yalnızca Verci",
+            ModuleExecutionMode.BothEnabled => "Mod: İkisi Birlikte",
+            _ => "Mod: Belirsiz"
+        };
+
+        ModeBadgeBorder.Background = mode switch
+        {
+            ModuleExecutionMode.BothEnabled => new SolidColorBrush(Color.Parse("#1E3A8A")),
+            ModuleExecutionMode.BothDisabled => new SolidColorBrush(Color.Parse("#334155")),
+            _ => new SolidColorBrush(Color.Parse("#1E293B"))
+        };
+
+        // 2. Update Lumn card
+        var lumn = _moduleManager.GetModule("lumn");
+        var lumnRunning = lumn?.State == ModuleState.Running;
+        LumnStatusText.Text = lumn?.State.ToString() ?? "Unknown";
+        LumnStatusBorder.Background = lumnRunning ? new SolidColorBrush(Color.Parse("#065F46")) : new SolidColorBrush(Color.Parse("#334155"));
+        LumnStatusText.Foreground = lumnRunning ? new SolidColorBrush(Color.Parse("#34D399")) : new SolidColorBrush(Color.Parse("#94A3B8"));
+        BtnToggleLumn.Content = lumnRunning ? "Lumn'u Durdur" : "Lumn'u Başlat";
+
+        // 3. Update Verci card
+        var verci = _moduleManager.GetModule("verci");
+        var verciRunning = verci?.State == ModuleState.Running;
+        VerciStatusText.Text = verci?.State.ToString() ?? "Unknown";
+        VerciStatusBorder.Background = verciRunning ? new SolidColorBrush(Color.Parse("#065F46")) : new SolidColorBrush(Color.Parse("#334155"));
+        VerciStatusText.Foreground = verciRunning ? new SolidColorBrush(Color.Parse("#34D399")) : new SolidColorBrush(Color.Parse("#94A3B8"));
+        BtnToggleVerci.Content = verciRunning ? "Verci'yi Durdur" : "Verci'yi Başlat";
+    }
+
+    private async void OnToggleLumnClick(object? sender, RoutedEventArgs e)
+    {
+        var lumn = _moduleManager.GetModule("lumn");
+        var target = lumn?.State != ModuleState.Running;
+        await _moduleManager.SetModuleActiveAsync("lumn", target);
+        await _settingsManager.UpdateAsync(s => s.LumnEnabled = target);
+        StatusMessageText.Text = $"Lumn {(target ? "başlatıldı" : "durduruldu")}. Ayarlar kaydedildi.";
+    }
+
+    private async void OnToggleVerciClick(object? sender, RoutedEventArgs e)
+    {
+        var verci = _moduleManager.GetModule("verci");
+        var target = verci?.State != ModuleState.Running;
+        await _moduleManager.SetModuleActiveAsync("verci", target);
+        await _settingsManager.UpdateAsync(s => s.VerciEnabled = target);
+        StatusMessageText.Text = $"Verci {(target ? "başlatıldı" : "durduruldu")}. Ayarlar kaydedildi.";
+    }
+
+    private async void OnModeBothDisabledClick(object? sender, RoutedEventArgs e)
+    {
+        await _moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.BothDisabled);
+        await _settingsManager.UpdateAsync(s => { s.LumnEnabled = false; s.VerciEnabled = false; });
+        StatusMessageText.Text = "Hızlı Mod uygulandı: Tüm modüller durduruldu.";
+    }
+
+    private async void OnModeLumnOnlyClick(object? sender, RoutedEventArgs e)
+    {
+        await _moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.LumnOnly);
+        await _settingsManager.UpdateAsync(s => { s.LumnEnabled = true; s.VerciEnabled = false; });
+        StatusMessageText.Text = "Hızlı Mod uygulandı: Yalnızca Lumn aktif.";
+    }
+
+    private async void OnModeVerciOnlyClick(object? sender, RoutedEventArgs e)
+    {
+        await _moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.VerciOnly);
+        await _settingsManager.UpdateAsync(s => { s.LumnEnabled = false; s.VerciEnabled = true; });
+        StatusMessageText.Text = "Hızlı Mod uygulandı: Yalnızca Verci aktif.";
+    }
+
+    private async void OnModeBothEnabledClick(object? sender, RoutedEventArgs e)
+    {
+        await _moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.BothEnabled);
+        await _settingsManager.UpdateAsync(s => { s.LumnEnabled = true; s.VerciEnabled = true; });
+        StatusMessageText.Text = "Hızlı Mod uygulandı: Lumn ve Verci eşzamanlı aktif.";
+    }
+
+    private async void OnThemeChanged(object? sender, RoutedEventArgs e)
+    {
+        var theme = ThemeMode.SystemDefault;
+        if (RbThemeDark.IsChecked == true) theme = ThemeMode.Dark;
+        else if (RbThemeLight.IsChecked == true) theme = ThemeMode.Light;
+
+        App.ApplyTheme(theme);
+        await _settingsManager.UpdateAsync(s => s.Theme = theme);
+        StatusMessageText.Text = $"Tema '{theme}' olarak güncellendi ve kaydedildi.";
+    }
+
+    private async void OnClickThroughChanged(object? sender, RoutedEventArgs e)
+    {
+        var isChecked = ChkClickThrough.IsChecked ?? false;
+        await _settingsManager.UpdateAsync(s => s.ClickThroughEnabled = isChecked);
+        StatusMessageText.Text = $"Tıklama geçirgenliği (Click-Through) {(isChecked ? "açıldı" : "kapatıldı")}.";
     }
 }

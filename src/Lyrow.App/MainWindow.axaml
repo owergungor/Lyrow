@@ -2,8 +2,148 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="840" d:DesignHeight="640"
+        Width="840" Height="640"
+        MinWidth="720" MinHeight="540"
+        WindowStartupLocation="CenterScreen"
         x:Class="Lyrow.App.MainWindow"
-        Title="Lyrow.App">
-    Welcome to Avalonia!
+        Title="Lyrow — Multimedya Deneyim Merkezi">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="28" Spacing="20">
+            
+            <!-- Header Section -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                <StackPanel Grid.Column="0" Spacing="4">
+                    <TextBlock Text="Lyrow" Classes="header" />
+                    <TextBlock Text="Ses-duyarlı görselleştirme ve senkronize şarkı sözü platformu" Classes="subheader" />
+                </StackPanel>
+
+                <!-- Current Execution Mode Badge -->
+                <Border Grid.Column="1" 
+                        x:Name="ModeBadgeBorder"
+                        Background="#2D3748" 
+                        CornerRadius="12" 
+                        Padding="14,8"
+                        VerticalAlignment="Center">
+                    <TextBlock x:Name="ModeBadgeText" 
+                               Text="Mod: Yükleniyor..." 
+                               FontWeight="SemiBold" 
+                               FontSize="13" 
+                               Foreground="#63B3ED" />
+                </Border>
+            </Grid>
+
+            <!-- 4 Discrete Execution Modes Selector -->
+            <Border Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                    BorderThickness="1"
+                    Classes="neumorphic-card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Hızlı Çalışma Durumları (4 Temel Mod)" FontWeight="SemiBold" FontSize="15" />
+                    <Grid ColumnDefinitions="*,*,*,*" Margin="0,4,0,0">
+                        <Button Grid.Column="0" x:Name="BtnModeBothDisabled" Content="İkisi Kapalı" Classes="action-button" Margin="0,0,6,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnModeBothDisabledClick" />
+                        <Button Grid.Column="1" x:Name="BtnModeLumnOnly" Content="Yalnızca Lumn" Classes="action-button" Margin="3,0,3,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnModeLumnOnlyClick" />
+                        <Button Grid.Column="2" x:Name="BtnModeVerciOnly" Content="Yalnızca Verci" Classes="action-button" Margin="3,0,3,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnModeVerciOnlyClick" />
+                        <Button Grid.Column="3" x:Name="BtnModeBothEnabled" Content="İkisi Birlikte" Classes="action-button" Margin="6,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnModeBothEnabledClick" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Modules Grid -->
+            <Grid ColumnDefinitions="*,*" Margin="0,6">
+                <!-- Lumn Card -->
+                <Border Grid.Column="0" 
+                        Margin="0,0,10,0" 
+                        Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                        BorderThickness="1"
+                        Classes="neumorphic-card">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock Text="Lumn" FontSize="18" FontWeight="Bold" />
+                                <TextBlock Text="Ses Analizi &amp; Işık Efektleri" Classes="subheader" />
+                            </StackPanel>
+                            <Border Grid.Column="1" x:Name="LumnStatusBorder" CornerRadius="8" Padding="10,4" Background="#334155">
+                                <TextBlock x:Name="LumnStatusText" Text="Stopped" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" />
+                            </Border>
+                        </Grid>
+                        <TextBlock Text="WASAPI Loopback ile sistem sesini donanım hızlandırmalı frekans spektrumuna ve ritmik ışık dalgalarına dönüştürür."
+                                   TextWrapping="Wrap" FontSize="12" Opacity="0.8" />
+                        <Button x:Name="BtnToggleLumn" 
+                                Content="Lumn'u Başlat" 
+                                Classes="action-button" 
+                                HorizontalAlignment="Stretch" 
+                                HorizontalContentAlignment="Center"
+                                Click="OnToggleLumnClick" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Verci Card -->
+                <Border Grid.Column="1" 
+                        Margin="10,0,0,0" 
+                        Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                        BorderThickness="1"
+                        Classes="neumorphic-card">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock Text="Verci" FontSize="18" FontWeight="Bold" />
+                                <TextBlock Text="Senkronize Sözler &amp; Metadata" Classes="subheader" />
+                            </StackPanel>
+                            <Border Grid.Column="1" x:Name="VerciStatusBorder" CornerRadius="8" Padding="10,4" Background="#334155">
+                                <TextBlock x:Name="VerciStatusText" Text="Stopped" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" />
+                            </Border>
+                        </Grid>
+                        <TextBlock Text="Windows GSMTC üzerinden çalan şarkıyı tespit eder; LRCLIB ile senkronize şarkı sözlerini yüzen pencerede gösterir."
+                                   TextWrapping="Wrap" FontSize="12" Opacity="0.8" />
+                        <Button x:Name="BtnToggleVerci" 
+                                Content="Verci'yi Başlat" 
+                                Classes="action-button" 
+                                HorizontalAlignment="Stretch" 
+                                HorizontalContentAlignment="Center"
+                                Click="OnToggleVerciClick" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Preferences & Appearance Section -->
+            <Border Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                    BorderThickness="1"
+                    Classes="neumorphic-card">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Görünüm ve Kullanıcı Tercihleri" FontWeight="SemiBold" FontSize="15" />
+                    
+                    <!-- Theme Selector -->
+                    <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                        <TextBlock Grid.Column="0" Text="Uygulama Teması:" VerticalAlignment="Center" Width="180" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                            <RadioButton x:Name="RbThemeSystem" Content="Sistem Varsayılanı" IsChecked="True" IsCheckedChanged="OnThemeChanged" />
+                            <RadioButton x:Name="RbThemeDark" Content="Koyu Tema" IsCheckedChanged="OnThemeChanged" />
+                            <RadioButton x:Name="RbThemeLight" Content="Açık Tema" IsCheckedChanged="OnThemeChanged" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Click-through Toggle -->
+                    <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                        <TextBlock Grid.Column="0" Text="Tıklama Geçirgenliği:" VerticalAlignment="Center" Width="180" />
+                        <CheckBox x:Name="ChkClickThrough" 
+                                  Content="Overlay pencerelerinde arka plana tıklamaya izin ver (Click-Through)" 
+                                  IsCheckedChanged="OnClickThroughChanged" />
+                    </Grid>
+
+                    <!-- Status Notification Text -->
+                    <Border Background="#1E293B" CornerRadius="8" Padding="12,8">
+                        <TextBlock x:Name="StatusMessageText" 
+                                   Text="Aşama 2 çekirdek altyapısı hazır. Modüller bağımsız olarak yönetilebilir." 
+                                   FontSize="12" 
+                                   Foreground="#94A3B8" />
+                    </Border>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
 </Window>
