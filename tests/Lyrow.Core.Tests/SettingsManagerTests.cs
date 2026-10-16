@@ -140,6 +140,39 @@ public sealed class SettingsManagerTests : IDisposable
         loaded.OverlayPosition.Should().Be(OverlayPosition.Center);
         loaded.TargetMonitorIndex.Should().Be(0);
         loaded.AutoFetchLyrics.Should().BeTrue();
+        loaded.SystemTrayEnabled.Should().BeTrue();
+        loaded.MinimizeToTray.Should().BeTrue();
+        loaded.StartWithWindows.Should().BeFalse();
+        loaded.Hotkeys.ToggleLumn.Should().Be("Ctrl+Shift+L");
+        loaded.Hotkeys.ToggleVerci.Should().Be("Ctrl+Shift+V");
+        loaded.Hotkeys.ToggleClickThrough.Should().Be("Ctrl+Shift+C");
+    }
+
+    [Fact]
+    public async Task Settings_ShouldPersistStage7TrayStartupAndHotkeys()
+    {
+        var manager = new SettingsManager(_tempFile);
+        await manager.LoadAsync();
+
+        await manager.UpdateAsync(s =>
+        {
+            s.SystemTrayEnabled = false;
+            s.MinimizeToTray = false;
+            s.StartWithWindows = true;
+            s.Hotkeys.ToggleLumn = "Ctrl+Alt+L";
+            s.Hotkeys.ToggleVerci = "Ctrl+Alt+V";
+            s.Hotkeys.ToggleClickThrough = "Ctrl+Alt+C";
+        });
+
+        var freshManager = new SettingsManager(_tempFile);
+        var verified = await freshManager.LoadAsync();
+
+        verified.SystemTrayEnabled.Should().BeFalse();
+        verified.MinimizeToTray.Should().BeFalse();
+        verified.StartWithWindows.Should().BeTrue();
+        verified.Hotkeys.ToggleLumn.Should().Be("Ctrl+Alt+L");
+        verified.Hotkeys.ToggleVerci.Should().Be("Ctrl+Alt+V");
+        verified.Hotkeys.ToggleClickThrough.Should().Be("Ctrl+Alt+C");
     }
 
     public void Dispose()

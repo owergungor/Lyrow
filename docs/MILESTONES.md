@@ -14,11 +14,27 @@ Bu belge, Lyrow projesinin aşama bazlı kilometre taşlarını, ilerleme durumu
 | **M4** | **Aşama 4: Verci Modülü (Metadata & Senkronize Sözler)** | Windows GSMTC medya entegrasyonu, LRCLIB REST API istemcisi, çoklu timestamp destekli LRC ayrıştırıcı, Binary Search satır seçimi, yerel disk önbelleği, Neumorphic şarkı sözü penceresi (`VerciWindow`), 28 xUnit testi. | **TAMAMLANDI** |
 | **M5** | **Aşama 5: Entegrasyon, Gerçek Windows Ortamı Doğrulaması & Polish** | Lumn + Verci eşzamanlı çalışma, gerçek WASAPI ve GSMTC donanım doğrulaması, gerçek LRCLIB çevrimiçi/çevrimdışı önbellek akışı, Açık/Koyu/Sistem temaları, timer ve adaptif GPU optimizasyonu, zarif kaynak temizliği, 71 xUnit testi. | **TAMAMLANDI** |
 | **M6** | **Aşama 6: Ürünleştirme, UX, Windows Dağıtımı ve Son Kullanıcı Deneyimi** | Win32 native click-through (`WS_EX_LAYERED`/`WS_EX_TRANSPARENT`), çoklu monitör algılama ve 7 noktalı DPI ölçekli konumlandırma (`OverlayPositionManager`), tekilleştirilmiş Ayarlar ve parlatılmış Dashboard UI, self-contained win-x64 Inno Setup yükleyicisi (`Lyrow-1.0.0-Setup-x64.exe`), taşınabilir paket (`Lyrow-win-x64-portable.zip`), modern Neumorphic logo ve ikon (`lyrow.ico`), GitHub Releases iş akışı (`release.yml`), 86 xUnit testi. | **TAMAMLANDI** |
-| **M7** | **Aşama 7: Bakım, Topluluk ve Uzun Süreli Kararlılık** | Son kullanıcı geri bildirimleri, telemetri, otomatik güncelleme kontrolü ve uzun vadeli optimizasyonlar. | *Planlandı* |
+| **M7** | **Aşama 7: System Tray, Global Hotkeys, Yaşam Döngüsü ve v1.0.0 Release** | Native Windows System Tray menüsü ve 'X' ile tepsiye küçültme, global Win32 kısayolları (`Ctrl+Shift+L/V/C`), `WM_DISPLAYCHANGE` monitör/çözünürlük/DPI adaptasyonu, LRCLIB HTTP 429 rate-limit UX ve bekleme geri sayımı, güvenli HKCU Windows başlangıç yöneticisi, 95 xUnit testi (%100 başarı), Inno Setup kurulum paketi, taşınabilir paket, `v1.0.0` resmi sürümü. | **TAMAMLANDI** |
 
 ---
 
-## Aşama 6 Doğrulama Notları
+## Aşama 7 Doğrulama Notları
+
+- **System Tray (Sistem Tepsisi Entegrasyonu):** Lyrow logosu bildirim alanında (`TrayIcon`) görüntülenir. Ana pencere kapatıldığında (`Close`) varsayılan olarak arka planda çalışmayı sürdürür ve tepsiye küçülür (`MinimizeToTrayOnClose`). Sağ tık menüsü üzerinden `Lyrow'u Göster`, `Lumn Aç/Kapat`, `Verci Aç/Kapat`, `Click-Through Aç/Kapat`, `Ayarlar` ve `Çıkış` komutları anlık olarak işletilir. Gerçek `Exit` çağrısı tüm modül döngülerini, pencere referanslarını ve arka plan mesaj dinleyicilerini zarifçe sonlandırır (`Shutdown`).
+- **Global Hotkeys (Sistem Genelinde Kısayollar):** `WindowsGlobalHotkeyManager` adanmış Win32 mesaj döngüsü iş parçacığı ve gizli mesaj penceresi (`CreateWindowEx`, `RegisterHotKey`) üzerinden uygulama odakta değilken de tam yanıt verir:
+  - `Ctrl + Shift + L` → Lumn Görselleştiriciyi açar / kapatır
+  - `Ctrl + Shift + V` → Verci Şarkı Sözlerini açar / kapatır
+  - `Ctrl + Shift + C` → Click-through modunu açar / kapatır
+  Uygulama sonlanırken veya kısayollar güncellenirken tüm kayıtlar güvenle `UnregisterHotKey` ile temizlenir; çakışma durumunda uygulama çökmeden kullanıcıya hata bildirimi sunulur.
+- **Dinamik Ekran Değişikliği (`WM_DISPLAYCHANGE`):** Monitör eklenmesi, çıkarılması, çözünürlük veya sistem DPI ölçeklemesi değiştiğinde `WM_DISPLAYCHANGE` ve `WM_SETTINGCHANGE` mesajları polling yapılmaksızın event-driven yakalanır. Açık olan tüm overlay pencereleri `OverlayPositionManager.ApplyPosition` çağrısıyla yeni koordinatlarına ve geçerli monitör sınırlarına anında yeniden hizalanır.
+- **LRCLIB Rate-Limit UX (HTTP 429 Koruması):** LRCLIB sunucusundan HTTP 429 yanıtı geldiğinde sunucunun `Retry-After` başlığı ayrıştırılır; UI üzerinde kullanıcı dostu bekleme süresi ve geri sayım gösterilir. API'ye gereksiz tekrar istek fırlatılması engellenir ve yerel disk önbelleğindeki şarkı sözleri kesintisiz olarak önceliklendirilir.
+- **Windows Açılışında Başlatma Güvenliği:** `IWindowsStartupManager` ve `WindowsStartupManager` ile `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` kaydı güvenli şekilde yönetilir. Kullanıcı açıkça işaretlemedikçe devreye girmez; Inno Setup kaldırıcısı `uninsdeletevalue` bayrağı ile kaldırma sonrasında hiçbir artık kayıt bırakmaz.
+- **Test ve Release Paketi:**
+  - 95 xUnit testi (%100 başarı: 20 Core + 21 Audio + 33 Music + 21 App).
+  - Self-contained `win-x64` Release yayını.
+  - Inno Setup 6 kurulum paketi: `Lyrow-1.0.0-Setup-x64.exe` (57.0 MB).
+  - Taşınabilir zip arşivi: `Lyrow-win-x64-portable.zip` (81.6 MB).
+  - Git etiketi `v1.0.0` ve resmi GitHub Release.
 
 - **Gerçek Windows Click-Through (`WS_EX_TRANSPARENT`):** Windows native Win32 window handle (`HWND`) üzerinden `GetWindowLongPtr` ve `SetWindowLongPtr` çağrılarıyla `WS_EX_LAYERED | WS_EX_TRANSPARENT` dinamik olarak uygulanır. P/Invoke mantığı `WindowsWindowPlatformAdapter` ile UI katmanından tamamen izole edildi; Windows dışı ve test ortamları için `SyntheticWindowPlatformAdapter` sağlandı. Click-through açıldığında overlay'e gelen fare tıklamaları arka plandaki masaüstü veya uygulamalara eksiksiz geçer; kapatıldığında pencereler normal etkileşime geri döner.
 - **Çoklu Monitör ve DPI Duyarlı Konumlandırma:** `OverlayPositionManager` Avalonia ekran API'si (`Screens.All`) üzerinden tüm monitörleri algılar. Kullanıcı `Center`, `TopLeft`, `TopCenter`, `TopRight`, `BottomLeft`, `BottomCenter`, `BottomRight` konumlarından birini ve hedef monitörünü seçebilir. Ekran DPI ölçeği (`Screen.Scaling`) hesaba katılarak fiziksel piksel koordinatları otomatik ölçeklenir. İkincil monitörün sökülmesi veya geçersiz indeks durumunda sistem birincil monitöre zarifçe geri döner (`ResolveTargetScreen`).

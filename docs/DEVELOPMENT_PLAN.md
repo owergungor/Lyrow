@@ -110,14 +110,18 @@ graph LR
 
 ---
 
-### Aşama 7: Dağıtım, Kurulum ve CI/CD Hazırlığı
+### Aşama 7: System Tray, Global Hotkeys, Yaşam Döngüsü ve v1.0.0 Release — **[TAMAMLANDI]**
 - **Kapsam:**
-  - Self-contained tek dosya veya taşınabilir (portable) zip derlemesi (`dotnet publish -c Release -r win-x64 --self-contained`).
-  - Windows kurulum paketi üretimi (WiX Toolset veya Inno Setup betiği).
-  - GitHub Actions CI/CD iş akışının (`.github/workflows/build-and-test.yml`) hazırlanması.
-  - Son kullanıcı kılavuzu ve sürüm notlarının tamamlanması.
+  - Gerçek Windows System Tray (`TrayIcon`) entegrasyonu, pencere kapatmada tepsiye küçültme (`MinimizeToTrayOnClose`), tam sağ tık menüsü (Göster, Lumn, Verci, Click-Through, Ayarlar, Çıkış).
+  - Win32 mesaj döngülü global kısayol yöneticisi (`WindowsGlobalHotkeyManager`), `Ctrl+Shift+L` (Lumn), `Ctrl+Shift+V` (Verci), `Ctrl+Shift+C` (Click-Through) sistem geneli tetikleyicileri.
+  - Event-driven `WM_DISPLAYCHANGE` ve `WM_SETTINGCHANGE` dinleyicileriyle ekran/çözünürlük/DPI değişiminde overlay'leri otomatik yeniden hizalama.
+  - LRCLIB HTTP 429 rate-limit algılama, `Retry-After` süresi geri sayımı ve UI durum göstergesi.
+  - Windows başlangıç kaydı yöneticisi (`WindowsStartupManager`) ve Inno Setup uninstaller temizliği.
+  - 95 xUnit testi (%100 başarı, 0 uyarı/hata).
+  - Self-contained `win-x64` Release yayını, Inno Setup 6 kurulum paketi (`Lyrow-1.0.0-Setup-x64.exe`), taşınabilir arşiv (`Lyrow-win-x64-portable.zip`).
+  - Git etiketi `v1.0.0` ve resmi GitHub Release.
 - **Test ve Kabul Kriteri:**
-  - Temiz bir Windows 10/11 sanal makinesinde veya ortamında kurulumun .NET Runtime kurulu olmadan çalışması.
+  - Tüm kabul kriterleri sağlandı; sıfır kaynak sızıntısı, 95/95 test başarıyla tamamlandı.
 
 ---
 

@@ -19,3 +19,8 @@ public sealed record LyricsLoadedEvent(SyncedLyrics Lyrics, string Source);
 /// Event broadcast when the current active lyric line advances to a new index.
 /// </summary>
 public sealed record ActiveLyricLineChangedEvent(int LineIndex, LyricLine? Line);
+
+/// <summary>
+/// Event broadcast when lyrics lookup fails or is rate limited.
+/// </summary>
+public sealed record LyricsFetchFailedEvent(string ErrorMessage, bool IsRateLimited, int RetryAfterSeconds);

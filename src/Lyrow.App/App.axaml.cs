@@ -51,8 +51,34 @@ public partial class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow(moduleManager, settingsManager);
+            desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
+
+            var platformAdapter = Services.GetRequiredService<IWindowPlatformAdapter>();
+            var startupManager = Services.GetRequiredService<IWindowsStartupManager>();
+            var hotkeyManager = Services.GetRequiredService<IGlobalHotkeyManager>();
+            var trayIconManager = Services.GetRequiredService<Lyrow.App.Platform.LyrowTrayIconManager>();
+
+            var mainWindow = new MainWindow(
+                moduleManager,
+                settingsManager,
+                platformAdapter,
+                startupManager,
+                hotkeyManager,
+                trayIconManager);
+
+            desktop.MainWindow = mainWindow;
             desktop.Exit += OnAppExit;
+
+            if (settings.SystemTrayEnabled)
+            {
+                trayIconManager.Initialize(
+                    onShowMainWindow: () => mainWindow.ShowAndActivate(),
+                    onToggleLumn: () => mainWindow.ToggleLumnFromExternal(),
+                    onToggleVerci: () => mainWindow.ToggleVerciFromExternal(),
+                    onToggleClickThrough: () => mainWindow.ToggleClickThroughFromExternal(),
+                    onOpenSettings: () => mainWindow.ShowAndActivate(),
+                    onExit: () => mainWindow.RequestExit());
+            }
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -62,6 +88,12 @@ public partial class App : Application
     {
         try
         {
+            var hotkeys = Services?.GetService<IGlobalHotkeyManager>();
+            hotkeys?.Dispose();
+
+            var tray = Services?.GetService<Lyrow.App.Platform.LyrowTrayIconManager>();
+            tray?.Dispose();
+
             var moduleManager = Services?.GetService<IModuleManager>();
             if (moduleManager != null)
             {
@@ -139,6 +171,26 @@ public partial class App : Application
             }
             return new Lyrow.App.Platform.SyntheticWindowPlatformAdapter();
         });
+
+        services.AddSingleton<IWindowsStartupManager>(sp =>
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return new Lyrow.App.Platform.WindowsStartupManager();
+            }
+            return new Lyrow.App.Platform.SyntheticStartupManager();
+        });
+
+        services.AddSingleton<IGlobalHotkeyManager>(sp =>
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return new Lyrow.App.Platform.WindowsGlobalHotkeyManager();
+            }
+            return new Lyrow.App.Platform.SyntheticGlobalHotkeyManager();
+        });
+
+        services.AddSingleton<Lyrow.App.Platform.LyrowTrayIconManager>();
     }
 
     public static void ApplyTheme(ThemeMode theme)

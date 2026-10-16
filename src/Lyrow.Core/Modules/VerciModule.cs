@@ -22,6 +22,7 @@ public sealed class VerciModule : ILyrowModule
     private MediaTimelineInfo _currentTimeline = MediaTimelineInfo.Zero;
     private int _activeLineIndex = -1;
     private bool _isDisposed;
+    private DateTime _rateLimitUntilUtc = DateTime.MinValue;
 
     public VerciModule(
         IMediaSessionMonitor? mediaSessionMonitor = null,
@@ -231,6 +232,20 @@ public sealed class VerciModule : ILyrowModule
         // 2. Fetch from LRCLIB API
         if (_lyricsClient != null)
         {
+            if (DateTime.UtcNow < _rateLimitUntilUtc)
+            {
+                int remaining = (int)Math.Max(1, (_rateLimitUntilUtc - DateTime.UtcNow).TotalSeconds);
+                if (_eventBus != null)
+                {
+                    await _eventBus.PublishAsync(new LyricsFetchFailedEvent(
+                        $"İstek limiti aşıldı. Lütfen {remaining} saniye bekleyin.",
+                        IsRateLimited: true,
+                        RetryAfterSeconds: remaining), ct).ConfigureAwait(false);
+                }
+                _currentLyrics = SyncedLyrics.Empty;
+                return;
+            }
+
             var result = await _lyricsClient.FetchLyricsAsync(track.Title, track.Artist, track.Duration, ct).ConfigureAwait(false);
             if (result.Found && result.Lyrics != null)
             {
@@ -246,6 +261,19 @@ public sealed class VerciModule : ILyrowModule
                     await _eventBus.PublishAsync(new LyricsLoadedEvent(result.Lyrics, result.Source), ct).ConfigureAwait(false);
                 }
                 return;
+            }
+
+            if (result.IsRateLimited)
+            {
+                _rateLimitUntilUtc = DateTime.UtcNow.AddSeconds(result.RetryAfterSeconds);
+            }
+
+            if (_eventBus != null)
+            {
+                await _eventBus.PublishAsync(new LyricsFetchFailedEvent(
+                    result.Error ?? "Lyrics not found.",
+                    result.IsRateLimited,
+                    result.RetryAfterSeconds), ct).ConfigureAwait(false);
             }
         }
 

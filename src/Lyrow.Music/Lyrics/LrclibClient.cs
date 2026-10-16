@@ -58,7 +58,26 @@ public sealed class LrclibClient : ILyricsClient
 
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
-                return new LyricsSearchResult(false, null, "LRCLIB", "Rate limited by LRCLIB API. Try again later.");
+                int retrySeconds = 15;
+                if (response.Headers.RetryAfter != null)
+                {
+                    if (response.Headers.RetryAfter.Delta.HasValue)
+                    {
+                        retrySeconds = (int)Math.Max(1, response.Headers.RetryAfter.Delta.Value.TotalSeconds);
+                    }
+                    else if (response.Headers.RetryAfter.Date.HasValue)
+                    {
+                        var diff = response.Headers.RetryAfter.Date.Value - DateTimeOffset.UtcNow;
+                        retrySeconds = (int)Math.Max(1, diff.TotalSeconds);
+                    }
+                }
+                return new LyricsSearchResult(
+                    Found: false,
+                    Lyrics: null,
+                    Source: "LRCLIB",
+                    Error: $"Rate limited by LRCLIB API. {retrySeconds} saniye sonra tekrar denenecek.",
+                    IsRateLimited: true,
+                    RetryAfterSeconds: retrySeconds);
             }
 
             if (!response.IsSuccessStatusCode)

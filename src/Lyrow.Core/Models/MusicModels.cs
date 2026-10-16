@@ -156,4 +156,6 @@ public sealed record LyricsSearchResult(
     bool Found,
     SyncedLyrics? Lyrics,
     string Source,
-    string? Error = null);
+    string? Error = null,
+    bool IsRateLimited = false,
+    int RetryAfterSeconds = 0);

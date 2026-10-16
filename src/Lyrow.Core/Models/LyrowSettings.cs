@@ -33,6 +33,10 @@ public sealed class LyrowSettings
 
     public bool MinimizeToTray { get; set; } = true;
 
+    public bool SystemTrayEnabled { get; set; } = true;
+
+    public HotkeySettings Hotkeys { get; set; } = new();
+
     public Dictionary<string, string> ModuleCustomSettings { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Creates a clean default instance.</summary>
