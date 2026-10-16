@@ -71,12 +71,23 @@
                         </Grid>
                         <TextBlock Text="WASAPI Loopback ile sistem sesini donanım hızlandırmalı frekans spektrumuna ve ritmik ışık dalgalarına dönüştürür."
                                    TextWrapping="Wrap" FontSize="12" Opacity="0.8" />
-                        <Button x:Name="BtnToggleLumn" 
-                                Content="Lumn'u Başlat" 
-                                Classes="action-button" 
-                                HorizontalAlignment="Stretch" 
-                                HorizontalContentAlignment="Center"
-                                Click="OnToggleLumnClick" />
+                        <Grid ColumnDefinitions="*,*">
+                            <Button x:Name="BtnToggleLumn" 
+                                    Content="Lumn'u Başlat" 
+                                    Classes="action-button" 
+                                    HorizontalAlignment="Stretch" 
+                                    HorizontalContentAlignment="Center"
+                                    Margin="0,0,4,0"
+                                    Click="OnToggleLumnClick" />
+                            <Button x:Name="BtnOpenVisualizer" 
+                                    Grid.Column="1"
+                                    Content="Spektrum Penceresi" 
+                                    Classes="action-button" 
+                                    HorizontalAlignment="Stretch" 
+                                    HorizontalContentAlignment="Center"
+                                    Margin="4,0,0,0"
+                                    Click="OnOpenVisualizerClick" />
+                        </Grid>
                     </StackPanel>
                 </Border>
 

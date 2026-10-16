@@ -9,6 +9,8 @@ public sealed class LyrowSettings
 
     public bool LumnEnabled { get; set; } = true;
 
+    public LumnSettings Lumn { get; set; } = new();
+
     public bool VerciEnabled { get; set; } = true;
 
     public bool VisualIntegrationEnabled { get; set; } = true;

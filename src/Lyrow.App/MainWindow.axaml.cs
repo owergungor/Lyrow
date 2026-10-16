@@ -90,6 +90,8 @@ public partial class MainWindow : Window
         BtnToggleVerci.Content = verciRunning ? "Verci'yi Durdur" : "Verci'yi Başlat";
     }
 
+    private LumnWindow? _lumnWindow;
+
     private async void OnToggleLumnClick(object? sender, RoutedEventArgs e)
     {
         var lumn = _moduleManager.GetModule("lumn");
@@ -97,6 +99,20 @@ public partial class MainWindow : Window
         await _moduleManager.SetModuleActiveAsync("lumn", target);
         await _settingsManager.UpdateAsync(s => s.LumnEnabled = target);
         StatusMessageText.Text = $"Lumn {(target ? "başlatıldı" : "durduruldu")}. Ayarlar kaydedildi.";
+    }
+
+    private void OnOpenVisualizerClick(object? sender, RoutedEventArgs e)
+    {
+        var lumn = _moduleManager.GetModule("lumn") as Lyrow.Core.Modules.LumnModule;
+        if (lumn == null) return;
+
+        if (_lumnWindow == null)
+        {
+            _lumnWindow = new LumnWindow(lumn, _settingsManager);
+        }
+
+        _lumnWindow.Show();
+        _lumnWindow.Activate();
     }
 
     private async void OnToggleVerciClick(object? sender, RoutedEventArgs e)

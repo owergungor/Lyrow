@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Lyrow.Core\Lyrow.Core.csproj" />
+    <ProjectReference Include="..\Lyrow.Audio\Lyrow.Audio.csproj" />
   </ItemGroup>
 
   <ItemGroup>

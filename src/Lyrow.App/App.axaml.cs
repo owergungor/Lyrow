@@ -63,7 +63,24 @@ public partial class App : Application
         services.AddSingleton<IEventBus, InMemoryEventBus>();
         services.AddSingleton<ISettingsManager, SettingsManager>();
         services.AddSingleton<IModuleManager, ModuleManager>();
-        services.AddSingleton<LumnModule>();
+
+        // Audio pipeline services
+        services.AddSingleton<IAudioCaptureService>(sp =>
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return new Lyrow.Audio.Capture.WasapiAudioCaptureService();
+            }
+            return new Lyrow.Audio.Capture.SyntheticAudioCaptureService();
+        });
+        services.AddSingleton<ISpectrumAnalyzer>(sp => new Lyrow.Audio.Analysis.SpectrumAnalyzer(fftSize: 2048, barCount: 32));
+
+        services.AddSingleton<LumnModule>(sp => new LumnModule(
+            sp.GetRequiredService<IAudioCaptureService>(),
+            sp.GetRequiredService<ISpectrumAnalyzer>(),
+            sp.GetRequiredService<IEventBus>(),
+            sp.GetRequiredService<ISettingsManager>()));
+
         services.AddSingleton<VerciModule>();
     }
 

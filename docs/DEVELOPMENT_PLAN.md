@@ -44,17 +44,20 @@ graph LR
 
 ---
 
-### Aşama 3: Lumn Modülü (Ses Yakalama ve Görselleştirme)
+### Aşama 3: Lumn Modülü (Ses Yakalama ve Görselleştirme) — **[TAMAMLANDI]**
 - **Kapsam:**
-  - `NAudio.Wasapi` ile WASAPI Loopback sistem ses akışının bağlanması.
-  - Hanning pencereli ve sıfır-tahsisli FFT analiz motorunun (`FftAnalyzer`) yazılması.
-  - Frekans bantlarının (Sub-bass, Bass, Mid, Treble) ayrıştırılması.
-  - Avalonia üzerinde donanım hızlandırmalı ilk ışık efektleri ve dalga spektrum penceresinin (`LumnWindow`) oluşturulması.
-  - Ses cihazı değişimi (`AUDCLNT_E_DEVICE_INVALIDATED`) yönetiminin doğrulanması.
+  - `NAudio.Wasapi` ile WASAPI Loopback sistem ses akışının bağlanması (`WasapiAudioCaptureService`).
+  - Hanning pencereli ve sıfır-tahsisli Radix-2 Cooley-Tukey FFT analiz motorunun (`FftAnalyzer`) yazılması.
+  - Güç, tepe değer, dBFS loudness ve sessizlik algılama (`AudioLevelAnalyzer`).
+  - Frekans bantlarının (Sub-bass, Bass, Mid, Treble) ve logaritmik 32 çubuğun ayrıştırılması (`FrequencyBandProcessor`).
+  - Avalonia 12 üzerinde donanım hızlandırmalı GPU spektrum ve ambiyans parıltı penceresinin (`LumnWindow` & `LumnVisualizerControl`) oluşturulması.
+  - Ses cihazı değişimi ve `AUDCLNT_E_DEVICE_INVALIDATED` otomatik yeniden bağlanma yönetiminin doğrulanması.
+  - CI ve donanımsız ortamlar için sanal test servisi (`SyntheticAudioCaptureService`).
 - **Test ve Kabul Kriteri:**
-  - Bilgisayardan ses çalındığında spektrumun gerçek zamanlı hareket etmesi.
-  - Ses durdurulduğunda CPU kullanımının %0-1 aralığına inmesi.
-  - `Lyrow.Audio.Tests` altında FFT algoritmasının bilinen sinüs dalgaları ile matematiksel doğrulanması.
+  - Bilgisayardan ses çalındığında spektrumun 60 FPS hızında pürüzsüz akması.
+  - Ses durdurulduğunda / sessizlikte FFT atlama ve yumuşak sönümleme ile CPU kullanımının %0 seviyesine inmesi.
+  - `Lyrow.Audio.Tests` altında 19 adet xUnit testinin (440 Hz, 100 Hz sinüs dalgaları, RMS doğruluğu, Hanning penceresi, falloff smoothing, stereo/mono ve cihaz değişimi) %100 başarıyla geçmesi.
+  - Toplam solution testlerinin 36'ya ulaşması (17 Core + 19 Audio).
 
 ---
 

@@ -26,7 +26,7 @@
 
 ## 🚀 Özellik Durumu (Gerçekleştirilen vs. Planlanan)
 
-### Mevcut (Aşama 1 & Aşama 2)
+### Mevcut (Aşama 1, Aşama 2 & Aşama 3)
 - [x] Mimari tasarım ve bileşen sınırlarının belirlenmesi.
 - [x] Temel modül arayüzleri (`ILyrowModule`, `ModuleState`, `ModuleMetadata`).
 - [x] Modül yaşam döngüsü yöneticisi (`IModuleManager`, `ModuleManager`) ile 4 çalışma durumunun desteklenmesi:
@@ -39,11 +39,19 @@
 - [x] Dependency Injection (`Microsoft.Extensions.DependencyInjection`) tabanlı altyapı.
 - [x] Avalonia UI tabanlı ana pencere ve Neumorphic modern tasarım token'ları.
 - [x] Açık, Koyu ve Sistem temasını izleme (`ThemeVariant.Default`, `ThemeVariant.Dark`, `ThemeVariant.Light`).
-- [x] Yaşam döngüsü, ayar kalıcılığı ve olay dağıtımı için kapsamlı xUnit birim testleri.
-- [x] GitHub Actions CI iş akışı.
+- [x] **Lumn Ses Analizi & Görselleştirme (Aşama 3):**
+  - Windows Core Audio / WASAPI Loopback ile sistem sesini sürücü düzeyinde yakalama (`WasapiAudioCaptureService`).
+  - Hanning pencereli, sıfır-tahsisli Radix-2 Cooley-Tukey FFT frekans analiz motoru (`FftAnalyzer`).
+  - RMS, tepe değer (Peak), dBFS loudness ve sessizlik algılama (`AudioLevelAnalyzer`).
+  - Logaritmik frekans bantları (Sub-bass 20-60 Hz, Bass 60-250 Hz, Mid 250-4000 Hz, Treble 4000-20000 Hz) ve dinamik tepe düşüş yumuşatma (`FrequencyBandProcessor`).
+  - Cihaz değişikliği yönetimi ve `AUDCLNT_E_DEVICE_INVALIDATED` durumunda otomatik kurtarma döngüsü.
+  - CI ve donanımsız ortamlar için sentetik ses üreteci (`SyntheticAudioCaptureService`).
+  - GPU hızlandırmalı gerçek zamanlı (60 FPS) spektrum ve ambiyans parıltı görselleştirici penceresi (`LumnWindow` & `LumnVisualizerControl`).
+  - Verci'den tamamen bağımsız başlatma ve durdurma yeteneği (Sıfır arka plan yükü: boşta CPU %0).
+- [x] 36 adet xUnit birim ve entegrasyon testi (%100 başarı).
+- [x] GitHub Actions CI iş akışı (Release derleme ve test doğrulama).
 
-### Planlanan (Aşama 3 - Aşama 7)
-- [ ] **Lumn (Aşama 3):** WASAPI Loopback sistem sesi yakalama (`NAudio.Wasapi`), sıfır-tahsisli FFT frekans analizi, donanım hızlandırmalı dinamik ışık efektleri.
+### Planlanan (Aşama 4 - Aşama 7)
 - [ ] **Verci (Aşama 4):** Windows GSMTC medya izleyicisi, LRCLIB REST API istemcisi, senkronize LRC şarkı sözü zamanlayıcısı ve kaydırma animasyonu.
 - [ ] **Görsel Entegrasyon (Aşama 5):** Win32 `WS_EX_TRANSPARENT` Click-Through adaptörü, Neumorphism ambiyans ışık entegrasyonu.
 - [ ] **Performans Optimizasyonu (Aşama 6):** Canlı bellek ve CPU ölçümleri, 3 saatlik stres testi.

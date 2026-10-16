@@ -1,0 +1,68 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:Lyrow.App.Controls"
+        x:Class="Lyrow.App.LumnWindow"
+        Title="Lyrow — Lumn Audio Visualizer"
+        Width="680" Height="280"
+        MinWidth="400" MinHeight="200"
+        WindowStartupLocation="CenterScreen"
+        Background="#181825"
+        CanResize="True"
+        WindowDecorations="None">
+
+    <Border BorderBrush="#313244" BorderThickness="1" CornerRadius="16" Background="#181825">
+        <Grid RowDefinitions="Auto,*,Auto" Margin="18">
+            <!-- Header Bar -->
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <Border Width="10" Height="10" CornerRadius="5" Background="#89B4FA" />
+                    <TextBlock Text="Lumn" FontSize="16" FontWeight="SemiBold" Foreground="#CDD6F4" VerticalAlignment="Center"/>
+                    <Border Background="#252538" CornerRadius="8" Padding="8,3">
+                        <TextBlock x:Name="DeviceNameText" Text="Sistem Sesi (WASAPI)" FontSize="11" Foreground="#A6ADC8" />
+                    </Border>
+                </StackPanel>
+
+                <!-- Audio Metrics Badges -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+                    <Border Background="#1E1E2E" CornerRadius="6" Padding="6,2" BorderBrush="#313244" BorderThickness="1">
+                        <TextBlock x:Name="RmsText" Text="RMS: 0.00" FontSize="11" Foreground="#A6ADC8"/>
+                    </Border>
+                    <Border Background="#1E1E2E" CornerRadius="6" Padding="6,2" BorderBrush="#313244" BorderThickness="1">
+                        <TextBlock x:Name="DbText" Text="-90 dB" FontSize="11" Foreground="#A6ADC8"/>
+                    </Border>
+                    <Border Background="#1E1E2E" CornerRadius="6" Padding="6,2" BorderBrush="#313244" BorderThickness="1">
+                        <TextBlock x:Name="BassText" Text="Bass: 0%" FontSize="11" Foreground="#F38BA8"/>
+                    </Border>
+                    <Border Background="#1E1E2E" CornerRadius="6" Padding="6,2" BorderBrush="#313244" BorderThickness="1">
+                        <TextBlock x:Name="MidText" Text="Mid: 0%" FontSize="11" Foreground="#89B4FA"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Window Action Buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                    <Button x:Name="MinimizeButton" Content="—" Width="28" Height="28" CornerRadius="6"
+                            Background="#252538" Foreground="#CDD6F4" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                    <Button x:Name="CloseButton" Content="✕" Width="28" Height="28" CornerRadius="6"
+                            Background="#252538" Foreground="#CDD6F4" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Real-Time Spectrum Visualizer Canvas -->
+            <Border Grid.Row="1" Background="#11111B" CornerRadius="12" Padding="12,12,12,6" BorderBrush="#252538" BorderThickness="1">
+                <controls:LumnVisualizerControl x:Name="VisualizerControl" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+            </Border>
+
+            <!-- Bottom Control Footer -->
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,10,0,0">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="Hassasiyet:" FontSize="11" Foreground="#6C7086" VerticalAlignment="Center"/>
+                    <Slider x:Name="SensitivitySlider" Minimum="0.5" Maximum="2.5" Value="1.0" Width="100" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock x:Name="StatusLabel" Text="Canlı Dinleniyor (60 FPS)" FontSize="11" Foreground="#A6E3A1" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
