@@ -115,6 +115,8 @@ public partial class MainWindow : Window
         _lumnWindow.Activate();
     }
 
+    private VerciWindow? _verciWindow;
+
     private async void OnToggleVerciClick(object? sender, RoutedEventArgs e)
     {
         var verci = _moduleManager.GetModule("verci");
@@ -122,6 +124,20 @@ public partial class MainWindow : Window
         await _moduleManager.SetModuleActiveAsync("verci", target);
         await _settingsManager.UpdateAsync(s => s.VerciEnabled = target);
         StatusMessageText.Text = $"Verci {(target ? "başlatıldı" : "durduruldu")}. Ayarlar kaydedildi.";
+    }
+
+    private void OnOpenLyricsClick(object? sender, RoutedEventArgs e)
+    {
+        var verci = _moduleManager.GetModule("verci") as Lyrow.Core.Modules.VerciModule;
+        if (verci == null) return;
+
+        if (_verciWindow == null)
+        {
+            _verciWindow = new VerciWindow(verci, _settingsManager);
+        }
+
+        _verciWindow.Show();
+        _verciWindow.Activate();
     }
 
     private async void OnModeBothDisabledClick(object? sender, RoutedEventArgs e)

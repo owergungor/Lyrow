@@ -61,16 +61,22 @@ graph LR
 
 ---
 
-### Aşama 4: Verci Modülü (Müzik Metadata ve Senkronize Şarkı Sözleri)
+### Aşama 4: Verci Modülü (Müzik Metadata ve Senkronize Şarkı Sözleri) — **[TAMAMLANDI]**
 - **Kapsam:**
-  - Windows GSMTC (`GlobalSystemMediaTransportControlsSessionManager`) ile arka planda çalan müziğin (Spotify/Chrome/Apple Music) başlık, sanatçı ve albüm kapağının yakalanması.
-  - LRCLIB REST API istemcisinin (`LrclibClient`) yazılması ve yerel disk önbelleği (`LyricsCache`).
-  - `.lrc` senkronize şarkı sözü ayrıştırıcısının (LRC Parser) kodlanması.
-  - Yüzen şarkı sözü penceresinin (`VerciWindow`) ve pürüzsüz satır kaydırma animasyonunun hazırlanması.
+  - Windows GSMTC (`GlobalSystemMediaTransportControlsSessionManager`) ile arka planda çalan müziğin (Spotify/Chrome/Apple Music) başlık, sanatçı, albüm ve süresinin yakalanması (`WindowsGsmtcMediaSessionMonitor`).
+  - Donanımsız / CI ortamları için tam donanımlı simülasyon monitörü (`SyntheticMediaSessionMonitor`).
+  - LRCLIB REST API istemcisinin (`LrclibClient`) kodlanması; 404, 429 rate-limit, timeout ve network hata koruması.
+  - Standart, çoklu timestamp'li ve milisaniye destekli `.lrc` senkronize şarkı sözü ayrıştırıcısı (`LrcParser`).
+  - $O(\log N)$ Binary Search ile sıfır-tahsisli aktif satır seçimi (`SyncedLyrics.FindActiveLineIndex`).
+  - Disk tabanlı atomik yerel önbellek (`LocalFileLyricsCache`) ve dosya adı güvenliği (`SanitizeFileName`).
+  - Düşük CPU tüketimli, pürüzsüz enterpolasyonlu zamanlama motoru (`LyricsTimelineSynchronizer`).
+  - Avalonia 12 üzerinde bağımsız Neumorphic şarkı sözü penceresinin (`VerciWindow`) oluşturulması (aktif satır parıltısı, otomatik kaydırma, zaman ofseti ayarı).
+  - Lumn modülü olmadan tamamen bağımsız başlatma ve durdurma yeteneği.
 - **Test ve Kabul Kriteri:**
   - Spotify/YouTube üzerinde şarkı değiştiğinde sözlerin ve sürenin senkronize olarak akması.
   - Çevrimdışı modda önbellekteki şarkı sözlerinin gösterilebilmesi.
-  - `Lyrow.Music.Tests` altında LRC parsing ve zaman senkronizasyonu testlerinin geçmesi.
+  - `Lyrow.Music.Tests` altında 28 adet xUnit testinin (LRC parsing, çoklu timestamp, binary search, API mock, disk cache, synchronizer, modül lifecycle) %100 başarıyla geçmesi.
+  - Toplam solution test sayısının 64'e ulaşması (17 Core + 19 Audio + 28 Music).
 
 ---
 

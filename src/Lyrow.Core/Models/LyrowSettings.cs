@@ -13,6 +13,8 @@ public sealed class LyrowSettings
 
     public bool VerciEnabled { get; set; } = true;
 
+    public VerciSettings Verci { get; set; } = new();
+
     public bool VisualIntegrationEnabled { get; set; } = true;
 
     public bool ClickThroughEnabled { get; set; } = false;

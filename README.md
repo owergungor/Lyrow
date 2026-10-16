@@ -26,7 +26,7 @@
 
 ## 🚀 Özellik Durumu (Gerçekleştirilen vs. Planlanan)
 
-### Mevcut (Aşama 1, Aşama 2 & Aşama 3)
+### Mevcut (Aşama 1, Aşama 2, Aşama 3 & Aşama 4)
 - [x] Mimari tasarım ve bileşen sınırlarının belirlenmesi.
 - [x] Temel modül arayüzleri (`ILyrowModule`, `ModuleState`, `ModuleMetadata`).
 - [x] Modül yaşam döngüsü yöneticisi (`IModuleManager`, `ModuleManager`) ile 4 çalışma durumunun desteklenmesi:
@@ -43,16 +43,25 @@
   - Windows Core Audio / WASAPI Loopback ile sistem sesini sürücü düzeyinde yakalama (`WasapiAudioCaptureService`).
   - Hanning pencereli, sıfır-tahsisli Radix-2 Cooley-Tukey FFT frekans analiz motoru (`FftAnalyzer`).
   - RMS, tepe değer (Peak), dBFS loudness ve sessizlik algılama (`AudioLevelAnalyzer`).
-  - Logaritmik frekans bantları (Sub-bass 20-60 Hz, Bass 60-250 Hz, Mid 250-4000 Hz, Treble 4000-20000 Hz) ve dinamik tepe düşüş yumuşatma (`FrequencyBandProcessor`).
+  - Logaritmik frekans bantları (Sub-bass, Bass, Mid, Treble) ve dinamik tepe düşüş yumuşatma (`FrequencyBandProcessor`).
   - Cihaz değişikliği yönetimi ve `AUDCLNT_E_DEVICE_INVALIDATED` durumunda otomatik kurtarma döngüsü.
   - CI ve donanımsız ortamlar için sentetik ses üreteci (`SyntheticAudioCaptureService`).
   - GPU hızlandırmalı gerçek zamanlı (60 FPS) spektrum ve ambiyans parıltı görselleştirici penceresi (`LumnWindow` & `LumnVisualizerControl`).
   - Verci'den tamamen bağımsız başlatma ve durdurma yeteneği (Sıfır arka plan yükü: boşta CPU %0).
-- [x] 36 adet xUnit birim ve entegrasyon testi (%100 başarı).
+- [x] **Verci Medya Metadata & Senkronize Şarkı Sözleri (Aşama 4):**
+  - Windows GSMTC (`GlobalSystemMediaTransportControlsSessionManager`) ile sistemde çalan müziğin (Spotify, Apple Music, YouTube vb.) başlık, sanatçı, albüm ve kapak bilgilerinin yakalanması (`WindowsGsmtcMediaSessionMonitor`).
+  - CI ve donanımsız ortamlar için tam donanımlı simülasyon servisi (`SyntheticMediaSessionMonitor`).
+  - LRCLIB REST API istemcisi (`LrclibClient`); 404, 429 rate-limiting ve timeout hata yönetimi.
+  - Standart, çoklu timestamp'li ve 2/3 basamaklı milisaniyeleri destekleyen, kronolojik sıralamalı yüksek performanslı LRC ayrıştırıcısı (`LrcParser`).
+  - $O(\log N)$ Binary Search ile sıfır-tahsisli aktif satır seçici (`SyncedLyrics.FindActiveLineIndex`).
+  - Yerel disk önbelleği (`LocalFileLyricsCache`) ile çevrimdışı kullanım ve anında söz yükleme.
+  - Düşük CPU tüketimli, pürüzsüz enterpolasyonlu zamanlama motoru (`LyricsTimelineSynchronizer`).
+  - Avalonia 12 Neumorphic temalı bağımsız şarkı sözü penceresi (`VerciWindow`); aktif satır vurgulama, pürüzsüz otomatik kaydırma ve manuel ms zaman kaydırma.
+  - Lumn'dan tamamen bağımsız çalışabilme ilkesi ve gevşek bağlı `IEventBus` olayları.
+- [x] 64 adet xUnit birim ve entegrasyon testi (%100 başarı: 17 Core + 19 Audio + 28 Music).
 - [x] GitHub Actions CI iş akışı (Release derleme ve test doğrulama).
 
-### Planlanan (Aşama 4 - Aşama 7)
-- [ ] **Verci (Aşama 4):** Windows GSMTC medya izleyicisi, LRCLIB REST API istemcisi, senkronize LRC şarkı sözü zamanlayıcısı ve kaydırma animasyonu.
+### Planlanan (Aşama 5 - Aşama 7)
 - [ ] **Görsel Entegrasyon (Aşama 5):** Win32 `WS_EX_TRANSPARENT` Click-Through adaptörü, Neumorphism ambiyans ışık entegrasyonu.
 - [ ] **Performans Optimizasyonu (Aşama 6):** Canlı bellek ve CPU ölçümleri, 3 saatlik stres testi.
 - [ ] **Windows Dağıtımı (Aşama 7):** Self-contained tek dosya derlemesi ve Windows yükleyici paketi.

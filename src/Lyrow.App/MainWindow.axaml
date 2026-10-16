@@ -110,12 +110,23 @@
                         </Grid>
                         <TextBlock Text="Windows GSMTC üzerinden çalan şarkıyı tespit eder; LRCLIB ile senkronize şarkı sözlerini yüzen pencerede gösterir."
                                    TextWrapping="Wrap" FontSize="12" Opacity="0.8" />
-                        <Button x:Name="BtnToggleVerci" 
-                                Content="Verci'yi Başlat" 
-                                Classes="action-button" 
-                                HorizontalAlignment="Stretch" 
-                                HorizontalContentAlignment="Center"
-                                Click="OnToggleVerciClick" />
+                        <Grid ColumnDefinitions="*,*">
+                            <Button x:Name="BtnToggleVerci" 
+                                    Content="Verci'yi Başlat" 
+                                    Classes="action-button" 
+                                    HorizontalAlignment="Stretch" 
+                                    HorizontalContentAlignment="Center"
+                                    Margin="0,0,4,0"
+                                    Click="OnToggleVerciClick" />
+                            <Button x:Name="BtnOpenLyrics" 
+                                    Grid.Column="1"
+                                    Content="Sözler Penceresi" 
+                                    Classes="action-button" 
+                                    HorizontalAlignment="Stretch" 
+                                    HorizontalContentAlignment="Center"
+                                    Margin="4,0,0,0"
+                                    Click="OnOpenLyricsClick" />
+                        </Grid>
                     </StackPanel>
                 </Border>
             </Grid>

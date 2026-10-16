@@ -81,7 +81,24 @@ public partial class App : Application
             sp.GetRequiredService<IEventBus>(),
             sp.GetRequiredService<ISettingsManager>()));
 
-        services.AddSingleton<VerciModule>();
+        // Music & Lyrics pipeline services
+        services.AddSingleton<IMediaSessionMonitor>(sp =>
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return new Lyrow.Music.Session.WindowsGsmtcMediaSessionMonitor();
+            }
+            return new Lyrow.Music.Session.SyntheticMediaSessionMonitor();
+        });
+        services.AddSingleton<ILyricsClient, Lyrow.Music.Lyrics.LrclibClient>();
+        services.AddSingleton<ILyricsCache, Lyrow.Music.Lyrics.LocalFileLyricsCache>();
+
+        services.AddSingleton<VerciModule>(sp => new VerciModule(
+            sp.GetRequiredService<IMediaSessionMonitor>(),
+            sp.GetRequiredService<ILyricsClient>(),
+            sp.GetRequiredService<ILyricsCache>(),
+            sp.GetRequiredService<IEventBus>(),
+            sp.GetRequiredService<ISettingsManager>()));
     }
 
     public static void ApplyTheme(ThemeMode theme)
