@@ -4,7 +4,19 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\lyrow.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Authors>Lyrow Team</Authors>
+    <Company>Lyrow</Company>
+    <Product>Lyrow</Product>
+    <Description>High-performance ambient audio visualization and synchronized lyrics engine for Windows</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Lyrow.Core\Lyrow.Core.csproj" />

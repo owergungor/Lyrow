@@ -13,8 +13,24 @@ Bu belge, Lyrow projesinin aşama bazlı kilometre taşlarını, ilerleme durumu
 | **M3** | **Aşama 3: Lumn Modülü (Ses Analizi & Görselleştirme)** | WASAPI Loopback sistem sesi yakalama, sıfır-tahsisli FFT analiz motoru, RMS/dBFS seviye algılama, logaritmik frekans bantları, Avalonia GPU hızlandırmalı dinamik spektrum penceresi (`LumnWindow`), 19 xUnit testi. | **TAMAMLANDI** |
 | **M4** | **Aşama 4: Verci Modülü (Metadata & Senkronize Sözler)** | Windows GSMTC medya entegrasyonu, LRCLIB REST API istemcisi, çoklu timestamp destekli LRC ayrıştırıcı, Binary Search satır seçimi, yerel disk önbelleği, Neumorphic şarkı sözü penceresi (`VerciWindow`), 28 xUnit testi. | **TAMAMLANDI** |
 | **M5** | **Aşama 5: Entegrasyon, Gerçek Windows Ortamı Doğrulaması & Polish** | Lumn + Verci eşzamanlı çalışma, gerçek WASAPI ve GSMTC donanım doğrulaması, gerçek LRCLIB çevrimiçi/çevrimdışı önbellek akışı, Açık/Koyu/Sistem temaları, timer ve adaptif GPU optimizasyonu, zarif kaynak temizliği, 71 xUnit testi. | **TAMAMLANDI** |
-| **M6** | **Aşama 6: Performans Profili & Kararlılık** | Uzun süreli stres testi, sınır durumları ve hata kurtarma mekanizmaları doğrulaması. | *Sıradaki Aşama* |
-| **M7** | **Aşama 7: Dağıtım, Kurulum & CI/CD** | Self-contained tek dosya derleme, Windows yükleyici (Installer), GitHub Actions iş akışı. | *Planlandı* |
+| **M6** | **Aşama 6: Ürünleştirme, UX, Windows Dağıtımı ve Son Kullanıcı Deneyimi** | Win32 native click-through (`WS_EX_LAYERED`/`WS_EX_TRANSPARENT`), çoklu monitör algılama ve 7 noktalı DPI ölçekli konumlandırma (`OverlayPositionManager`), tekilleştirilmiş Ayarlar ve parlatılmış Dashboard UI, self-contained win-x64 Inno Setup yükleyicisi (`Lyrow-1.0.0-Setup-x64.exe`), taşınabilir paket (`Lyrow-win-x64-portable.zip`), modern Neumorphic logo ve ikon (`lyrow.ico`), GitHub Releases iş akışı (`release.yml`), 86 xUnit testi. | **TAMAMLANDI** |
+| **M7** | **Aşama 7: Bakım, Topluluk ve Uzun Süreli Kararlılık** | Son kullanıcı geri bildirimleri, telemetri, otomatik güncelleme kontrolü ve uzun vadeli optimizasyonlar. | *Planlandı* |
+
+---
+
+## Aşama 6 Doğrulama Notları
+
+- **Gerçek Windows Click-Through (`WS_EX_TRANSPARENT`):** Windows native Win32 window handle (`HWND`) üzerinden `GetWindowLongPtr` ve `SetWindowLongPtr` çağrılarıyla `WS_EX_LAYERED | WS_EX_TRANSPARENT` dinamik olarak uygulanır. P/Invoke mantığı `WindowsWindowPlatformAdapter` ile UI katmanından tamamen izole edildi; Windows dışı ve test ortamları için `SyntheticWindowPlatformAdapter` sağlandı. Click-through açıldığında overlay'e gelen fare tıklamaları arka plandaki masaüstü veya uygulamalara eksiksiz geçer; kapatıldığında pencereler normal etkileşime geri döner.
+- **Çoklu Monitör ve DPI Duyarlı Konumlandırma:** `OverlayPositionManager` Avalonia ekran API'si (`Screens.All`) üzerinden tüm monitörleri algılar. Kullanıcı `Center`, `TopLeft`, `TopCenter`, `TopRight`, `BottomLeft`, `BottomCenter`, `BottomRight` konumlarından birini ve hedef monitörünü seçebilir. Ekran DPI ölçeği (`Screen.Scaling`) hesaba katılarak fiziksel piksel koordinatları otomatik ölçeklenir. İkincil monitörün sökülmesi veya geçersiz indeks durumunda sistem birincil monitöre zarifçe geri döner (`ResolveTargetScreen`).
+- **Tekilleştirilmiş Ayarlar ve Dashboard:** `MainWindow` son kullanıcı seviyesine taşındı. Canlı çalan medya bilgisi, anlık ses seviyesi (dB) ölçeri, şarkı sözü durum rozetleri, modül pencerelerinin açık/kapalı durumları ve tüm ayarlar (Tema, Monitör, Konum, Click-through, Lumn hassasiyeti, Verci otomatik söz ve yerel önbellek) tek ekranda toplandı. Ayarlar `%APPDATA%\Lyrow\settings.json` altında atomik olarak saklanır ve geriye dönük migration desteklenir.
+- **Windows Dağıtımı & Paketleme:**
+  - Self-contained `win-x64` Release publish (`dotnet publish -c Release -r win-x64 --self-contained true`).
+  - Inno Setup 6 ile derlenen `Lyrow-1.0.0-Setup-x64.exe` (57.0 MB) kurulum paketi üretildi.
+  - Bağımsız taşınabilir `Lyrow-win-x64-portable.zip` (81.6 MB) arşivi üretildi.
+  - Kullanıcı ayarları (`%APPDATA%\Lyrow`) yükseltme ve kaldırma süreçlerinde korunur.
+- **Uygulama İkonu & Marka:** Neumorphic koyu arkaplan, neon cam efektli frekans dalgası ve müzik notası hatlarını birleştiren modern `lyrow.ico` ve `lyrow.png` tasarlandı ve uygulamaya gömüldü.
+- **GitHub Actions Release:** `.github/workflows/release.yml` oluşturuldu. `v*` tag'leri ile tetiklenen Release build, test, Inno Setup derleme ve GitHub Releases varlık yüklemesi otomasyonu hazırlandı.
+- **Test Kapsamı:** 86 xUnit testi (%100 başarı: 19 Core + 21 Audio + 33 Music + 13 App).
 
 ---
 

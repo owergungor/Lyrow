@@ -130,6 +130,15 @@ public partial class App : Application
             sp.GetRequiredService<ILyricsCache>(),
             sp.GetRequiredService<IEventBus>(),
             sp.GetRequiredService<ISettingsManager>()));
+
+        services.AddSingleton<IWindowPlatformAdapter>(sp =>
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return new Lyrow.App.Platform.WindowsWindowPlatformAdapter();
+            }
+            return new Lyrow.App.Platform.SyntheticWindowPlatformAdapter();
+        });
     }
 
     public static void ApplyTheme(ThemeMode theme)

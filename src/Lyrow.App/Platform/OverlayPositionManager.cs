@@ -1,0 +1,86 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Platform;
+using Lyrow.Core.Models;
+
+namespace Lyrow.App.Platform;
+
+/// <summary>
+/// Multi-monitor aware window positioning service.
+/// Calculates accurate physical pixel coordinates accounting for display scaling, taskbar margins,
+/// and safe fallback when secondary monitors are disconnected.
+/// </summary>
+public static class OverlayPositionManager
+{
+    public const int DefaultMarginPixels = 24;
+
+    /// <summary>
+    /// Pure function calculating the window pixel position within a given display working area.
+    /// </summary>
+    public static PixelPoint CalculatePosition(
+        PixelRect workingArea,
+        PixelSize windowPixelSize,
+        OverlayPosition position,
+        int margin = DefaultMarginPixels)
+    {
+        int x = position switch
+        {
+            OverlayPosition.TopLeft or OverlayPosition.BottomLeft => workingArea.X + margin,
+            OverlayPosition.TopRight or OverlayPosition.BottomRight => workingArea.X + workingArea.Width - windowPixelSize.Width - margin,
+            _ => workingArea.X + (workingArea.Width - windowPixelSize.Width) / 2
+        };
+
+        int y = position switch
+        {
+            OverlayPosition.TopLeft or OverlayPosition.TopCenter or OverlayPosition.TopRight => workingArea.Y + margin,
+            OverlayPosition.BottomLeft or OverlayPosition.BottomCenter or OverlayPosition.BottomRight => workingArea.Y + workingArea.Height - windowPixelSize.Height - margin,
+            _ => workingArea.Y + (workingArea.Height - windowPixelSize.Height) / 2
+        };
+
+        // Guarantee window remains within visible bounds
+        x = Math.Clamp(x, workingArea.X, Math.Max(workingArea.X, workingArea.X + workingArea.Width - windowPixelSize.Width));
+        y = Math.Clamp(y, workingArea.Y, Math.Max(workingArea.Y, workingArea.Y + workingArea.Height - windowPixelSize.Height));
+
+        return new PixelPoint(x, y);
+    }
+
+    /// <summary>
+    /// Selects the designated target screen, gracefully falling back to primary screen
+    /// if index is invalid or monitor was unplugged.
+    /// </summary>
+    public static Screen? ResolveTargetScreen(IReadOnlyList<Screen>? screens, int targetIndex)
+    {
+        if (screens == null || screens.Count == 0) return null;
+
+        if (targetIndex >= 0 && targetIndex < screens.Count)
+        {
+            return screens[targetIndex];
+        }
+
+        return screens.FirstOrDefault(s => s.IsPrimary) ?? screens[0];
+    }
+
+    /// <summary>
+    /// Applies the calculated DPI-aware position to an Avalonia window.
+    /// </summary>
+    public static void ApplyPosition(Window window, OverlayPosition position, int targetMonitorIndex)
+    {
+        if (position == OverlayPosition.Center && targetMonitorIndex == 0)
+        {
+            // Default center behavior
+            return;
+        }
+
+        var screens = window.Screens?.All;
+        var screen = ResolveTargetScreen(screens, targetMonitorIndex);
+        if (screen == null) return;
+
+        double scaling = screen.Scaling > 0 ? screen.Scaling : 1.0;
+        var windowPixelSize = new PixelSize(
+            (int)Math.Round(window.Width * scaling),
+            (int)Math.Round(window.Height * scaling));
+
+        var targetPoint = CalculatePosition(screen.WorkingArea, windowPixelSize, position);
+        window.Position = targetPoint;
+    }
+}

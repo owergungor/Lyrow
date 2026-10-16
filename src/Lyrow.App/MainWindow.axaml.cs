@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Lyrow.App.Platform;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +13,10 @@ public partial class MainWindow : Window
 {
     private readonly IModuleManager _moduleManager;
     private readonly ISettingsManager _settingsManager;
+    private readonly IWindowPlatformAdapter _platformAdapter;
+    private readonly IEventBus? _eventBus;
+
+    private readonly List<IDisposable> _subscriptions = new();
 
     private static readonly SolidColorBrush ModeBothEnabledBrush = new(Color.Parse("#1E3A8A"));
     private static readonly SolidColorBrush ModeBothDisabledBrush = new(Color.Parse("#334155"));
@@ -24,25 +29,113 @@ public partial class MainWindow : Window
     // Parameterless constructor for XAML Designer / Previewer
     public MainWindow() : this(
         App.Services?.GetService<IModuleManager>() ?? new Core.Services.ModuleManager(),
-        App.Services?.GetService<ISettingsManager>() ?? new Core.Services.SettingsManager())
+        App.Services?.GetService<ISettingsManager>() ?? new Core.Services.SettingsManager(),
+        App.Services?.GetService<IWindowPlatformAdapter>() ?? new SyntheticWindowPlatformAdapter())
     {
     }
 
-    public MainWindow(IModuleManager moduleManager, ISettingsManager settingsManager)
+    public MainWindow(IModuleManager moduleManager, ISettingsManager settingsManager, IWindowPlatformAdapter? platformAdapter = null)
     {
         InitializeComponent();
         _moduleManager = moduleManager;
         _settingsManager = settingsManager;
+        _platformAdapter = platformAdapter ?? new SyntheticWindowPlatformAdapter();
+        _eventBus = App.Services?.GetService<IEventBus>();
 
         _moduleManager.ModuleStateChanged += OnModuleStateChanged;
+
+        HookEventBus();
         
         Loaded += OnWindowLoaded;
         Closing += OnMainWindowClosing;
     }
 
+    private void HookEventBus()
+    {
+        if (_eventBus == null) return;
+
+        _subscriptions.Add(_eventBus.Subscribe<MediaTrackChangedEvent>(OnMediaTrackChanged));
+        _subscriptions.Add(_eventBus.Subscribe<LyricsLoadedEvent>(OnLyricsLoaded));
+        _subscriptions.Add(_eventBus.Subscribe<AudioSpectrumUpdatedEvent>(OnAudioSpectrumUpdated));
+    }
+
+    private void OnMediaTrackChanged(MediaTrackChangedEvent e)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            var track = e.Track;
+            if (!track.IsEmpty)
+            {
+                LiveTrackTitleText.Text = track.Title;
+                LiveTrackArtistText.Text = string.IsNullOrEmpty(track.Album) ? track.Artist : $"{track.Artist} — {track.Album}";
+                LivePlaybackText.Text = "Çalıyor";
+                LivePlaybackBadge.Background = StatusRunningBorderBrush;
+            }
+            else
+            {
+                LiveTrackTitleText.Text = "Şarkı Bekleniyor...";
+                LiveTrackArtistText.Text = "Spotify veya Medya Oynatıcıyı Başlatın";
+                LivePlaybackText.Text = "Boşta";
+                LivePlaybackBadge.Background = ModeSingleBrush;
+                LiveLyricsStatusText.Text = "Bekleniyor";
+            }
+        });
+    }
+
+    private void OnLyricsLoaded(LyricsLoadedEvent e)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (e.Lyrics != null && e.Lyrics.Lines.Count > 0)
+            {
+                int lineCount = e.Lyrics.Lines.Count;
+                LiveLyricsStatusText.Text = $"Hazır ({lineCount} satır - {e.Source})";
+                LiveLyricsStatusText.Foreground = new SolidColorBrush(Color.Parse("#89B4FA"));
+            }
+            else if (!string.IsNullOrEmpty(e.Lyrics?.PlainLyrics))
+            {
+                LiveLyricsStatusText.Text = $"Düz Metin ({e.Source})";
+                LiveLyricsStatusText.Foreground = new SolidColorBrush(Color.Parse("#89B4FA"));
+            }
+            else
+            {
+                LiveLyricsStatusText.Text = "Söz Bulunamadı";
+                LiveLyricsStatusText.Foreground = new SolidColorBrush(Color.Parse("#F38BA8"));
+            }
+        });
+    }
+
+    private int _spectrumThrottleCounter;
+    private void OnAudioSpectrumUpdated(AudioSpectrumUpdatedEvent e)
+    {
+        // Throttle UI text updates to ~10 FPS for audio meter
+        if (Interlocked.Increment(ref _spectrumThrottleCounter) % 6 != 0) return;
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            var levels = e.Spectrum.Levels;
+            if (levels.IsSilent)
+            {
+                LiveAudioMeterText.Text = "-90 dBFS (Sessiz)";
+                LiveAudioMeterText.Foreground = StatusStoppedTextBrush;
+            }
+            else
+            {
+                LiveAudioMeterText.Text = $"{levels.Decibels:F1} dB (RMS: {levels.Rms:F2})";
+                LiveAudioMeterText.Foreground = StatusRunningTextBrush;
+            }
+        });
+    }
+
     private void OnMainWindowClosing(object? sender, WindowClosingEventArgs e)
     {
         _moduleManager.ModuleStateChanged -= OnModuleStateChanged;
+
+        foreach (var sub in _subscriptions)
+        {
+            sub.Dispose();
+        }
+        _subscriptions.Clear();
 
         _lumnWindow?.ShutdownWindow();
         _lumnWindow = null;
@@ -53,8 +146,49 @@ public partial class MainWindow : Window
 
     private void OnWindowLoaded(object? sender, RoutedEventArgs e)
     {
+        PopulateMonitorAndPlacementChoices();
         LoadSettingsToUi();
         RefreshUiStates();
+    }
+
+    private void PopulateMonitorAndPlacementChoices()
+    {
+        // 1. Overlay position options
+        CboOverlayPosition.ItemsSource = new[]
+        {
+            "Merkez (Center)",
+            "Sol Üst (Top-Left)",
+            "Üst Orta (Top-Center)",
+            "Sağ Üst (Top-Right)",
+            "Sol Alt (Bottom-Left)",
+            "Alt Orta (Bottom-Center)",
+            "Sağ Alt (Bottom-Right)"
+        };
+
+        // 2. Multi-monitor detection
+        var screens = Screens?.All;
+        var screenItems = new List<string>();
+        if (screens != null && screens.Count > 0)
+        {
+            for (int i = 0; i < screens.Count; i++)
+            {
+                var s = screens[i];
+                string tag = s.IsPrimary ? " (Birincil)" : "";
+                screenItems.Add($"{i + 1}. Ekran{tag} — {s.Bounds.Width}x{s.Bounds.Height} (ölçek %{(int)(s.Scaling * 100)})");
+            }
+        }
+        else
+        {
+            screenItems.Add("1. Ekran (Varsayılan)");
+        }
+        CboTargetMonitor.ItemsSource = screenItems;
+
+        // Wire change events
+        CboOverlayPosition.SelectionChanged += OnOverlayPositionSelectionChanged;
+        CboTargetMonitor.SelectionChanged += OnTargetMonitorSelectionChanged;
+        SliderLumnSensitivity.ValueChanged += OnLumnSensitivityChanged;
+        ChkAutoFetchLyrics.IsCheckedChanged += OnVerciSettingsChanged;
+        ChkCacheLyrics.IsCheckedChanged += OnVerciSettingsChanged;
     }
 
     private void LoadSettingsToUi()
@@ -66,6 +200,21 @@ public partial class MainWindow : Window
         RbThemeSystem.IsChecked = settings.Theme == ThemeMode.SystemDefault;
 
         ChkClickThrough.IsChecked = settings.ClickThroughEnabled;
+
+        int posIdx = (int)settings.OverlayPosition;
+        if (posIdx >= 0 && posIdx < 7)
+        {
+            CboOverlayPosition.SelectedIndex = posIdx;
+        }
+
+        var screensCount = (CboTargetMonitor.ItemsSource as IList<string>)?.Count ?? 1;
+        CboTargetMonitor.SelectedIndex = Math.Clamp(settings.TargetMonitorIndex, 0, screensCount - 1);
+
+        SliderLumnSensitivity.Value = settings.Lumn.Sensitivity;
+        TxtSensitivityValue.Text = $"{settings.Lumn.Sensitivity:F1}x";
+
+        ChkAutoFetchLyrics.IsChecked = settings.Verci.IsEnabled;
+        ChkCacheLyrics.IsChecked = settings.Verci.CacheLyricsLocally;
     }
 
     private void OnModuleStateChanged(object? sender, ModuleStateChangedEventArgs e)
@@ -101,6 +250,10 @@ public partial class MainWindow : Window
         LumnStatusText.Foreground = lumnRunning ? StatusRunningTextBrush : StatusStoppedTextBrush;
         BtnToggleLumn.Content = lumnRunning ? "Lumn'u Durdur" : "Lumn'u Başlat";
 
+        bool isLumnWindowOpen = _lumnWindow != null && _lumnWindow.IsVisible && _lumnWindow.WindowState != WindowState.Minimized;
+        LumnWindowStateText.Text = isLumnWindowOpen ? "Açık (Görünür)" : "Kapalı";
+        LumnWindowStateText.Foreground = isLumnWindowOpen ? StatusRunningTextBrush : StatusStoppedTextBrush;
+
         // 3. Update Verci card
         var verci = _moduleManager.GetModule("verci");
         var verciRunning = verci?.State == ModuleState.Running;
@@ -108,6 +261,10 @@ public partial class MainWindow : Window
         VerciStatusBorder.Background = verciRunning ? StatusRunningBorderBrush : StatusStoppedBorderBrush;
         VerciStatusText.Foreground = verciRunning ? StatusRunningTextBrush : StatusStoppedTextBrush;
         BtnToggleVerci.Content = verciRunning ? "Verci'yi Durdur" : "Verci'yi Başlat";
+
+        bool isVerciWindowOpen = _verciWindow != null && _verciWindow.IsVisible && _verciWindow.WindowState != WindowState.Minimized;
+        VerciWindowStateText.Text = isVerciWindowOpen ? "Açık (Görünür)" : "Kapalı";
+        VerciWindowStateText.Foreground = isVerciWindowOpen ? StatusRunningTextBrush : StatusStoppedTextBrush;
     }
 
     private LumnWindow? _lumnWindow;
@@ -119,6 +276,7 @@ public partial class MainWindow : Window
         await _moduleManager.SetModuleActiveAsync("lumn", target);
         await _settingsManager.UpdateAsync(s => s.LumnEnabled = target);
         StatusMessageText.Text = $"Lumn {(target ? "başlatıldı" : "durduruldu")}. Ayarlar kaydedildi.";
+        RefreshUiStates();
     }
 
     private void OnOpenVisualizerClick(object? sender, RoutedEventArgs e)
@@ -138,6 +296,10 @@ public partial class MainWindow : Window
 
         _lumnWindow.Show();
         _lumnWindow.Activate();
+
+        // Apply multi-monitor positioning & click-through
+        ApplyWindowGeometryAndStyles(_lumnWindow);
+        RefreshUiStates();
     }
 
     private VerciWindow? _verciWindow;
@@ -149,6 +311,7 @@ public partial class MainWindow : Window
         await _moduleManager.SetModuleActiveAsync("verci", target);
         await _settingsManager.UpdateAsync(s => s.VerciEnabled = target);
         StatusMessageText.Text = $"Verci {(target ? "başlatıldı" : "durduruldu")}. Ayarlar kaydedildi.";
+        RefreshUiStates();
     }
 
     private void OnOpenLyricsClick(object? sender, RoutedEventArgs e)
@@ -168,6 +331,25 @@ public partial class MainWindow : Window
 
         _verciWindow.Show();
         _verciWindow.Activate();
+
+        // Apply multi-monitor positioning & click-through
+        ApplyWindowGeometryAndStyles(_verciWindow);
+        RefreshUiStates();
+    }
+
+    private void ApplyWindowGeometryAndStyles(Window window)
+    {
+        var settings = _settingsManager.Current;
+        OverlayPositionManager.ApplyPosition(window, settings.OverlayPosition, settings.TargetMonitorIndex);
+
+        if (window is LumnWindow lw)
+        {
+            lw.ApplyClickThrough(settings.ClickThroughEnabled, _platformAdapter);
+        }
+        else if (window is VerciWindow vw)
+        {
+            vw.ApplyClickThrough(settings.ClickThroughEnabled, _platformAdapter);
+        }
     }
 
     private async void OnModeBothDisabledClick(object? sender, RoutedEventArgs e)
@@ -213,6 +395,79 @@ public partial class MainWindow : Window
     {
         var isChecked = ChkClickThrough.IsChecked ?? false;
         await _settingsManager.UpdateAsync(s => s.ClickThroughEnabled = isChecked);
-        StatusMessageText.Text = $"Tıklama geçirgenliği (Click-Through) {(isChecked ? "açıldı" : "kapatıldı")}.";
+
+        // Apply native click-through state to open overlay windows
+        if (_lumnWindow != null && _lumnWindow.IsVisible)
+        {
+            _lumnWindow.ApplyClickThrough(isChecked, _platformAdapter);
+        }
+        if (_verciWindow != null && _verciWindow.IsVisible)
+        {
+            _verciWindow.ApplyClickThrough(isChecked, _platformAdapter);
+        }
+
+        StatusMessageText.Text = isChecked
+            ? "Tıklama geçirgenliği (Click-Through) AÇILDI. Pencereler artık tıklamaları arkadaki uygulamalara geçirir."
+            : "Tıklama geçirgenliği (Click-Through) KAPATILDI. Normal fare etkileşimi devrede.";
+    }
+
+    private async void OnOverlayPositionSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        int idx = CboOverlayPosition.SelectedIndex;
+        if (idx < 0 || idx > 6) return;
+
+        var position = (OverlayPosition)idx;
+        await _settingsManager.UpdateAsync(s => s.OverlayPosition = position);
+
+        if (_lumnWindow != null && _lumnWindow.IsVisible)
+        {
+            OverlayPositionManager.ApplyPosition(_lumnWindow, position, _settingsManager.Current.TargetMonitorIndex);
+        }
+        if (_verciWindow != null && _verciWindow.IsVisible)
+        {
+            OverlayPositionManager.ApplyPosition(_verciWindow, position, _settingsManager.Current.TargetMonitorIndex);
+        }
+
+        StatusMessageText.Text = $"Overlay pencere konumu '{position}' olarak ayarlandı.";
+    }
+
+    private async void OnTargetMonitorSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        int idx = CboTargetMonitor.SelectedIndex;
+        if (idx < 0) return;
+
+        await _settingsManager.UpdateAsync(s => s.TargetMonitorIndex = idx);
+
+        if (_lumnWindow != null && _lumnWindow.IsVisible)
+        {
+            OverlayPositionManager.ApplyPosition(_lumnWindow, _settingsManager.Current.OverlayPosition, idx);
+        }
+        if (_verciWindow != null && _verciWindow.IsVisible)
+        {
+            OverlayPositionManager.ApplyPosition(_verciWindow, _settingsManager.Current.OverlayPosition, idx);
+        }
+
+        StatusMessageText.Text = $"Hedef monitör {idx + 1}. Ekran olarak seçildi.";
+    }
+
+    private async void OnLumnSensitivityChanged(object? sender, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    {
+        float val = (float)e.NewValue;
+        TxtSensitivityValue.Text = $"{val:F1}x";
+        await _settingsManager.UpdateAsync(s => s.Lumn.Sensitivity = val);
+    }
+
+    private async void OnVerciSettingsChanged(object? sender, RoutedEventArgs e)
+    {
+        bool autoFetch = ChkAutoFetchLyrics.IsChecked ?? true;
+        bool cacheLyrics = ChkCacheLyrics.IsChecked ?? true;
+
+        await _settingsManager.UpdateAsync(s =>
+        {
+            s.AutoFetchLyrics = autoFetch;
+            s.Verci.CacheLyricsLocally = cacheLyrics;
+        });
+
+        StatusMessageText.Text = "Şarkı sözü tercihleri güncellendi.";
     }
 }

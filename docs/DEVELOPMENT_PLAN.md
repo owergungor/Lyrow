@@ -94,14 +94,19 @@ graph LR
 
 ---
 
-### Aşama 6: Performans Profili Çıkarma ve Kararlılık Testleri
+### Aşama 6: Ürünleştirme, UX, Windows Dağıtımı ve Son Kullanıcı Deneyimi — **[TAMAMLANDI]**
 - **Kapsam:**
-  - `dotnet-counters` ve Windows Performance Monitor ile RAM/CPU testlerinin yapılması.
-  - Uzun süreli çalma testi (3 saat kesintisiz müzik) ile bellek sızıntısı (memory leak) kontrolü.
-  - Garbage Collection (GC Gen0/Gen1/Gen2) sıklığının optimize edilmesi.
-  - Hata yakalama ve kurtarma mekanizmalarının sınır testleri (ağ kopması, ses kartı sökülmesi, geçersiz LRC verisi).
+  - Win32 native `WS_EX_LAYERED | WS_EX_TRANSPARENT` click-through adaptörü (`WindowsWindowPlatformAdapter`).
+  - Çoklu monitör algılama, DPI ölçekleme ve 7 bölgeli konumlandırma (`OverlayPositionManager`).
+  - Tekilleştirilmiş Ayarlar ve son kullanıcı seviyesinde Neumorphic Dashboard (`MainWindow`).
+  - Uygulama yaşam döngüsü, olay aboneliklerinin zarifçe temizlenmesi, modül ve pencere izolasyonu.
+  - Modern uygulama logosu, Neumorphic ikon (`lyrow.ico`, `lyrow.png`).
+  - Self-contained Windows x64 Release yayını (`publish/win-x64`).
+  - Inno Setup 6 kurulum paketi (`Lyrow-1.0.0-Setup-x64.exe`) ve taşınabilir zip arşivi (`Lyrow-win-x64-portable.zip`).
+  - GitHub Actions Release iş akışı (`.github/workflows/release.yml`).
 - **Test ve Kabul Kriteri:**
-  - `PERFORMANCE.md` belgesindeki RAM (200-350 MB) ve CPU (<%10 aktif, <%1 boşta) hedeflerine ulaşılması.
+  - 86 birim, donanım, hesaplama ve entegrasyon testinin %100 başarıyla geçmesi.
+  - Windows kurulum paketinin üretilmesi ve ayarların `%APPDATA%\Lyrow` altında korunması.
 
 ---
 

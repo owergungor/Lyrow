@@ -19,6 +19,12 @@ public sealed class LyrowSettings
 
     public bool ClickThroughEnabled { get; set; } = false;
 
+    public OverlayPosition OverlayPosition { get; set; } = OverlayPosition.Center;
+
+    public int TargetMonitorIndex { get; set; } = 0;
+
+    public bool AutoFetchLyrics { get; set; } = true;
+
     public double MasterOpacity { get; set; } = 0.95;
 
     public string AccentColor { get; set; } = "#89B4FA";
@@ -31,4 +37,18 @@ public sealed class LyrowSettings
 
     /// <summary>Creates a clean default instance.</summary>
     public static LyrowSettings CreateDefault() => new();
+}
+
+/// <summary>
+/// Predefined anchor positions for overlay windows on target display screen.
+/// </summary>
+public enum OverlayPosition
+{
+    Center = 0,
+    TopLeft = 1,
+    TopCenter = 2,
+    TopRight = 3,
+    BottomLeft = 4,
+    BottomCenter = 5,
+    BottomRight = 6
 }

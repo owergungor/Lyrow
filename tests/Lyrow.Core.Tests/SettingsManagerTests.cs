@@ -95,6 +95,53 @@ public sealed class SettingsManagerTests : IDisposable
         verified.ClickThroughEnabled.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task Settings_ShouldPersistNewStage6Properties()
+    {
+        var manager = new SettingsManager(_tempFile);
+        await manager.LoadAsync();
+
+        await manager.UpdateAsync(s =>
+        {
+            s.OverlayPosition = OverlayPosition.TopRight;
+            s.TargetMonitorIndex = 1;
+            s.AutoFetchLyrics = false;
+        });
+
+        var freshManager = new SettingsManager(_tempFile);
+        var verified = await freshManager.LoadAsync();
+
+        verified.OverlayPosition.Should().Be(OverlayPosition.TopRight);
+        verified.TargetMonitorIndex.Should().Be(1);
+        verified.AutoFetchLyrics.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Settings_ShouldMigrateLegacyJsonWithoutStage6Properties()
+    {
+        // Legacy JSON format without OverlayPosition, TargetMonitorIndex, AutoFetchLyrics
+        string legacyJson = """
+        {
+            "Theme": 1,
+            "LumnEnabled": true,
+            "VerciEnabled": true,
+            "ClickThroughEnabled": false,
+            "MasterOpacity": 1.0,
+            "AccentColor": "#4A90E2"
+        }
+        """;
+        await File.WriteAllTextAsync(_tempFile, legacyJson);
+
+        var manager = new SettingsManager(_tempFile);
+        var loaded = await manager.LoadAsync();
+
+        loaded.Theme.Should().Be(ThemeMode.Dark);
+        // Default fallbacks should apply gracefully
+        loaded.OverlayPosition.Should().Be(OverlayPosition.Center);
+        loaded.TargetMonitorIndex.Should().Be(0);
+        loaded.AutoFetchLyrics.Should().BeTrue();
+    }
+
     public void Dispose()
     {
         try

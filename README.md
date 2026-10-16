@@ -2,176 +2,149 @@
 
 [![CI](https://github.com/owergungor/Lyrow/actions/workflows/ci.yml/badge.svg)](https://github.com/owergungor/Lyrow/actions/workflows/ci.yml)
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?logo=windows)](https://microsoft.com/windows)
-[![.NET 9 / 10](https://img.shields.io/badge/.NET-9.0%20(Targeting%2010%20LTS)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![.NET 10 LTS](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![UI: Avalonia](https://img.shields.io/badge/UI-Avalonia%2012-8A2BE2)](https://avaloniaui.net/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Lyrow**, müzik deneyimini masaüstünde görsel bir şölene dönüştüren iki bağımsız modülü tek bir zarif Windows uygulamasında birleştiren modern bir multimedya platformudur:
+**Lyrow**, masaüstünüzde müzik dinleme deneyimini görsel bir şölene dönüştüren, yüksek performanslı, modern ve Neumorphic tasarımlı bir Windows multimedya platformudur.
 
-- **Lumn:** Sistem ses çıkışını (WASAPI Loopback) anlık analiz eden, donanım hızlandırmalı ritim ve frekans tepkili ışık/spektrum efektleri sunan modül.
-- **Verci:** Sistemde çalan müziğin (Spotify, Apple Music, YouTube vb.) metadata bilgilerini ve senkronize şarkı sözlerini (LRC) pürüzsüz yüzen overlay veya tam ekran pencerelerde sunan modül.
+Lyrow iki bağımsız ancak birbiriyle uyum içinde çalışabilen ana modülden oluşur:
 
----
-
-## 🌟 Temel Ürün İlkeleri (Product Invariants)
-
-1. **Bağımsız Modülerlik:** Lumn, Verci olmadan çalışabilir; Verci, Lumn olmadan çalışabilir. İki modül birbirine sıkı bağımlı değildir.
-2. **Eşzamanlı Çalışma:** İki modül aynı anda çalışabilir ve kullanıcı tercihine bağlı olarak ortak ritim ve renk paletiyle görsel entegrasyon kurabilir.
-3. **Tek Süreç İlkesi:** Modüller ayrı exe/process süreçleri olarak değil, tek bir `Lyrow.exe` süreci altında yönetilen izole servisler olarak çalışır.
-4. **Hata İzolasyonu:** Bir modülde meydana gelen hata (örneğin şarkı sözü API kesintisi) diğer modülün veya ana uygulamanın çalışmasını engellemez.
-5. **Sıfır Arka Plan Yükü (Zero Inactive Overhead):** Kapatılan veya gizlenen modüllerin tüm ses yakalama, render döngüleri ve zamanlayıcıları derhal durdurulur ve kaynaklar serbest bırakılır.
-6. **Kalıcı Tercihler:** Modül açık/kapalı durumları, pencere koordinatları ve kullanıcı ayarları yeniden başlatmalar arasında `%APPDATA%\Lyrow\settings.json` altında korunur.
+- **Lumn:** Sistem ses çıkışını (WASAPI Loopback) anlık yakalayan, sıfır-tahsisli FFT frekans analiziyle donanım hızlandırmalı ritim ve spektrum dalgaları oluşturan dinamik ses görselleştiricisi.
+- **Verci:** Sistemde çalan müziği (Spotify, Apple Music, YouTube vb.) Windows GSMTC üzerinden yakalayan, LRCLIB ile senkronize şarkı sözlerini milisaniye hassasiyetinde çeken ve pürüzsüz kaydırma ile masaüstünüzde sergileyen yüzen şarkı sözü penceresi.
 
 ---
 
-## 🚀 Özellik Durumu (Gerçekleştirilen vs. Planlanan)
+## 📸 Temel Özellikler
 
-### Mevcut (Aşama 1, Aşama 2, Aşama 3, Aşama 4 & Aşama 5)
-- [x] Mimari tasarım ve bileşen sınırlarının belirlenmesi.
-- [x] Temel modül arayüzleri (`ILyrowModule`, `ModuleState`, `ModuleMetadata`).
-- [x] Modül yaşam döngüsü yöneticisi (`IModuleManager`, `ModuleManager`) ile 4 çalışma durumunun desteklenmesi:
-  - 1. İki modül kapalı (Yalnızca Tray / Ayarlar)
-  - 2. Yalnızca Lumn açık
-  - 3. Yalnızca Verci açık
-  - 4. İki modül birlikte açık
-- [x] Gevşek bağlı olay veri yolu (`IEventBus`, `InMemoryEventBus`).
-- [x] Güvenli ve atomik JSON ayar yöneticisi (`ISettingsManager`, `SettingsManager`).
-- [x] Dependency Injection (`Microsoft.Extensions.DependencyInjection`) tabanlı altyapı.
-- [x] Avalonia UI tabanlı ana pencere ve Neumorphic modern tasarım token'ları.
-- [x] Açık, Koyu ve Sistem temasını izleme (`ThemeVariant.Default`, `ThemeVariant.Dark`, `ThemeVariant.Light`).
-- [x] **Lumn Ses Analizi & Görselleştirme (Aşama 3):**
-  - Windows Core Audio / WASAPI Loopback ile sistem sesini sürücü düzeyinde yakalama (`WasapiAudioCaptureService`).
-  - Hanning pencereli, sıfır-tahsisli Radix-2 Cooley-Tukey FFT frekans analiz motoru (`FftAnalyzer`).
-  - RMS, tepe değer (Peak), dBFS loudness ve sessizlik algılama (`AudioLevelAnalyzer`).
-  - Logaritmik frekans bantları (Sub-bass, Bass, Mid, Treble) ve dinamik tepe düşüş yumuşatma (`FrequencyBandProcessor`).
-  - Cihaz değişikliği yönetimi ve `AUDCLNT_E_DEVICE_INVALIDATED` durumunda otomatik kurtarma döngüsü.
-  - CI ve donanımsız ortamlar için sentetik ses üreteci (`SyntheticAudioCaptureService`).
-  - GPU hızlandırmalı gerçek zamanlı (60 FPS) spektrum ve ambiyans parıltı görselleştirici penceresi (`LumnWindow` & `LumnVisualizerControl`).
-  - Verci'den tamamen bağımsız başlatma ve durdurma yeteneği (Sıfır arka plan yükü: boşta CPU %0).
-- [x] **Verci Medya Metadata & Senkronize Şarkı Sözleri (Aşama 4):**
-  - Windows GSMTC (`GlobalSystemMediaTransportControlsSessionManager`) ile sistemde çalan müziğin (Spotify, Apple Music, YouTube vb.) başlık, sanatçı, albüm ve kapak bilgilerinin yakalanması (`WindowsGsmtcMediaSessionMonitor`).
-  - CI ve donanımsız ortamlar için tam donanımlı simülasyon servisi (`SyntheticMediaSessionMonitor`).
-  - LRCLIB REST API istemcisi (`LrclibClient`); 404, 429 rate-limiting ve timeout hata yönetimi.
-  - Standart, çoklu timestamp'li ve 2/3 basamaklı milisaniyeleri destekleyen, kronolojik sıralamalı yüksek performanslı LRC ayrıştırıcısı (`LrcParser`).
-  - $O(\log N)$ Binary Search ile sıfır-tahsisli aktif satır seçici (`SyncedLyrics.FindActiveLineIndex`).
-  - Yerel disk önbelleği (`LocalFileLyricsCache`) ile çevrimdışı kullanım ve anında söz yükleme.
-  - Düşük CPU tüketimli, pürüzsüz enterpolasyonlu zamanlama motoru (`LyricsTimelineSynchronizer`).
-  - Avalonia 12 Neumorphic temalı bağımsız şarkı sözü penceresi (`VerciWindow`); aktif satır vurgulama, pürüzsüz otomatik kaydırma ve manuel ms zaman kaydırma.
-  - Lumn'dan tamamen bağımsız çalışabilme ilkesi ve gevşek bağlı `IEventBus` olayları.
-- [x] **Entegrasyon, Gerçek Windows Ortamı Doğrulaması & Performans (Aşama 5):**
-  - Lumn ve Verci modüllerinin eşzamanlı çalışması, 4 temel çalışma durumu ve olay izolasyonu (`VerciAndLumnSimultaneousExecutionTests`).
-  - Gerçek Windows WASAPI donanım ses cihazı listeleme ve yakalama doğrulaması (`WasapiHardwareValidationTests`).
-  - Gerçek Windows GSMTC medya oturumu yaşam döngüsü doğrulaması (`GsmtcHardwareValidationTests`).
-  - Gerçek LRCLIB çevrimiçi şarkı sözü çekme, yerel atomik disk önbelleği, çevrimdışı kullanım ve seek testi (`LrclibOnlineOfflineIntegrationTests`).
-  - Avalonia `ThemeDictionaries` ile dinamik Açık, Koyu ve Sistem temalarının `MainWindow`, `LumnWindow` ve `VerciWindow` üzerinde tutarlı uygulanması.
-  - Pencere gizleme (`Hide`) ve küçültme (`Minimize`) durumlarında timer'ların durdurulması, sessizlik anında adaptif render throttling (60 FPS -> 5 FPS).
-  - UI fırça tahsislerinin tekilleştirilmesi, 100,000 binary search aramasında 0 ek bellek tahsisi ve 9ms işlem süresi (`Stage5PerformanceBenchmarkTests`).
-  - Uygulama kapanışında (`OnAppExit` ve `ShutdownWindow`) WASAPI, GSMTC ve modül döngülerinin zarif temizliği.
-- [x] 71 adet xUnit birim, donanım, performans ve entegrasyon testi (%100 başarı: 17 Core + 21 Audio + 33 Music).
-- [x] GitHub Actions CI iş akışı (Release derleme ve test doğrulama).
-
-### Planlanan (Aşama 6 - Aşama 7)
-- [ ] **Performans Profili & Kararlılık (Aşama 6):** Uzun süreli stres testi (3 saat kesintisiz müzik) ile bellek sızıntısı ve sınır testleri.
-- [ ] **Windows Dağıtımı (Aşama 7):** Self-contained tek dosya derlemesi ve Windows yükleyici paketi.
+- **🖱️ Gerçek Win32 Click-Through:** Tek bir anahtarla (`WS_EX_LAYERED` & `WS_EX_TRANSPARENT`) overlay pencereleri saydamlaştırılır ve tüm fare tıklamaları arka plandaki oyunlara, tarayıcılara ve kod editörlerine pürüzsüzce geçer.
+- **🖥️ Akıllı Çoklu Monitör Desteği:** Sistemdeki tüm ekranlar dinamik olarak algılanır. Overlay'leri dilediğiniz monitörde `Merkez`, `Sol Üst`, `Üst Orta`, `Sağ Üst`, `Sol Alt`, `Alt Orta` veya `Sağ Alt` köşelere DPI ölçeklemesine tam uyumlu biçimde sabitleyebilirsiniz.
+- **🎨 Kusursuz Neumorphism Teması:** Açık, Koyu ve Sistem Teması modları ile göz yormayan, derinlikli cam efektleri ve yumuşak gölgeler.
+- **⚡ Sıfır Arka Plan Yükü:** Pencereler gizlendiğinde veya simge durumuna küçültüldüğünde GPU render döngüsü ve zamanlayıcılar otomatik olarak durur; boşta CPU tüketimi <%1 kalır.
+- **💾 Atomik Kalıcı Ayarlar:** Tüm kullanıcı tercihleri `%APPDATA%\Lyrow\settings.json` altında atomik olarak saklanır; yükseltmelerde veya yeniden başlatmalarda korunur.
 
 ---
 
-## 🛠️ Teknoloji Yığını
+## 💻 Sistem Gereksinimleri
 
-- **Dil & Çalışma Zamanı:** C# 13 / .NET 9.0 (Geliştirme ortamı `9.0.318`, gelecekte `.NET 10 LTS` uyumlu)
-- **Arayüz Çatısı:** Avalonia UI (v12.1.4 / v11.2+) — XAML, SkiaSharp donanım hızlandırmalı
-- **Ses Yakalama:** Windows Core Audio / WASAPI Loopback (`NAudio.Wasapi` - MIT)
-- **Ses Analizi:** Sıfır-tahsisli Cooley-Tukey FFT motoru
-- **Medya Metadata:** Windows GSMTC (`GlobalSystemMediaTransportControlsSessionManager`)
-- **Şarkı Sözleri:** LRCLIB REST API & Yerel Disk Önbelleği
-- **Overlay Entegrasyonu:** Windows Win32 P/Invoke (`User32.dll`)
-- **Test Çerçevesi:** xUnit 2.9.2, FluentAssertions 8.1.1, Microsoft.NET.Test.Sdk 17.12.0
-
----
-
-## 🏛️ Proje Mimarisi
-
-```
-Lyrow/
-├── .github/workflows/         # GitHub Actions CI iş akışları
-├── docs/                      # Detaylı mimari ve plan belgeleri
-│   ├── ARCHITECTURE.md        # Mimari tasarım, veri akışları ve güvenlik
-│   ├── DEVELOPMENT_PLAN.md    # Aşama 1'den 7'ye geliştirme yol haritası
-│   ├── PERFORMANCE.md         # RAM/CPU hedefleri ve ölçüm metodolojisi
-│   └── MILESTONES.md          # Kilometre taşları ve aşama durumları
-├── src/
-│   ├── Lyrow.App/             # Avalonia ana masaüstü host uygulaması, pencereler, temalar
-│   ├── Lyrow.Core/            # Modül yaşam döngüsü, EventBus, ayarlar ve temel arayüzler
-│   ├── Lyrow.Audio/           # (Aşama 3) WASAPI ses yakalama ve FFT analiz motoru
-│   ├── Lyrow.Music/           # (Aşama 4) GSMTC medya izleyici ve LRCLIB söz istemcisi
-│   ├── Lyrow.Modules.Lumn/    # (Aşama 3) Lumn görsel efekt motoru
-│   ├── Lyrow.Modules.Verci/   # (Aşama 4) Verci şarkı sözü yüzen penceresi
-│   └── Lyrow.Platform.Windows/# (Aşama 5) Win32 click-through p/invoke adaptörleri
-├── tests/
-│   ├── Lyrow.Core.Tests/      # Yaşam döngüsü, ayarlar ve eventbus testleri
-│   ├── Lyrow.Audio.Tests/     # (Aşama 3) FFT matematiksel testleri
-│   └── Lyrow.Music.Tests/     # (Aşama 4) LRC parsing ve senkronizasyon testleri
-├── .gitignore                 # .NET, Avalonia ve Windows için yapılandırılmış kurallar
-├── LICENSE                    # MIT Lisansı
-├── Lyrow.sln                  # Visual Studio / .NET Solution
-└── README.md                  # Proje ana sayfası
-```
-
----
-
-## 💻 Geliştirme Ortamı Gereksinimleri
-
-- **İşletim Sistemi:** Windows 10 (Build 19041+) veya Windows 11 (64-bit)
-- **.NET SDK:** .NET 9.0.300+ veya .NET 10.0+ SDK
-- **Geliştirme Araçları:** Visual Studio 2022 (v17.12+), JetBrains Rider veya VS Code (C# Dev Kit eklentisiyle)
-
----
-
-## 🔨 Derleme ve Test Talimatları
-
-### Bağımlılıkları Geri Yükleme
-```bash
-dotnet restore Lyrow.sln
-```
-
-### Projeyi Derleme (Debug / Release)
-```bash
-dotnet build Lyrow.sln --configuration Release
-```
-
-### Birim Testlerini Çalıştırma
-```bash
-dotnet test Lyrow.sln --configuration Release --verbosity normal
-```
-
-### Uygulamayı Çalıştırma
-```bash
-dotnet run --project src/Lyrow.App/Lyrow.App.csproj
-```
-
----
-
-## ⚡ Performans Hedefleri
-
-| Çalışma Durumu | Hedeflenen RAM | Hedeflenen CPU (Ortalama) |
+| Bileşen | Minimum | Önerilen |
 | :--- | :--- | :--- |
-| **Boşta (Modüller Kapalı, Tray)** | **≤ 100 – 150 MB** | **< %1** |
-| **Yalnızca Lumn Açık** | **150 – 250 MB** | **%4 – %8** |
-| **Yalnızca Verci Açık** | **150 – 250 MB** | **%1 – %3** |
-| **İki Modül Birlikte Açık** | **200 – 350 MB** | **%5 – %10** |
-
-> *Ayrıntılı test senaryoları ve optimizasyon ilkeleri için [docs/PERFORMANCE.md](docs/PERFORMANCE.md) belgesine bakınız.*
-
----
-
-## ⚠️ Bilinen Kısıtlamalar
-
-1. **Exclusive Fullscreen Oyunlar:** Windows DWM mimarisi nedeniyle, pencereli olmayan "Özel Tam Ekran" (Exclusive Fullscreen) oyunlarda hiçbir masaüstü overlay'i görüntülenemez. Oyunların "Kenarlıksız Pencereli" (Borderless Windowed) modda çalışması gerekir.
-2. **Ses Cihazı:** WASAPI Loopback yalnızca aktif ses çıkışında veri üretir. Kulaklık/hoparlör takılı olmadığında veya ses çalınmadığında motor otomatik olarak düşük güç moduna geçer.
-3. **Platform Kapsamı:** İlk sürüm Windows odaklıdır; ses ve overlay katmanları modüler tasarlandığından ileride Linux (PulseAudio/PipeWire) ve macOS desteği eklenebilecektir.
+| **İşletim Sistemi** | Windows 10 (Build 19041+) 64-bit | Windows 11 (64-bit) |
+| **İşlemci (CPU)** | Intel Core i3 / AMD Ryzen 3 | Intel Core i5 / AMD Ryzen 5 veya üstü |
+| **Bellek (RAM)** | 4 GB | 8 GB+ |
+| **Ekran Kartı (GPU)** | DirectX 11 / OpenGL 3.3 uyumlu dahili grafik | Donanım hızlandırmalı harici GPU |
+| **Ses Aygıtı** | WASAPI uyumlu stereo/surround ses çıkışı | Aktif ses kartı / kulaklık |
+| **Çalışma Zamanı** | Bağımsız pakette (.NET gerekmez) | .NET 10 LTS SDK (yalnızca kaynak kod derlemesi için) |
 
 ---
 
-## 📄 Lisans ve Katkı
+## 🚀 Kurulum
 
-Bu proje [MIT Lisansı](LICENSE) kapsamında lisanslanmıştır. Katkıda bulunmak için lütfen bir issue açın veya pull request gönderin.
+### Yöntem 1: Windows Kurulum Paketi (Önerilen)
+1. [GitHub Releases](https://github.com/owergungor/Lyrow/releases) sayfasından en son `Lyrow-1.0.0-Setup-x64.exe` dosyasını indirin.
+2. Kurulum sihirbazını çalıştırın. İsteğe bağlı olarak masaüstü kısayolu oluşturun.
+3. Kurulum tamamlandığında Lyrow otomatik olarak başlayacaktır.
+4. *Not:* Kurulum ve yükseltmelerde kullanıcı ayarlarınız (`%APPDATA%\Lyrow`) silinmez, korunur.
+
+### Yöntem 2: Taşınabilir (Portable) ZIP
+1. `Lyrow-win-x64-portable.zip` arşivini indirin.
+2. Dilediğiniz bir klasöre çıkartın.
+3. `Lyrow.App.exe` dosyasını doğrudan çalıştırın.
+
+---
+
+## 🎯 İlk Çalıştırma ve Kullanım
+
+1. **Dashboard'u Açın:** Uygulama başladığında **Lyrow — Multimedya Deneyim Merkezi** açılır.
+2. **Medya Oynatın:** Bilgisayarınızda Spotify, YouTube veya herhangi bir oynatıcıda bir şarkı başlatın.
+3. **Canlı Göstergeler:**
+   - Üst bilgi çubuğunda şarkı adı, sanatçı ve albüm anında görünür.
+   - Lumn ses seviyesi göstergesi (dB) müzikle birlikte dalgalanmaya başlar.
+   - Verci durumu sözlerin LRCLIB'den başarıyla yüklendiğini veya yerel önbellekten okunduğunu rozetle gösterir.
+4. **Modülleri Başlatın:**
+   - **Lumn Penceresini Aç** butonuna basarak dinamik spektrum penceresini görüntüleyin.
+   - **Verci Penceresini Aç** butonuna basarak şarkı sözü penceresini açın.
+
+---
+
+## 🎛️ Modül ve Ayar Kılavuzu
+
+### 1. Lumn (Görsel Efekt & Spektrum)
+- **Hassasiyet:** Lumn ses giriş kazancını `%50` ile `%200` arasında ayarlayarak düşük ses seviyelerinde bile görsel efektlerin canlı kalmasını sağlayabilirsiniz.
+- **Sessizlik Modu:** Ses durduğunda veya müzik bittiğinde Lumn otomatik olarak 5 FPS güç koruma moduna geçer; GPU'nuzu yormaz.
+
+### 2. Verci (Senkronize Şarkı Sözleri)
+- **Zaman Kaydırma (Offset):** Medya oynatıcınız ile şarkı sözleri arasında gecikme varsa, Verci penceresindeki `+0.5s` veya `-0.5s` butonlarıyla veya ana ayarlar panelinden ofseti milisaniye bazında ayarlayabilirsiniz.
+- **Otomatik Söz Çekme:** Şarkı değiştiğinde LRCLIB üzerinden otomatik arama yapılmasını sağlar.
+- **Yerel Disk Önbelleği:** İndirilen sözler `%APPDATA%\Lyrow\LyricsCache` klasörüne kaydedilir; böylece aynı şarkı tekrar çalındığında internet bağlantısı olmasa bile anında ekrana gelir.
+
+### 3. Click-Through (Tıklama Geçirgenliği)
+- **Nasıl Çalışır:** Ayarlar panelinden **"Fare Tıklamalarını Arkaya Geçir (Click-Through)"** seçeneğini açtığınızda, pencerelerin arka planı saydamlaşır ve üzerlerine tıkladığınızda fare imleci arkadaki pencereye erişir.
+- **Tekrar Düzenleme:** Pencereleri taşımak veya boyutlandırmak istediğinizde ana dashboard üzerinden Click-Through anahtarını kapatmanız yeterlidir.
+
+### 4. Çoklu Monitör ve Konumlandırma
+- **Monitör Seçimi:** Sisteminizde takılı olan ekranlar (Örn: *1: Monitör 1 [1920x1080]* ve *2: Monitör 2 [2560x1440]*) açılır listede görünür.
+- **Ekran Bölgesi:** Pencerelerin ekranın neresinde duracağını seçin (*Merkez*, *Sağ Alt*, *Üst Orta* vb.).
+- **Güvenli Fallback:** İkincil monitörün kablosu çekildiğinde pencereler ekran dışına taşmaz, otomatik olarak birincil monitöre toparlanır.
+
+---
+
+## 🛠️ Sorun Giderme
+
+| Sorun | Olası Neden | Çözüm |
+| :--- | :--- | :--- |
+| **Lumn spektrumu hareket etmiyor** | Ses aygıtı sessizde veya aktif ses çıkışı yok | Bilgisayarınızda ses çaldığından emin olun. Kulaklık/hoparlör takıldığında Lumn otomatik olarak yeni varsayılan çıkışa bağlanacaktır. |
+| **Verci sözleri bulamıyor** | Şarkı LRCLIB veritabanında yok veya enstrümantal | Şarkının metadata etiketlerinin (Sanatçı ve Başlık) doğru olduğunu kontrol edin. Yerel şarkılar için LRCLIB üzerinde eşleşme olmayabilir. |
+| **Overlay oyunların arkasında kalıyor** | Oyun "Exclusive Fullscreen" modunda | Windows mimarisi gereği masaüstü overlay'leri için oyun ayarlarından **"Borderless Windowed" (Kenarlıksız Pencereli)** modunu seçin. |
+| **Pencereyi taşıyamıyorum** | Click-Through modu aktif | Ana Dashboard ekranına dönerek Click-Through anahtarını kapatın. |
+
+---
+
+## 👨‍💻 Geliştirici Kılavuzu
+
+### Gereksinimler
+- Windows 10/11 64-bit
+- .NET 10.0 SDK (veya .NET 9.0 SDK)
+- PowerShell 7+
+
+### Çözümü Klonlama ve Derleme
+```powershell
+git clone https://github.com/owergungor/Lyrow.git
+cd Lyrow
+
+# Bağımlılıkları geri yükleme
+dotnet restore Lyrow.sln
+
+# Release konfigürasyonunda derleme
+dotnet build Lyrow.sln -c Release
+
+# Test paketini çalıştırma (86 test)
+dotnet test Lyrow.sln -c Release --no-build
+```
+
+### Self-Contained Windows Dağıtımı Üretme
+```powershell
+# win-x64 Release publish
+dotnet publish src/Lyrow.App/Lyrow.App.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
+
+# Inno Setup ile kurulum paketi oluşturma
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer/setup.iss
+```
+
+---
+
+## 🚀 GitHub Actions & Sürüm Süreci
+
+- **Sürekli Entegrasyon (CI):** Her `main` dalı commit'inde ve Pull Request'te `.github/workflows/ci.yml` çalışır; çözümü derler ve 86 testin tamamını doğrular.
+- **Resmi Sürüm Dağıtımı (Release):** `v*` (örn. `v1.0.0`) etiketi push edildiğinde `.github/workflows/release.yml` devreye girer:
+  1. Testleri çalıştırır.
+  2. Self-contained `win-x64` paketini derler.
+  3. Inno Setup ile `Lyrow-1.0.0-Setup-x64.exe` oluşturur.
+  4. `Lyrow-win-x64-portable.zip` oluşturur.
+  5. GitHub Releases üzerinde otomatik sürüm notlarıyla birlikte indirme varlıklarını yayımlar.
+
+---
+
+## 📄 Lisans
+
+Bu proje **MIT Lisansı** altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına göz atabilirsiniz.

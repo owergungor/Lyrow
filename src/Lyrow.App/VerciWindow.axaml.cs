@@ -244,6 +244,15 @@ public partial class VerciWindow : Window
         }
     }
 
+    public void ApplyClickThrough(bool enabled, IWindowPlatformAdapter platformAdapter)
+    {
+        var handle = TryGetPlatformHandle()?.Handle;
+        if (handle.HasValue && handle.Value != IntPtr.Zero)
+        {
+            platformAdapter.SetClickThrough(handle.Value, enabled);
+        }
+    }
+
     private bool _isShuttingDown;
 
     public void ShutdownWindow()

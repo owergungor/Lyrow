@@ -7,6 +7,7 @@
         MinWidth="400" MinHeight="200"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource LyrowWindowBackground}"
+        Icon="avares://Lyrow.App/Assets/lyrow.ico"
         CanResize="True"
         WindowDecorations="None">
 

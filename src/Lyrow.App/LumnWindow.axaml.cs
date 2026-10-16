@@ -98,6 +98,15 @@ public partial class LumnWindow : Window
             : Avalonia.Media.Brushes.IndianRed;
     }
 
+    public void ApplyClickThrough(bool enabled, IWindowPlatformAdapter platformAdapter)
+    {
+        var handle = TryGetPlatformHandle()?.Handle;
+        if (handle.HasValue && handle.Value != IntPtr.Zero)
+        {
+            platformAdapter.SetClickThrough(handle.Value, enabled);
+        }
+    }
+
     private bool _isShuttingDown;
 
     public void ShutdownWindow()

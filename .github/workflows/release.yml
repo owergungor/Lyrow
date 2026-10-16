@@ -1,0 +1,70 @@
+name: Release & Packaging
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build, Package & Publish Release
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          9.0.x
+          10.0.x
+
+    - name: Install Inno Setup
+      run: choco install innosetup --no-progress
+
+    - name: Restore dependencies
+      run: dotnet restore Lyrow.sln
+
+    - name: Run Test Suite
+      run: dotnet test Lyrow.sln --configuration Release --no-restore --logger "trx;LogFileName=test-results.trx"
+
+    - name: Publish Self-Contained win-x64
+      run: dotnet publish src/Lyrow.App/Lyrow.App.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
+
+    - name: Compile Inno Setup Installer
+      run: & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer/setup.iss
+
+    - name: Package Portable ZIP Archive
+      shell: pwsh
+      run: |
+        if (-not (Test-Path dist)) { New-Item -ItemType Directory -Path dist -Force }
+        Compress-Archive -Path "publish/win-x64/*" -DestinationPath "dist/Lyrow-win-x64-portable.zip" -Force
+        Get-ChildItem dist/
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: lyrow-distribution-packages
+        path: dist/*
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/v')
+      with:
+        files: |
+          dist/Lyrow-*-Setup-x64.exe
+          dist/Lyrow-win-x64-portable.zip
+        generate_release_notes: true
+        draft: false
+        prerelease: false
