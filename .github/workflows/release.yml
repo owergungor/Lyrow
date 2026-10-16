@@ -43,7 +43,9 @@ jobs:
       run: dotnet publish src/Lyrow.App/Lyrow.App.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
 
     - name: Compile Inno Setup Installer
-      run: & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer/setup.iss
+      shell: pwsh
+      run: |
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer/setup.iss
 
     - name: Package Portable ZIP Archive
       shell: pwsh
