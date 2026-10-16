@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Lyrow.Music\Lyrow.Music.csproj" />
+    <ProjectReference Include="..\..\src\Lyrow.Audio\Lyrow.Audio.csproj" />
     <ProjectReference Include="..\..\src\Lyrow.Core\Lyrow.Core.csproj" />
   </ItemGroup>
 

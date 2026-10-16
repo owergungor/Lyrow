@@ -13,6 +13,14 @@ public partial class MainWindow : Window
     private readonly IModuleManager _moduleManager;
     private readonly ISettingsManager _settingsManager;
 
+    private static readonly SolidColorBrush ModeBothEnabledBrush = new(Color.Parse("#1E3A8A"));
+    private static readonly SolidColorBrush ModeBothDisabledBrush = new(Color.Parse("#334155"));
+    private static readonly SolidColorBrush ModeSingleBrush = new(Color.Parse("#1E293B"));
+    private static readonly SolidColorBrush StatusRunningBorderBrush = new(Color.Parse("#065F46"));
+    private static readonly SolidColorBrush StatusStoppedBorderBrush = new(Color.Parse("#334155"));
+    private static readonly SolidColorBrush StatusRunningTextBrush = new(Color.Parse("#34D399"));
+    private static readonly SolidColorBrush StatusStoppedTextBrush = new(Color.Parse("#94A3B8"));
+
     // Parameterless constructor for XAML Designer / Previewer
     public MainWindow() : this(
         App.Services?.GetService<IModuleManager>() ?? new Core.Services.ModuleManager(),
@@ -29,6 +37,18 @@ public partial class MainWindow : Window
         _moduleManager.ModuleStateChanged += OnModuleStateChanged;
         
         Loaded += OnWindowLoaded;
+        Closing += OnMainWindowClosing;
+    }
+
+    private void OnMainWindowClosing(object? sender, WindowClosingEventArgs e)
+    {
+        _moduleManager.ModuleStateChanged -= OnModuleStateChanged;
+
+        _lumnWindow?.ShutdownWindow();
+        _lumnWindow = null;
+
+        _verciWindow?.ShutdownWindow();
+        _verciWindow = null;
     }
 
     private void OnWindowLoaded(object? sender, RoutedEventArgs e)
@@ -68,25 +88,25 @@ public partial class MainWindow : Window
 
         ModeBadgeBorder.Background = mode switch
         {
-            ModuleExecutionMode.BothEnabled => new SolidColorBrush(Color.Parse("#1E3A8A")),
-            ModuleExecutionMode.BothDisabled => new SolidColorBrush(Color.Parse("#334155")),
-            _ => new SolidColorBrush(Color.Parse("#1E293B"))
+            ModuleExecutionMode.BothEnabled => ModeBothEnabledBrush,
+            ModuleExecutionMode.BothDisabled => ModeBothDisabledBrush,
+            _ => ModeSingleBrush
         };
 
         // 2. Update Lumn card
         var lumn = _moduleManager.GetModule("lumn");
         var lumnRunning = lumn?.State == ModuleState.Running;
         LumnStatusText.Text = lumn?.State.ToString() ?? "Unknown";
-        LumnStatusBorder.Background = lumnRunning ? new SolidColorBrush(Color.Parse("#065F46")) : new SolidColorBrush(Color.Parse("#334155"));
-        LumnStatusText.Foreground = lumnRunning ? new SolidColorBrush(Color.Parse("#34D399")) : new SolidColorBrush(Color.Parse("#94A3B8"));
+        LumnStatusBorder.Background = lumnRunning ? StatusRunningBorderBrush : StatusStoppedBorderBrush;
+        LumnStatusText.Foreground = lumnRunning ? StatusRunningTextBrush : StatusStoppedTextBrush;
         BtnToggleLumn.Content = lumnRunning ? "Lumn'u Durdur" : "Lumn'u Başlat";
 
         // 3. Update Verci card
         var verci = _moduleManager.GetModule("verci");
         var verciRunning = verci?.State == ModuleState.Running;
         VerciStatusText.Text = verci?.State.ToString() ?? "Unknown";
-        VerciStatusBorder.Background = verciRunning ? new SolidColorBrush(Color.Parse("#065F46")) : new SolidColorBrush(Color.Parse("#334155"));
-        VerciStatusText.Foreground = verciRunning ? new SolidColorBrush(Color.Parse("#34D399")) : new SolidColorBrush(Color.Parse("#94A3B8"));
+        VerciStatusBorder.Background = verciRunning ? StatusRunningBorderBrush : StatusStoppedBorderBrush;
+        VerciStatusText.Foreground = verciRunning ? StatusRunningTextBrush : StatusStoppedTextBrush;
         BtnToggleVerci.Content = verciRunning ? "Verci'yi Durdur" : "Verci'yi Başlat";
     }
 
@@ -109,6 +129,11 @@ public partial class MainWindow : Window
         if (_lumnWindow == null)
         {
             _lumnWindow = new LumnWindow(lumn, _settingsManager);
+        }
+
+        if (_lumnWindow.WindowState == WindowState.Minimized)
+        {
+            _lumnWindow.WindowState = WindowState.Normal;
         }
 
         _lumnWindow.Show();
@@ -134,6 +159,11 @@ public partial class MainWindow : Window
         if (_verciWindow == null)
         {
             _verciWindow = new VerciWindow(verci, _settingsManager);
+        }
+
+        if (_verciWindow.WindowState == WindowState.Minimized)
+        {
+            _verciWindow.WindowState = WindowState.Normal;
         }
 
         _verciWindow.Show();

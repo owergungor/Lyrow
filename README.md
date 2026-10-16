@@ -26,7 +26,7 @@
 
 ## 🚀 Özellik Durumu (Gerçekleştirilen vs. Planlanan)
 
-### Mevcut (Aşama 1, Aşama 2, Aşama 3 & Aşama 4)
+### Mevcut (Aşama 1, Aşama 2, Aşama 3, Aşama 4 & Aşama 5)
 - [x] Mimari tasarım ve bileşen sınırlarının belirlenmesi.
 - [x] Temel modül arayüzleri (`ILyrowModule`, `ModuleState`, `ModuleMetadata`).
 - [x] Modül yaşam döngüsü yöneticisi (`IModuleManager`, `ModuleManager`) ile 4 çalışma durumunun desteklenmesi:
@@ -58,12 +58,20 @@
   - Düşük CPU tüketimli, pürüzsüz enterpolasyonlu zamanlama motoru (`LyricsTimelineSynchronizer`).
   - Avalonia 12 Neumorphic temalı bağımsız şarkı sözü penceresi (`VerciWindow`); aktif satır vurgulama, pürüzsüz otomatik kaydırma ve manuel ms zaman kaydırma.
   - Lumn'dan tamamen bağımsız çalışabilme ilkesi ve gevşek bağlı `IEventBus` olayları.
-- [x] 64 adet xUnit birim ve entegrasyon testi (%100 başarı: 17 Core + 19 Audio + 28 Music).
+- [x] **Entegrasyon, Gerçek Windows Ortamı Doğrulaması & Performans (Aşama 5):**
+  - Lumn ve Verci modüllerinin eşzamanlı çalışması, 4 temel çalışma durumu ve olay izolasyonu (`VerciAndLumnSimultaneousExecutionTests`).
+  - Gerçek Windows WASAPI donanım ses cihazı listeleme ve yakalama doğrulaması (`WasapiHardwareValidationTests`).
+  - Gerçek Windows GSMTC medya oturumu yaşam döngüsü doğrulaması (`GsmtcHardwareValidationTests`).
+  - Gerçek LRCLIB çevrimiçi şarkı sözü çekme, yerel atomik disk önbelleği, çevrimdışı kullanım ve seek testi (`LrclibOnlineOfflineIntegrationTests`).
+  - Avalonia `ThemeDictionaries` ile dinamik Açık, Koyu ve Sistem temalarının `MainWindow`, `LumnWindow` ve `VerciWindow` üzerinde tutarlı uygulanması.
+  - Pencere gizleme (`Hide`) ve küçültme (`Minimize`) durumlarında timer'ların durdurulması, sessizlik anında adaptif render throttling (60 FPS -> 5 FPS).
+  - UI fırça tahsislerinin tekilleştirilmesi, 100,000 binary search aramasında 0 ek bellek tahsisi ve 9ms işlem süresi (`Stage5PerformanceBenchmarkTests`).
+  - Uygulama kapanışında (`OnAppExit` ve `ShutdownWindow`) WASAPI, GSMTC ve modül döngülerinin zarif temizliği.
+- [x] 71 adet xUnit birim, donanım, performans ve entegrasyon testi (%100 başarı: 17 Core + 21 Audio + 33 Music).
 - [x] GitHub Actions CI iş akışı (Release derleme ve test doğrulama).
 
-### Planlanan (Aşama 5 - Aşama 7)
-- [ ] **Görsel Entegrasyon (Aşama 5):** Win32 `WS_EX_TRANSPARENT` Click-Through adaptörü, Neumorphism ambiyans ışık entegrasyonu.
-- [ ] **Performans Optimizasyonu (Aşama 6):** Canlı bellek ve CPU ölçümleri, 3 saatlik stres testi.
+### Planlanan (Aşama 6 - Aşama 7)
+- [ ] **Performans Profili & Kararlılık (Aşama 6):** Uzun süreli stres testi (3 saat kesintisiz müzik) ile bellek sızıntısı ve sınır testleri.
 - [ ] **Windows Dağıtımı (Aşama 7):** Self-contained tek dosya derlemesi ve Windows yükleyici paketi.
 
 ---

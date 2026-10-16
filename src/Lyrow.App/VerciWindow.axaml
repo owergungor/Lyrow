@@ -5,11 +5,11 @@
         Width="540" Height="680"
         MinWidth="380" MinHeight="420"
         WindowStartupLocation="CenterScreen"
-        Background="#181825"
+        Background="{DynamicResource LyrowWindowBackground}"
         CanResize="True"
         WindowDecorations="None">
 
-    <Border BorderBrush="#313244" BorderThickness="1" CornerRadius="16" Background="#181825">
+    <Border BorderBrush="{DynamicResource LyrowBorderBrush}" BorderThickness="1" CornerRadius="16" Background="{DynamicResource LyrowWindowBackground}">
         <Grid RowDefinitions="Auto,*,Auto" Margin="20">
             
             <!-- 1. Header & Track Metadata -->
@@ -18,45 +18,45 @@
                 <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                         <Border Width="10" Height="10" CornerRadius="5" Background="#F38BA8" />
-                        <TextBlock Text="Verci" FontSize="16" FontWeight="SemiBold" Foreground="#CDD6F4" VerticalAlignment="Center"/>
-                        <Border x:Name="SourceBadge" Background="#252538" CornerRadius="6" Padding="6,2">
-                            <TextBlock x:Name="SourceText" Text="LRCLIB" FontSize="10" Foreground="#A6ADC8" />
+                        <TextBlock Text="Verci" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource LyrowTextPrimary}" VerticalAlignment="Center"/>
+                        <Border x:Name="SourceBadge" Background="{DynamicResource LyrowSubtleButtonBackground}" CornerRadius="6" Padding="6,2">
+                            <TextBlock x:Name="SourceText" Text="LRCLIB" FontSize="10" Foreground="{DynamicResource LyrowTextSecondary}" />
                         </Border>
                     </StackPanel>
 
-                    <Border Grid.Column="1" x:Name="StatusBadge" HorizontalAlignment="Center" Background="#1E1E2E" CornerRadius="8" Padding="10,3" BorderBrush="#313244" BorderThickness="1">
-                        <TextBlock x:Name="StatusText" Text="Müzik Bekleniyor..." FontSize="11" Foreground="#A6ADC8"/>
+                    <Border Grid.Column="1" x:Name="StatusBadge" HorizontalAlignment="Center" Background="{DynamicResource LyrowBadgeBackground}" CornerRadius="8" Padding="10,3" BorderBrush="{DynamicResource LyrowBorderBrush}" BorderThickness="1">
+                        <TextBlock x:Name="StatusText" Text="Müzik Bekleniyor..." FontSize="11" Foreground="{DynamicResource LyrowTextSecondary}"/>
                     </Border>
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
                         <Button x:Name="MinimizeButton" Content="—" Width="28" Height="28" CornerRadius="6"
-                                Background="#252538" Foreground="#CDD6F4" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                                Background="{DynamicResource LyrowSubtleButtonBackground}" Foreground="{DynamicResource LyrowTextPrimary}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                         <Button x:Name="CloseButton" Content="✕" Width="28" Height="28" CornerRadius="6"
-                                Background="#252538" Foreground="#CDD6F4" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                                Background="{DynamicResource LyrowSubtleButtonBackground}" Foreground="{DynamicResource LyrowTextPrimary}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                     </StackPanel>
                 </Grid>
 
                 <!-- Track Title & Artist -->
                 <StackPanel Grid.Row="1" Spacing="3" Margin="0,4,0,10">
-                    <TextBlock x:Name="TrackTitleText" Text="Şarkı Çalınmıyor" FontSize="20" FontWeight="Bold" Foreground="#CDD6F4" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="TrackTitleText" Text="Şarkı Çalınmıyor" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource LyrowTextPrimary}" TextTrimming="CharacterEllipsis"/>
                     <TextBlock x:Name="TrackArtistText" Text="Spotify veya Medya Oynatıcıyı Başlatın" FontSize="13" Foreground="#89B4FA" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
 
                 <!-- Timeline Progress Bar -->
                 <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,4">
-                    <TextBlock x:Name="PositionText" Grid.Column="0" Text="00:00" FontSize="11" Foreground="#6C7086" VerticalAlignment="Center"/>
-                    <ProgressBar x:Name="TimelineProgress" Grid.Column="1" Margin="10,0" Minimum="0" Maximum="100" Value="0" Height="4" Foreground="#89B4FA" Background="#313244"/>
-                    <TextBlock x:Name="DurationText" Grid.Column="2" Text="00:00" FontSize="11" Foreground="#6C7086" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="PositionText" Grid.Column="0" Text="00:00" FontSize="11" Foreground="{DynamicResource LyrowTextMuted}" VerticalAlignment="Center"/>
+                    <ProgressBar x:Name="TimelineProgress" Grid.Column="1" Margin="10,0" Minimum="0" Maximum="100" Value="0" Height="4" Foreground="#89B4FA" Background="{DynamicResource LyrowBorderBrush}"/>
+                    <TextBlock x:Name="DurationText" Grid.Column="2" Text="00:00" FontSize="11" Foreground="{DynamicResource LyrowTextMuted}" VerticalAlignment="Center"/>
                 </Grid>
             </Grid>
 
             <!-- 2. Synchronized Lyrics View Container -->
-            <Border Grid.Row="1" Background="#11111B" CornerRadius="14" Padding="16,12" BorderBrush="#252538" BorderThickness="1">
+            <Border Grid.Row="1" Background="{DynamicResource LyrowInnerContainerBackground}" CornerRadius="14" Padding="16,12" BorderBrush="{DynamicResource LyrowBorderBrush}" BorderThickness="1">
                 <Grid>
                     <!-- Empty/Waiting State Placeholder -->
                     <StackPanel x:Name="EmptyStatePanel" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" IsVisible="True">
                         <TextBlock Text="🎵" FontSize="36" HorizontalAlignment="Center" Opacity="0.5"/>
-                        <TextBlock Text="Şarkı sözleri bekleniyor..." FontSize="14" Foreground="#6C7086" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Şarkı sözleri bekleniyor..." FontSize="14" Foreground="{DynamicResource LyrowTextMuted}" HorizontalAlignment="Center"/>
                     </StackPanel>
 
                     <!-- Scrollable Lyrics List -->
@@ -69,14 +69,14 @@
             <!-- 3. Bottom Sync & Offset Controls -->
             <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,14,0,0">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <TextBlock Text="Zaman Kaydırma:" FontSize="11" Foreground="#6C7086" VerticalAlignment="Center"/>
-                    <Button x:Name="BtnOffsetMinus" Content="-0.5s" FontSize="11" Padding="6,2" CornerRadius="6" Background="#252538" Foreground="#CDD6F4"/>
-                    <TextBlock x:Name="OffsetLabelText" Text="0 ms" FontSize="11" Foreground="#A6ADC8" VerticalAlignment="Center" Width="45" TextAlignment="Center"/>
-                    <Button x:Name="BtnOffsetPlus" Content="+0.5s" FontSize="11" Padding="6,2" CornerRadius="6" Background="#252538" Foreground="#CDD6F4"/>
+                    <TextBlock Text="Zaman Kaydırma:" FontSize="11" Foreground="{DynamicResource LyrowTextMuted}" VerticalAlignment="Center"/>
+                    <Button x:Name="BtnOffsetMinus" Content="-0.5s" FontSize="11" Padding="6,2" CornerRadius="6" Background="{DynamicResource LyrowSubtleButtonBackground}" Foreground="{DynamicResource LyrowTextPrimary}"/>
+                    <TextBlock x:Name="OffsetLabelText" Text="0 ms" FontSize="11" Foreground="{DynamicResource LyrowTextSecondary}" VerticalAlignment="Center" Width="45" TextAlignment="Center"/>
+                    <Button x:Name="BtnOffsetPlus" Content="+0.5s" FontSize="11" Padding="6,2" CornerRadius="6" Background="{DynamicResource LyrowSubtleButtonBackground}" Foreground="{DynamicResource LyrowTextPrimary}"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <CheckBox x:Name="ChkAutoScroll" Content="Otomatik Kaydır" IsChecked="True" FontSize="11" Foreground="#A6ADC8" VerticalAlignment="Center"/>
+                    <CheckBox x:Name="ChkAutoScroll" Content="Otomatik Kaydır" IsChecked="True" FontSize="11" Foreground="{DynamicResource LyrowTextSecondary}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
         </Grid>

@@ -52,9 +52,40 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow(moduleManager, settingsManager);
+            desktop.Exit += OnAppExit;
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static void OnAppExit(object? sender, ControlledApplicationLifetimeExitEventArgs e)
+    {
+        try
+        {
+            var moduleManager = Services?.GetService<IModuleManager>();
+            if (moduleManager != null)
+            {
+                moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.BothDisabled).GetAwaiter().GetResult();
+            }
+
+            var lumn = Services?.GetService<LumnModule>();
+            lumn?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+            var verci = Services?.GetService<VerciModule>();
+            verci?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+            var wasapi = Services?.GetService<IAudioCaptureService>();
+            wasapi?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+            var gsmtc = Services?.GetService<IMediaSessionMonitor>();
+            gsmtc?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+            (Services as IDisposable)?.Dispose();
+        }
+        catch
+        {
+            // Suppress teardown exceptions during process exit
+        }
     }
 
     private static void ConfigureServices(IServiceCollection services)

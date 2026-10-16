@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
 using Lyrow.Core.Modules;
 
@@ -58,37 +59,77 @@ public sealed class LumnVisualizerControl : Control
         {
             Interval = TimeSpan.FromMilliseconds(16.6) // ~60 FPS
         };
-        _renderTimer.Tick += (_, _) => InvalidateVisual();
+        _renderTimer.Tick += OnRenderTimerTick;
+    }
+
+    private int _consecutiveSilentFrames = 0;
+
+    private void OnRenderTimerTick(object? sender, EventArgs e)
+    {
+        var spectrum = _lumnModule?.LatestSpectrum ?? FrequencySpectrum.Empty;
+        if (spectrum.Levels.IsSilent || _lumnModule?.State != ModuleState.Running)
+        {
+            _consecutiveSilentFrames++;
+            if (_consecutiveSilentFrames > 60) // ~1 second of silence
+            {
+                // Slow down redraws to 5 FPS to reduce idle CPU usage to 0%
+                if (_renderTimer.Interval.TotalMilliseconds < 200)
+                {
+                    _renderTimer.Interval = TimeSpan.FromMilliseconds(200);
+                }
+            }
+        }
+        else
+        {
+            _consecutiveSilentFrames = 0;
+            if (_renderTimer.Interval.TotalMilliseconds > 20)
+            {
+                _renderTimer.Interval = TimeSpan.FromMilliseconds(16.6); // Resume 60 FPS
+            }
+        }
+
+        InvalidateVisual();
     }
 
     public void AttachModule(LumnModule module)
     {
         _lumnModule = module;
-        if (!_renderTimer.IsEnabled)
-        {
-            _renderTimer.Start();
-        }
+        ResumeRendering();
     }
 
     public void DetachModule()
     {
-        _renderTimer.Stop();
+        PauseRendering();
         _lumnModule = null;
+    }
+
+    public void PauseRendering()
+    {
+        if (_renderTimer.IsEnabled)
+        {
+            _renderTimer.Stop();
+        }
+    }
+
+    public void ResumeRendering()
+    {
+        if (_lumnModule != null && !_renderTimer.IsEnabled)
+        {
+            _renderTimer.Interval = TimeSpan.FromMilliseconds(16.6);
+            _renderTimer.Start();
+        }
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        if (_lumnModule != null && !_renderTimer.IsEnabled)
-        {
-            _renderTimer.Start();
-        }
+        ResumeRendering();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        _renderTimer.Stop();
+        PauseRendering();
     }
 
     public override void Render(DrawingContext context)

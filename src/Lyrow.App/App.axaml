@@ -4,6 +4,46 @@
              RequestedThemeVariant="Default">
     <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Default">
+                    <SolidColorBrush x:Key="LyrowWindowBackground" Color="#181825" />
+                    <SolidColorBrush x:Key="LyrowCardBackground" Color="#1E1E2E" />
+                    <SolidColorBrush x:Key="LyrowInnerContainerBackground" Color="#11111B" />
+                    <SolidColorBrush x:Key="LyrowBorderBrush" Color="#313244" />
+                    <SolidColorBrush x:Key="LyrowTextPrimary" Color="#CDD6F4" />
+                    <SolidColorBrush x:Key="LyrowTextSecondary" Color="#A6ADC8" />
+                    <SolidColorBrush x:Key="LyrowTextMuted" Color="#6C7086" />
+                    <SolidColorBrush x:Key="LyrowSubtleButtonBackground" Color="#252538" />
+                    <SolidColorBrush x:Key="LyrowBadgeBackground" Color="#1E1E2E" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="LyrowWindowBackground" Color="#181825" />
+                    <SolidColorBrush x:Key="LyrowCardBackground" Color="#1E1E2E" />
+                    <SolidColorBrush x:Key="LyrowInnerContainerBackground" Color="#11111B" />
+                    <SolidColorBrush x:Key="LyrowBorderBrush" Color="#313244" />
+                    <SolidColorBrush x:Key="LyrowTextPrimary" Color="#CDD6F4" />
+                    <SolidColorBrush x:Key="LyrowTextSecondary" Color="#A6ADC8" />
+                    <SolidColorBrush x:Key="LyrowTextMuted" Color="#6C7086" />
+                    <SolidColorBrush x:Key="LyrowSubtleButtonBackground" Color="#252538" />
+                    <SolidColorBrush x:Key="LyrowBadgeBackground" Color="#1E1E2E" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="LyrowWindowBackground" Color="#F8FAFC" />
+                    <SolidColorBrush x:Key="LyrowCardBackground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="LyrowInnerContainerBackground" Color="#F1F5F9" />
+                    <SolidColorBrush x:Key="LyrowBorderBrush" Color="#CBD5E1" />
+                    <SolidColorBrush x:Key="LyrowTextPrimary" Color="#0F172A" />
+                    <SolidColorBrush x:Key="LyrowTextSecondary" Color="#334155" />
+                    <SolidColorBrush x:Key="LyrowTextMuted" Color="#64748B" />
+                    <SolidColorBrush x:Key="LyrowSubtleButtonBackground" Color="#E2E8F0" />
+                    <SolidColorBrush x:Key="LyrowBadgeBackground" Color="#E2E8F0" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
         

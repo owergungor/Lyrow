@@ -20,6 +20,12 @@ public partial class VerciWindow : Window
     private int _currentRenderedLineIndex = -99;
     private string _lastRenderedSongKey = string.Empty;
 
+    private readonly SolidColorBrush _activeLyricBrush = new(Color.Parse("#89B4FA"));
+    private readonly SolidColorBrush _inactiveLyricBrush = new(Color.Parse("#A6ADC8"));
+    private readonly SolidColorBrush _playingBadgeBrush = new(Color.Parse("#1A3A2A"));
+    private readonly SolidColorBrush _pausedBadgeBrush = new(Color.Parse("#252538"));
+    private readonly SolidColorBrush _waitingBadgeBrush = new(Color.Parse("#1E1E2E"));
+
     // Parameterless constructor for XAML loader and previewer
     public VerciWindow() : this(
         App.Services?.GetService<VerciModule>() ?? new VerciModule(),
@@ -56,6 +62,28 @@ public partial class VerciWindow : Window
         };
         _uiTimer.Tick += OnUiTimerTick;
         _uiTimer.Start();
+
+        PropertyChanged += OnWindowPropertyChanged;
+    }
+
+    private void OnWindowPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == IsVisibleProperty || e.Property == WindowStateProperty)
+        {
+            bool isActive = IsVisible && WindowState != WindowState.Minimized;
+            if (isActive)
+            {
+                if (!_uiTimer.IsEnabled)
+                {
+                    _uiTimer.Start();
+                    OnUiTimerTick(null, EventArgs.Empty);
+                }
+            }
+            else
+            {
+                if (_uiTimer.IsEnabled) _uiTimer.Stop();
+            }
+        }
     }
 
     private void OnWindowPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -86,15 +114,15 @@ public partial class VerciWindow : Window
             TrackArtistText.Text = string.IsNullOrEmpty(track.Album) ? track.Artist : $"{track.Artist} — {track.Album}";
             StatusText.Text = timeline.Status == MediaPlaybackStatus.Playing ? "Çalıyor" : "Duraklatıldı";
             StatusBadge.Background = timeline.Status == MediaPlaybackStatus.Playing
-                ? new SolidColorBrush(Color.Parse("#1A3A2A"))
-                : new SolidColorBrush(Color.Parse("#252538"));
+                ? _playingBadgeBrush
+                : _pausedBadgeBrush;
         }
         else
         {
             TrackTitleText.Text = "Şarkı Çalınmıyor";
             TrackArtistText.Text = "Spotify veya Medya Oynatıcıyı Başlatın";
             StatusText.Text = "Müzik Bekleniyor...";
-            StatusBadge.Background = new SolidColorBrush(Color.Parse("#1E1E2E"));
+            StatusBadge.Background = _waitingBadgeBrush;
         }
 
         // 2. Update progress timeline
@@ -193,7 +221,7 @@ public partial class VerciWindow : Window
             var prevBlock = _lineTextBlocks[_currentRenderedLineIndex];
             prevBlock.FontSize = 14;
             prevBlock.FontWeight = FontWeight.Normal;
-            prevBlock.Foreground = new SolidColorBrush(Color.Parse("#A6ADC8"));
+            prevBlock.Foreground = _inactiveLyricBrush;
             prevBlock.Opacity = 0.45;
         }
 
@@ -205,7 +233,7 @@ public partial class VerciWindow : Window
             var activeBlock = _lineTextBlocks[activeIdx];
             activeBlock.FontSize = 18;
             activeBlock.FontWeight = FontWeight.Bold;
-            activeBlock.Foreground = new SolidColorBrush(Color.Parse("#89B4FA")); // Vibrant Accent Blue
+            activeBlock.Foreground = _activeLyricBrush;
             activeBlock.Opacity = 1.0;
 
             // Auto-scroll active line to vertical center of view
@@ -216,10 +244,24 @@ public partial class VerciWindow : Window
         }
     }
 
+    private bool _isShuttingDown;
+
+    public void ShutdownWindow()
+    {
+        _isShuttingDown = true;
+        _uiTimer.Stop();
+        Close();
+    }
+
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        e.Cancel = true;
-        Hide();
+        if (!_isShuttingDown)
+        {
+            e.Cancel = true;
+            Hide();
+            return;
+        }
+
         base.OnClosing(e);
     }
 }

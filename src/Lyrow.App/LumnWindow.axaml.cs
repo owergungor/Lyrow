@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -48,6 +49,26 @@ public partial class LumnWindow : Window
         };
         _metricsTimer.Tick += OnMetricsTick;
         _metricsTimer.Start();
+
+        PropertyChanged += OnWindowPropertyChanged;
+    }
+
+    private void OnWindowPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == IsVisibleProperty || e.Property == WindowStateProperty)
+        {
+            bool isActive = IsVisible && WindowState != WindowState.Minimized;
+            if (isActive)
+            {
+                if (!_metricsTimer.IsEnabled) _metricsTimer.Start();
+                VisualizerControl.ResumeRendering();
+            }
+            else
+            {
+                if (_metricsTimer.IsEnabled) _metricsTimer.Stop();
+                VisualizerControl.PauseRendering();
+            }
+        }
     }
 
     private void OnWindowPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -77,11 +98,26 @@ public partial class LumnWindow : Window
             : Avalonia.Media.Brushes.IndianRed;
     }
 
+    private bool _isShuttingDown;
+
+    public void ShutdownWindow()
+    {
+        _isShuttingDown = true;
+        _metricsTimer.Stop();
+        VisualizerControl.DetachModule();
+        Close();
+    }
+
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        // Hide rather than fully destroying window handle for fast reopen
-        e.Cancel = true;
-        Hide();
+        if (!_isShuttingDown)
+        {
+            // Hide rather than fully destroying window handle for fast reopen
+            e.Cancel = true;
+            Hide();
+            return;
+        }
+
         base.OnClosing(e);
     }
 }

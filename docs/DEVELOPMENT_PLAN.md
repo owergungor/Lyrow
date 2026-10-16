@@ -80,16 +80,17 @@ graph LR
 
 ---
 
-### Aşama 5: Görsel Entegrasyon, Ayarlar ve Gelişmiş UI
+### Aşama 5: Görsel Entegrasyon, Ayarlar, Gerçek Ortam Doğrulaması ve Polish [TAMAMLANDI]
 - **Kapsam:**
-  - Lumn ve Verci pencerelerinin tekilleştirilmiş görsel teması (Neumorphism / Glassmorphism hibrit yaklaşımı).
-  - İsteğe bağlı görsel entegrasyon (ör. Verci penceresi arkasında Lumn ambiyans ışığının yanması).
-  - Şeffaf pencere üzerinden tıklama geçirgenliği (`Click-Through`) Win32 adaptörünün devreye alınması.
-  - Açık / Koyu / Sistem teması desteği.
-  - Kullanıcı ayarları penceresi (kısayol tuşları, pencere opaklığı, monitör seçimi, başlangıçta çalışma).
+  - Lumn ve Verci pencerelerinin tekilleştirilmiş görsel teması (Neumorphism Açık/Koyu/Sistem temaları `ThemeDictionaries` entegrasyonu).
+  - Gerçek Windows WASAPI sistem sesi ve GSMTC medya oturumu yaşam döngüsü doğrulaması.
+  - Gerçek LRCLIB çevrimiçi şarkı sözü çekme, yerel atomik JSON disk önbellekleme ve çevrimdışı fallback doğrulaması.
+  - Lumn ve Verci modüllerinin eşzamanlı çalışması, 4 temel çalışma modunun anlık geçiş testleri.
+  - Pencere gizleme (`Hide`) ve küçültme (`Minimize`) durumlarında timer'ların durdurulması, sessizlik anında adaptif render throttling ile CPU ve RAM optimizasyonu.
+  - Uygulama kapanışında kaynakların zarifçe serbest bırakılması (`AppExit`, `WasapiAudioCaptureService.DisposeAsync`, `WindowsGsmtcMediaSessionMonitor.DisposeAsync`).
 - **Test ve Kabul Kriteri:**
-  - Click-through açıkken pencerenin arkasındaki web sayfalarına ve uygulamalara tıklanabilmesi.
-  - Ayarların kaydedilip uygulama yeniden açıldığında eksiksiz yüklenmesi.
+  - Release modunda 71 birim, donanım, performans ve entegrasyon testinin %100 başarıyla geçmesi.
+  - Gerçek işletim sistemi API'lerinin güvenle çalışması ve sıfır çökme/sızıntı.
 
 ---
 

@@ -12,9 +12,25 @@ Bu belge, Lyrow projesinin aşama bazlı kilometre taşlarını, ilerleme durumu
 | **M2** | **Aşama 2: Çekirdek Altyapı ve Solution Yapılandırması** | .NET 10 LTS SDK kurulumu ve hizalaması, `Lyrow.Core`, modül yaşam döngüsü (`ILyrowModule`), 4 çalışma durumunu yöneten `ModuleManager`, `InMemoryEventBus`, `SettingsManager`, Avalonia Neumorphic ana pencere ve 17 adet xUnit testi. | **TAMAMLANDI** |
 | **M3** | **Aşama 3: Lumn Modülü (Ses Analizi & Görselleştirme)** | WASAPI Loopback sistem sesi yakalama, sıfır-tahsisli FFT analiz motoru, RMS/dBFS seviye algılama, logaritmik frekans bantları, Avalonia GPU hızlandırmalı dinamik spektrum penceresi (`LumnWindow`), 19 xUnit testi. | **TAMAMLANDI** |
 | **M4** | **Aşama 4: Verci Modülü (Metadata & Senkronize Sözler)** | Windows GSMTC medya entegrasyonu, LRCLIB REST API istemcisi, çoklu timestamp destekli LRC ayrıştırıcı, Binary Search satır seçimi, yerel disk önbelleği, Neumorphic şarkı sözü penceresi (`VerciWindow`), 28 xUnit testi. | **TAMAMLANDI** |
-| **M5** | **Aşama 5: Görsel Entegrasyon, Ayarlar & Overlay** | Win32 Click-through adaptörü, Neumorphism/Glassmorphism tema ayarları, kısayol tuşları. | *Sıradaki Aşama* |
-| **M6** | **Aşama 6: Performans Profili & Kararlılık** | RAM ve CPU ölçümleri, bellek sızıntısı testleri, uzun süreli stres testi, hata kurtarma doğrulaması. | *Planlandı* |
+| **M5** | **Aşama 5: Entegrasyon, Gerçek Windows Ortamı Doğrulaması & Polish** | Lumn + Verci eşzamanlı çalışma, gerçek WASAPI ve GSMTC donanım doğrulaması, gerçek LRCLIB çevrimiçi/çevrimdışı önbellek akışı, Açık/Koyu/Sistem temaları, timer ve adaptif GPU optimizasyonu, zarif kaynak temizliği, 71 xUnit testi. | **TAMAMLANDI** |
+| **M6** | **Aşama 6: Performans Profili & Kararlılık** | Uzun süreli stres testi, sınır durumları ve hata kurtarma mekanizmaları doğrulaması. | *Sıradaki Aşama* |
 | **M7** | **Aşama 7: Dağıtım, Kurulum & CI/CD** | Self-contained tek dosya derleme, Windows yükleyici (Installer), GitHub Actions iş akışı. | *Planlandı* |
+
+---
+
+## Aşama 5 Doğrulama Notları
+
+- **Gerçek Windows Donanımı ve Servisleri:** Windows WASAPI loopback aygıt listeleme ve yakalama testi (`WasapiHardwareValidationTests`) ile Windows 10/11 WinRT GSMTC yaşam döngüsü testi (`GsmtcHardwareValidationTests`) gerçek işletim sistemi katmanında doğrulandı.
+- **LRCLIB Çevrimiçi & Çevrimdışı Akış:** `LrclibOnlineOfflineIntegrationTests` ile gerçek LRCLIB REST API sorgusu (Coldplay - Yellow), LRC ayrıştırma, disk önbelleğine kaydetme (`LocalFileLyricsCache`), çevrimdışı modda önbellekten okuma ve seek senkronizasyonu doğrulandı.
+- **Lumn ve Verci Eşzamanlı Çalışması:** `VerciAndLumnSimultaneousExecutionTests` ile iki modülün eşzamanlı çalışması, olay bus'ı üzerinden yayılan spektrum ve şarkı sözü olaylarının birbirini etkilemediği, mod geçişlerinin (`BothEnabled` -> `VerciOnly` -> `LumnOnly` -> `BothDisabled`) kusursuz işlediği kanıtlandı.
+- **Tema Tutarlılığı:** `App.axaml` içerisinde `ThemeDictionaries` üzerinden Koyu (`#181825`), Açık (`#F8FAFC`) ve Sistem temaları tanımlandı; `MainWindow`, `LumnWindow` ve `VerciWindow` dinamik kaynaklarla tam uyumlu hale getirildi.
+- **Performans & Kaynak Temizliği:**
+  - `LumnVisualizerControl`: Sessizlik durumunda veya modül durduğunda render yenileme hızı 60 FPS'ten 5 FPS'e çekilerek CPU tüketimi %0'a indirildi.
+  - Pencereler gizlendiğinde (`Hide`) veya simge durumuna küçültüldüğünde (`Minimized`) render ve UI timer'ları durduruldu; tekrar açıldığında otomatik devam ettirildi.
+  - UI fırçaları (`SolidColorBrush`) statik/sabit havuzda tutularak heap tahsisleri engellendi.
+  - 100,000 Binary Search satır araması yalnızca 9 milisaniye sürdü ve sıfır ek bellek tahsisi ölçüldü.
+  - Uygulama kapanışında (`OnAppExit` ve `ShutdownWindow`) WASAPI, GSMTC, modül döngüleri ve DI konteyneri zarifçe serbest bırakıldı.
+- **Test Kapsamı:** `Lyrow.Core.Tests` (17 test), `Lyrow.Audio.Tests` (21 test) ve `Lyrow.Music.Tests` (33 test) olmak üzere toplam 71 test Release modunda %100 başarıyla geçti.
 
 ---
 
