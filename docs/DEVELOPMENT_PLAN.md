@@ -112,21 +112,19 @@ graph LR
 
 ### Aşama 7: System Tray, Global Hotkeys, Yaşam Döngüsü ve v1.0.0 Release — **[TAMAMLANDI]**
 - **Kapsam:**
-  - Gerçek Windows System Tray (`TrayIcon`) entegrasyonu, pencere kapatmada tepsiye küçültme (`MinimizeToTrayOnClose`), tam sağ tık menüsü (Göster, Lumn, Verci, Click-Through, Ayarlar, Çıkış).
-  - Win32 mesaj döngülü global kısayol yöneticisi (`WindowsGlobalHotkeyManager`), `Ctrl+Shift+L` (Lumn), `Ctrl+Shift+V` (Verci), `Ctrl+Shift+C` (Click-Through) sistem geneli tetikleyicileri.
-  - Event-driven `WM_DISPLAYCHANGE` ve `WM_SETTINGCHANGE` dinleyicileriyle ekran/çözünürlük/DPI değişiminde overlay'leri otomatik yeniden hizalama.
-  - LRCLIB HTTP 429 rate-limit algılama, `Retry-After` süresi geri sayımı ve UI durum göstergesi.
-  - Windows başlangıç kaydı yöneticisi (`WindowsStartupManager`) ve Inno Setup uninstaller temizliği.
+  - Gerçek Windows System Tray (`TrayIcon`) entegrasyonu, pencere kapatmada tepsiye küçültme.
   - 95 xUnit testi (%100 başarı, 0 uyarı/hata).
-  - Self-contained `win-x64` Release yayını, Inno Setup 6 kurulum paketi (`Lyrow-1.0.0-Setup-x64.exe`), taşınabilir arşiv (`Lyrow-win-x64-portable.zip`).
-  - Git etiketi `v1.0.0` ve resmi GitHub Release.
-- **Test ve Kabul Kriteri:**
-  - Tüm kabul kriterleri sağlandı; sıfır kaynak sızıntısı, 95/95 test başarıyla tamamlandı.
 
 ---
 
-## 3. Ön Koşullar ve Kritik Yol (Critical Path)
+### Aşama 8: v1.1 Geliştirme, Kararlılık ve Modern UI Yenilemesi — **[TAMAMLANDI]**
+- **Kapsam:**
+  - **İki Parçalı Sürüm Formatı:** Uygulama, installer, repo ve belgelerde kesin `v1.1` numaralandırması uygulandı.
+  - **Ürün İsimlendirmesi:** Lumn → **Glow**, Verci → **Lyrics** olarak kullanıcı arayüzünde tamamen güncellendi.
+  - **Lyrics Senkronizasyonu Kök Neden Çözümü:** `LyricsTimelineSynchronizer` `VerciModule`'e doğrudan entegre edildi. 30 FPS canlı interpolasyon ve O(log N) ikili arama ile 5. satır playback anında UI 5. satıra getirildi; `BringIntoView` merkezleme sağlandı.
+  - **Win32 1408 Hotkey Çözümü:** `WindowsGlobalHotkeyManager` kayıt ve unregister işlemleri dedicated mesaj döngüsü iş parçacığına taşınarak thread affinity hatası kökten çözüldü. Çakışma durumları güvenli yönetildi.
+  - **Startup & Single-Instance:** Senkron pencere gösterimi, arka plan modül başlatma, sistem geneli `Mutex` + `EventWaitHandle` ile ikinci çalıştırmada mevcut pencereyi öne getirme ve yerel `%APPDATA%\Lyrow\logs\app.log` tanı günlüğü sağlandı.
+  - **Vercel + Apple Tasarım Dili:** Saf siyah/açık yüzeyler, 1px zarif sınırlar, akıcı Apple tarzı `ToggleSwitch`, sol/sağ eşit ağırlıklı Ses Seviyesi ve Söz Durumu metrik kartları; gereksiz mod butonları ve rozetleri temizlendi.
+  - **Test Paketi:** 108 xUnit testi (%100 başarı, 0 failed, 0 skipped, 0 warning).
+  - **Dağıtım Paketleri:** `Lyrow-1.1-Setup-x64.exe` ve `Lyrow-win-x64-portable.zip`.
 
-1. **Aşama 2 Ön Koşulu:** Geliştirme ortamındaki .NET SDK 9.0 ile uyumluluk için `Lyrow.App.csproj`'taki `net10.0` hedefinin `net9.0` olarak düzeltilmesi.
-2. **Aşama 3 Ön Koşulu:** Geliştirme makinesinde çalışan bir ses çıkış aygıtının (hoparlör/kulaklık) bulunması.
-3. **Aşama 4 Ön Koşulu:** GSMTC servisinin Windows üzerinde çalışması ve test sırasında aktif bir medya oynatıcının (Spotify veya tarayıcı) açık olması.
