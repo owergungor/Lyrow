@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Lyrow.App.Platform;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
+using Lyrow.Core.Modules;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Lyrow.App;
@@ -24,13 +25,10 @@ public partial class MainWindow : Window
     private readonly List<IDisposable> _subscriptions = new();
     private bool _isExplicitExit;
 
-    private static readonly SolidColorBrush ModeBothEnabledBrush = new(Color.Parse("#1E3A8A"));
-    private static readonly SolidColorBrush ModeBothDisabledBrush = new(Color.Parse("#334155"));
-    private static readonly SolidColorBrush ModeSingleBrush = new(Color.Parse("#1E293B"));
-    private static readonly SolidColorBrush StatusRunningBorderBrush = new(Color.Parse("#065F46"));
-    private static readonly SolidColorBrush StatusStoppedBorderBrush = new(Color.Parse("#334155"));
-    private static readonly SolidColorBrush StatusRunningTextBrush = new(Color.Parse("#34D399"));
-    private static readonly SolidColorBrush StatusStoppedTextBrush = new(Color.Parse("#94A3B8"));
+    private static readonly SolidColorBrush StatusRunningBorderBrush = new(Color.Parse("#10B981"));
+    private static readonly SolidColorBrush StatusStoppedBorderBrush = new(Color.Parse("#27272A"));
+    private static readonly SolidColorBrush StatusRunningTextBrush = new(Color.Parse("#10B981"));
+    private static readonly SolidColorBrush StatusStoppedTextBrush = new(Color.Parse("#71717A"));
 
     private LumnWindow? _lumnWindow;
     private VerciWindow? _verciWindow;
@@ -92,14 +90,14 @@ public partial class MainWindow : Window
                 LiveTrackTitleText.Text = track.Title;
                 LiveTrackArtistText.Text = string.IsNullOrEmpty(track.Album) ? track.Artist : $"{track.Artist} — {track.Album}";
                 LivePlaybackText.Text = "Çalıyor";
-                LivePlaybackBadge.Background = StatusRunningBorderBrush;
+                LivePlaybackBadge.BorderBrush = StatusRunningBorderBrush;
             }
             else
             {
                 LiveTrackTitleText.Text = "Şarkı Bekleniyor...";
                 LiveTrackArtistText.Text = "Spotify veya Medya Oynatıcıyı Başlatın";
                 LivePlaybackText.Text = "Boşta";
-                LivePlaybackBadge.Background = ModeSingleBrush;
+                LivePlaybackBadge.BorderBrush = StatusStoppedBorderBrush;
                 LiveLyricsStatusText.Text = "Bekleniyor";
             }
         });
@@ -134,7 +132,7 @@ public partial class MainWindow : Window
             if (e.IsRateLimited)
             {
                 LiveLyricsStatusText.Text = $"Limit Aşımı ({e.RetryAfterSeconds}s)";
-                LiveLyricsStatusText.Foreground = new SolidColorBrush(Color.Parse("#F38BA8"));
+                LiveLyricsStatusText.Foreground = new SolidColorBrush(Color.Parse("#EF4444"));
                 StatusMessageText.Text = $"⏱️ LRCLIB istek limiti aşıldı. {e.RetryAfterSeconds} saniye sonra tekrar denenecek.";
             }
             else
@@ -154,11 +152,13 @@ public partial class MainWindow : Window
             {
                 LiveAudioMeterText.Text = "Sessiz (-90 dBFS)";
                 LiveAudioMeterText.Foreground = StatusStoppedTextBrush;
+                VolumeProgressBar.Value = 0;
             }
             else
             {
                 LiveAudioMeterText.Text = $"{levels.Decibels:F1} dB (RMS: {levels.Rms:F2})";
                 LiveAudioMeterText.Foreground = StatusRunningTextBrush;
+                VolumeProgressBar.Value = Math.Clamp(levels.Rms * 100.0 * 2.0, 0, 100);
             }
         });
     }
@@ -283,13 +283,13 @@ public partial class MainWindow : Window
         var failed = statuses.FirstOrDefault(s => !s.IsRegistered);
         if (failed != null)
         {
-            TxtHotkeyStatus.Text = $"⚠️ Kısayol çakışması: {failed.ActionName} ({failed.KeyGesture}) - {failed.ErrorMessage}";
-            TxtHotkeyStatus.Foreground = new SolidColorBrush(Color.Parse("#F9E2AF"));
+            TxtHotkeyStatus.Text = $"⚠️ Kısayol: {failed.ErrorMessage}";
+            TxtHotkeyStatus.Foreground = new SolidColorBrush(Color.Parse("#F59E0B"));
         }
         else
         {
-            TxtHotkeyStatus.Text = "🟢 Global kısayollar aktif (Pencereler odakta değilken de çalışır)";
-            TxtHotkeyStatus.Foreground = new SolidColorBrush(Color.Parse("#A6E3A1"));
+            TxtHotkeyStatus.Text = "🟢 Global kısayollar aktif (Glow: Ctrl+Shift+L, Lyrics: Ctrl+Shift+V, Click-through: Ctrl+Shift+C)";
+            TxtHotkeyStatus.Foreground = StatusRunningTextBrush;
         }
     }
 
@@ -397,17 +397,17 @@ public partial class MainWindow : Window
         bool lumnRunning = lumn?.State == ModuleState.Running;
         bool verciRunning = verci?.State == ModuleState.Running;
 
-        // Lumn state
+        // Glow (Lumn) state
         LumnStatusBorder.BorderBrush = lumnRunning ? StatusRunningBorderBrush : StatusStoppedBorderBrush;
-        LumnStatusText.Text = lumnRunning ? "Aktif (Ses Yakalanıyor)" : "Durduruldu";
+        LumnStatusText.Text = lumnRunning ? "Aktif" : "Durduruldu";
         LumnStatusText.Foreground = lumnRunning ? StatusRunningTextBrush : StatusStoppedTextBrush;
-        BtnToggleLumn.Content = lumnRunning ? "Lumn'u Durdur" : "Lumn'u Başlat";
+        BtnToggleLumn.Content = lumnRunning ? "Glow'u Durdur" : "Glow'u Başlat";
 
-        // Verci state
+        // Lyrics (Verci) state
         VerciStatusBorder.BorderBrush = verciRunning ? StatusRunningBorderBrush : StatusStoppedBorderBrush;
-        VerciStatusText.Text = verciRunning ? "Aktif (Medya Dinleniyor)" : "Durduruldu";
+        VerciStatusText.Text = verciRunning ? "Aktif" : "Durduruldu";
         VerciStatusText.Foreground = verciRunning ? StatusRunningTextBrush : StatusStoppedTextBrush;
-        BtnToggleVerci.Content = verciRunning ? "Verci'yi Durdur" : "Verci'yi Başlat";
+        BtnToggleVerci.Content = verciRunning ? "Lyrics'i Durdur" : "Lyrics'i Başlat";
 
         // Window buttons & states
         bool lumnWinVisible = _lumnWindow != null && _lumnWindow.IsVisible;
@@ -421,23 +421,6 @@ public partial class MainWindow : Window
 
         VerciWindowStateText.Text = verciWinVisible ? "Açık / Görünür" : "Kapalı";
         VerciWindowStateText.Foreground = verciWinVisible ? StatusRunningTextBrush : StatusStoppedTextBrush;
-
-        // Mode badge
-        var currentMode = _moduleManager.CurrentExecutionMode;
-        ModeBadgeText.Text = currentMode switch
-        {
-            ModuleExecutionMode.BothEnabled => "Mod: İkisi Birlikte (Lumn + Verci)",
-            ModuleExecutionMode.LumnOnly => "Mod: Yalnızca Lumn (Ses Efektleri)",
-            ModuleExecutionMode.VerciOnly => "Mod: Yalnızca Verci (Şarkı Sözleri)",
-            _ => "Mod: Tümü Kapalı (Beklemede)"
-        };
-
-        ModeBadgeBorder.Background = currentMode switch
-        {
-            ModuleExecutionMode.BothEnabled => ModeBothEnabledBrush,
-            ModuleExecutionMode.BothDisabled => ModeBothDisabledBrush,
-            _ => ModeSingleBrush
-        };
     }
 
     private async void OnToggleLumnClick(object? sender, RoutedEventArgs e)
@@ -549,46 +532,6 @@ public partial class MainWindow : Window
         _verciWindow.ApplyClickThrough(_settingsManager.Current.ClickThroughEnabled, _platformAdapter);
     }
 
-    private async void OnModeBothDisabledClick(object? sender, RoutedEventArgs e)
-    {
-        await _moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.BothDisabled);
-        await _settingsManager.UpdateAsync(s => { s.LumnEnabled = false; s.VerciEnabled = false; });
-        _lumnWindow?.Hide();
-        _verciWindow?.Hide();
-        RefreshUiStates();
-        UpdateTrayMenuStates();
-    }
-
-    private async void OnModeLumnOnlyClick(object? sender, RoutedEventArgs e)
-    {
-        await _moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.LumnOnly);
-        await _settingsManager.UpdateAsync(s => { s.LumnEnabled = true; s.VerciEnabled = false; });
-        _verciWindow?.Hide();
-        OpenLumnWindow();
-        RefreshUiStates();
-        UpdateTrayMenuStates();
-    }
-
-    private async void OnModeVerciOnlyClick(object? sender, RoutedEventArgs e)
-    {
-        await _moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.VerciOnly);
-        await _settingsManager.UpdateAsync(s => { s.LumnEnabled = false; s.VerciEnabled = true; });
-        _lumnWindow?.Hide();
-        OpenVerciWindow();
-        RefreshUiStates();
-        UpdateTrayMenuStates();
-    }
-
-    private async void OnModeBothEnabledClick(object? sender, RoutedEventArgs e)
-    {
-        await _moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.BothEnabled);
-        await _settingsManager.UpdateAsync(s => { s.LumnEnabled = true; s.VerciEnabled = true; });
-        OpenLumnWindow();
-        OpenVerciWindow();
-        RefreshUiStates();
-        UpdateTrayMenuStates();
-    }
-
     private async void OnThemeChanged(object? sender, RoutedEventArgs e)
     {
         ThemeMode selectedTheme = ThemeMode.SystemDefault;
@@ -672,6 +615,8 @@ public partial class MainWindow : Window
         int ms = (int)e.NewValue;
         TxtSyncOffsetValue.Text = $"{ms} ms";
         await _settingsManager.UpdateAsync(s => s.Verci.SyncOffsetMs = ms);
+        var verci = _moduleManager.GetModule("verci") as VerciModule;
+        verci?.SetSyncOffset(ms);
     }
 
     private async void OnVerciSettingsChanged(object? sender, RoutedEventArgs e)

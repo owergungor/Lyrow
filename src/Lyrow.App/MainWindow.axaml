@@ -2,116 +2,117 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="880" d:DesignHeight="800"
-        Width="880" Height="800"
-        MinWidth="760" MinHeight="620"
+        mc:Ignorable="d" d:DesignWidth="880" d:DesignHeight="840"
+        Width="880" Height="840"
+        MinWidth="760" MinHeight="680"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource LyrowWindowBackground}"
         Icon="avares://Lyrow.App/Assets/lyrow.ico"
         x:Class="Lyrow.App.MainWindow"
-        Title="Lyrow — Multimedya Deneyim Merkezi">
+        Title="Lyrow v1.1 — Multimedya Deneyim Merkezi">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="28" Spacing="18">
+        <StackPanel Margin="32,28" Spacing="20">
             
-            <!-- 1. Header Section -->
-            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+            <!-- 1. Header Section (Clean Vercel/Apple Minimalist Top Bar) -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,2">
                 <StackPanel Grid.Column="0" Spacing="4">
-                    <TextBlock Text="Lyrow" Classes="header" Foreground="{DynamicResource LyrowTextPrimary}" />
-                    <TextBlock Text="Ses-duyarlı görselleştirme ve senkronize şarkı sözü platformu" Classes="subheader" Foreground="{DynamicResource LyrowTextSecondary}" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock Text="Lyrow" Classes="header" />
+                        <Border Background="{DynamicResource LyrowInnerContainerBackground}" 
+                                BorderBrush="{DynamicResource LyrowBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6" 
+                                Padding="8,2"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="v1.1" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource LyrowAccent}" />
+                        </Border>
+                    </StackPanel>
+                    <TextBlock Text="Masaüstü ortam ses görselleştirme ve senkronize şarkı sözü platformu" Classes="subheader" />
                 </StackPanel>
 
-                <!-- Current Execution Mode Badge -->
+                <!-- Status indicator pill (Minimal, No internal mode exposed) -->
                 <Border Grid.Column="1" 
-                        x:Name="ModeBadgeBorder"
-                        Background="{DynamicResource LyrowBadgeBackground}" 
-                        CornerRadius="12" 
-                        Padding="14,8"
+                        Background="{DynamicResource LyrowInnerContainerBackground}"
+                        BorderBrush="{DynamicResource LyrowBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="20" 
+                        Padding="14,6"
                         VerticalAlignment="Center">
-                    <TextBlock x:Name="ModeBadgeText" 
-                               Text="Mod: Yükleniyor..." 
-                               FontWeight="SemiBold" 
-                               FontSize="13" 
-                               Foreground="#89B4FA" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Ellipse Width="8" Height="8" Fill="{DynamicResource LyrowSuccess}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Sistem Aktif" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource LyrowTextSecondary}" VerticalAlignment="Center"/>
+                    </StackPanel>
                 </Border>
             </Grid>
 
-            <!-- 2. Live Media & Audio Activity Banner -->
-            <Border Background="{DynamicResource LyrowCardBackground}"
-                    BorderBrush="{DynamicResource LyrowBorderBrush}"
-                    BorderThickness="1"
-                    Classes="neumorphic-card">
-                <Grid ColumnDefinitions="*,Auto" Margin="4">
-                    <!-- Left: Playing Song Info -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                        <Border Width="48" Height="48" CornerRadius="10" Background="{DynamicResource LyrowInnerContainerBackground}" BorderBrush="{DynamicResource LyrowBorderBrush}" BorderThickness="1">
-                            <TextBlock Text="🎵" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.8"/>
-                        </Border>
-                        <StackPanel Spacing="3" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock x:Name="LiveTrackTitleText" Text="Şarkı Bekleniyor..." FontWeight="Bold" FontSize="15" Foreground="{DynamicResource LyrowTextPrimary}" TextTrimming="CharacterEllipsis" MaxWidth="340"/>
-                                <Border x:Name="LivePlaybackBadge" Background="{DynamicResource LyrowBadgeBackground}" CornerRadius="6" Padding="6,2">
-                                    <TextBlock x:Name="LivePlaybackText" Text="Boşta" FontSize="10" Foreground="{DynamicResource LyrowTextSecondary}"/>
-                                </Border>
-                            </StackPanel>
-                            <TextBlock x:Name="LiveTrackArtistText" Text="Spotify veya Medya Oynatıcıyı Başlatın" FontSize="12" Foreground="{DynamicResource LyrowTextMuted}" TextTrimming="CharacterEllipsis" MaxWidth="400"/>
-                        </StackPanel>
-                    </StackPanel>
+            <!-- 2. Live Media & Currently Playing Track Card -->
+            <Border Classes="vercel-card">
+                <Grid ColumnDefinitions="Auto,*" Margin="2">
+                    <!-- Album Cover Art / Icon -->
+                    <Border Grid.Column="0" Width="52" Height="52" CornerRadius="10" 
+                            Background="{DynamicResource LyrowInnerContainerBackground}" 
+                            BorderBrush="{DynamicResource LyrowBorderBrush}" 
+                            BorderThickness="1"
+                            Margin="0,0,16,0">
+                        <TextBlock Text="🎵" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.85"/>
+                    </Border>
 
-                    <!-- Right: Live Lyrics & Audio Status Badges -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                        <Border Background="{DynamicResource LyrowInnerContainerBackground}" CornerRadius="8" Padding="10,6" BorderBrush="{DynamicResource LyrowBorderBrush}" BorderThickness="1">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="Söz Durumu" FontSize="10" Foreground="{DynamicResource LyrowTextMuted}"/>
-                                <TextBlock x:Name="LiveLyricsStatusText" Text="Bekleniyor" FontWeight="SemiBold" FontSize="11" Foreground="#89B4FA"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Background="{DynamicResource LyrowInnerContainerBackground}" CornerRadius="8" Padding="10,6" BorderBrush="{DynamicResource LyrowBorderBrush}" BorderThickness="1">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="Ses Seviyesi" FontSize="10" Foreground="{DynamicResource LyrowTextMuted}"/>
-                                <TextBlock x:Name="LiveAudioMeterText" Text="-90 dBFS" FontWeight="SemiBold" FontSize="11" Foreground="#A6E3A1"/>
-                            </StackPanel>
-                        </Border>
+                    <!-- Song Info -->
+                    <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock x:Name="LiveTrackTitleText" Text="Şarkı Bekleniyor..." FontWeight="Bold" FontSize="16" Foreground="{DynamicResource LyrowTextPrimary}" TextTrimming="CharacterEllipsis" MaxWidth="440"/>
+                            <Border x:Name="LivePlaybackBadge" Background="{DynamicResource LyrowInnerContainerBackground}" BorderBrush="{DynamicResource LyrowBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8,2" VerticalAlignment="Center">
+                                <TextBlock x:Name="LivePlaybackText" Text="Boşta" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource LyrowTextSecondary}"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock x:Name="LiveTrackArtistText" Text="Spotify veya Medya Oynatıcıyı Başlatın" FontSize="13" Foreground="{DynamicResource LyrowTextMuted}" TextTrimming="CharacterEllipsis" MaxWidth="520"/>
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- 3. 4 Discrete Execution Modes Selector -->
-            <Border Background="{DynamicResource LyrowCardBackground}"
-                    BorderBrush="{DynamicResource LyrowBorderBrush}"
-                    BorderThickness="1"
-                    Classes="neumorphic-card">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="Hızlı Çalışma Durumları (4 Temel Mod)" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource LyrowTextPrimary}" />
-                    <Grid ColumnDefinitions="*,*,*,*" Margin="0,2,0,0">
-                        <Button Grid.Column="0" x:Name="BtnModeBothDisabled" Content="İkisi Kapalı" Classes="action-button" Margin="0,0,6,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnModeBothDisabledClick" />
-                        <Button Grid.Column="1" x:Name="BtnModeLumnOnly" Content="Yalnızca Lumn" Classes="action-button" Margin="3,0,3,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnModeLumnOnlyClick" />
-                        <Button Grid.Column="2" x:Name="BtnModeVerciOnly" Content="Yalnızca Verci" Classes="action-button" Margin="3,0,3,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnModeVerciOnlyClick" />
-                        <Button Grid.Column="3" x:Name="BtnModeBothEnabled" Content="İkisi Birlikte" Classes="action-button" Margin="6,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnModeBothEnabledClick" />
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <!-- 4. Modules Grid -->
+            <!-- 3. Main Metrics: Equal visual weight (Sol: Ses Seviyesi | Sağ: Söz Durumu) -->
             <Grid ColumnDefinitions="*,*" Margin="0,2">
-                <!-- Lumn Card -->
-                <Border Grid.Column="0" 
-                        Margin="0,0,8,0" 
-                        Background="{DynamicResource LyrowCardBackground}"
-                        BorderBrush="{DynamicResource LyrowBorderBrush}"
-                        BorderThickness="1"
-                        Classes="neumorphic-card">
-                    <StackPanel Spacing="12">
+                <!-- Sol: Ses Seviyesi (Volume) -->
+                <Border Grid.Column="0" Margin="0,0,8,0" Classes="vercel-card">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="SES SEVİYESİ" Classes="metric-label" />
+                            <TextBlock Grid.Column="1" Text="🔊" FontSize="13" Opacity="0.6"/>
+                        </Grid>
+                        <TextBlock x:Name="LiveAudioMeterText" Text="-90 dBFS (Sessiz)" Classes="metric-value" />
+                        <ProgressBar x:Name="VolumeProgressBar" Minimum="0" Maximum="100" Value="0" Height="4" CornerRadius="2" Foreground="{DynamicResource LyrowSuccess}" Background="{DynamicResource LyrowInnerContainerBackground}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Sağ: Söz Durumu (Lyrics Status) -->
+                <Border Grid.Column="1" Margin="8,0,0,0" Classes="vercel-card">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="SÖZ DURUMU" Classes="metric-label" />
+                            <TextBlock Grid.Column="1" Text="💬" FontSize="13" Opacity="0.6"/>
+                        </Grid>
+                        <TextBlock x:Name="LiveLyricsStatusText" Text="Bekleniyor" Classes="metric-value" Foreground="{DynamicResource LyrowAccent}" />
+                        <TextBlock Text="LRCLIB Senkronizasyon" FontSize="11" Foreground="{DynamicResource LyrowTextMuted}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- 4. Interactive Modules Grid (Glow & Lyrics) -->
+            <Grid ColumnDefinitions="*,*" Margin="0,2">
+                <!-- Glow (Formerly Lumn) Card -->
+                <Border Grid.Column="0" Margin="0,0,8,0" Classes="vercel-card">
+                    <StackPanel Spacing="14">
                         <Grid ColumnDefinitions="*,Auto">
                             <StackPanel Grid.Column="0" Spacing="2">
-                                <TextBlock Text="Lumn" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource LyrowTextPrimary}" />
-                                <TextBlock Text="Ses Analizi &amp; Işık Efektleri" Classes="subheader" Foreground="{DynamicResource LyrowTextSecondary}" />
+                                <TextBlock Text="Glow" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource LyrowTextPrimary}" />
+                                <TextBlock Text="Ses Analizi &amp; Işık Efektleri" Classes="subheader" />
                             </StackPanel>
-                            <Border Grid.Column="1" x:Name="LumnStatusBorder" CornerRadius="8" Padding="10,4" Background="#334155">
-                                <TextBlock x:Name="LumnStatusText" Text="Stopped" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8" />
+                            <Border Grid.Column="1" x:Name="LumnStatusBorder" CornerRadius="8" Padding="10,4" Background="{DynamicResource LyrowInnerContainerBackground}" BorderBrush="{DynamicResource LyrowBorderBrush}" BorderThickness="1">
+                                <TextBlock x:Name="LumnStatusText" Text="Durduruldu" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource LyrowTextMuted}" />
                             </Border>
                         </Grid>
-                        <TextBlock Text="WASAPI Loopback ile sistem sesini donanım hızlandırmalı frekans spektrumuna ve ritmik ışık efektlerine dönüştürür."
+                        <TextBlock Text="WASAPI Loopback ile sistem sesini sıfır gecikmeli frekans spektrumuna ve dinamik ışık efektlerine dönüştürür."
                                    TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource LyrowTextMuted}" />
                         
                         <Grid ColumnDefinitions="Auto,*" Margin="0,2">
@@ -121,7 +122,7 @@
 
                         <Grid ColumnDefinitions="*,*">
                             <Button x:Name="BtnToggleLumn" 
-                                    Content="Lumn'u Başlat" 
+                                    Content="Glow'u Başlat" 
                                     Classes="action-button" 
                                     HorizontalAlignment="Stretch" 
                                     HorizontalContentAlignment="Center" 
@@ -139,24 +140,19 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Verci Card -->
-                <Border Grid.Column="1" 
-                        Margin="8,0,0,0" 
-                        Background="{DynamicResource LyrowCardBackground}"
-                        BorderBrush="{DynamicResource LyrowBorderBrush}"
-                        BorderThickness="1"
-                        Classes="neumorphic-card">
-                    <StackPanel Spacing="12">
+                <!-- Lyrics (Formerly Verci) Card -->
+                <Border Grid.Column="1" Margin="8,0,0,0" Classes="vercel-card">
+                    <StackPanel Spacing="14">
                         <Grid ColumnDefinitions="*,Auto">
                             <StackPanel Grid.Column="0" Spacing="2">
-                                <TextBlock Text="Verci" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource LyrowTextPrimary}" />
-                                <TextBlock Text="Senkronize Sözler &amp; Metadata" Classes="subheader" Foreground="{DynamicResource LyrowTextSecondary}" />
+                                <TextBlock Text="Lyrics" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource LyrowTextPrimary}" />
+                                <TextBlock Text="Senkronize Sözler &amp; Metadata" Classes="subheader" />
                             </StackPanel>
-                            <Border Grid.Column="1" x:Name="VerciStatusBorder" CornerRadius="8" Padding="10,4" Background="#334155">
-                                <TextBlock x:Name="VerciStatusText" Text="Stopped" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8" />
+                            <Border Grid.Column="1" x:Name="VerciStatusBorder" CornerRadius="8" Padding="10,4" Background="{DynamicResource LyrowInnerContainerBackground}" BorderBrush="{DynamicResource LyrowBorderBrush}" BorderThickness="1">
+                                <TextBlock x:Name="VerciStatusText" Text="Durduruldu" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource LyrowTextMuted}" />
                             </Border>
                         </Grid>
-                        <TextBlock Text="Windows GSMTC üzerinden çalan şarkıyı tespit eder; LRCLIB ile senkronize şarkı sözlerini yüzen pencerede gösterir."
+                        <TextBlock Text="Windows GSMTC üzerinden çalan şarkıyı tespit eder; LRCLIB ile milisaniye hassasiyetli şarkı sözlerini yüzen pencerede gösterir."
                                    TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource LyrowTextMuted}" />
                         
                         <Grid ColumnDefinitions="Auto,*" Margin="0,2">
@@ -166,7 +162,7 @@
 
                         <Grid ColumnDefinitions="*,*">
                             <Button x:Name="BtnToggleVerci" 
-                                    Content="Verci'yi Başlat" 
+                                    Content="Lyrics'i Başlat" 
                                     Classes="action-button" 
                                     HorizontalAlignment="Stretch" 
                                     HorizontalContentAlignment="Center"
@@ -185,16 +181,13 @@
                 </Border>
             </Grid>
 
-            <!-- 5. Advanced Settings & User Preferences Section -->
-            <Border Background="{DynamicResource LyrowCardBackground}"
-                    BorderBrush="{DynamicResource LyrowBorderBrush}"
-                    BorderThickness="1"
-                    Classes="neumorphic-card">
+            <!-- 5. Advanced Settings & System Controls (Vercel Style Card) -->
+            <Border Classes="vercel-card">
                 <StackPanel Spacing="16">
                     <TextBlock Text="Görünüm, Monitör ve Kullanıcı Ayarları" FontWeight="SemiBold" FontSize="15" Foreground="{DynamicResource LyrowTextPrimary}" />
                     
                     <!-- Theme Selector -->
-                    <Grid ColumnDefinitions="200,*" VerticalAlignment="Center">
+                    <Grid ColumnDefinitions="220,*" VerticalAlignment="Center">
                         <TextBlock Grid.Column="0" Text="Uygulama Teması:" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14">
                             <RadioButton x:Name="RbThemeSystem" Content="Sistem Varsayılanı" IsChecked="True" IsCheckedChanged="OnThemeChanged" />
@@ -203,87 +196,98 @@
                         </StackPanel>
                     </Grid>
 
-                    <Separator Height="1" Background="{DynamicResource LyrowBorderBrush}" Opacity="0.5"/>
+                    <Separator Height="1" Background="{DynamicResource LyrowBorderBrush}"/>
 
                     <!-- Monitor & Overlay Placement -->
-                    <Grid ColumnDefinitions="200,*" VerticalAlignment="Center">
+                    <Grid ColumnDefinitions="220,*" VerticalAlignment="Center">
                         <TextBlock Grid.Column="0" Text="Hedef Monitör:" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}" />
-                        <ComboBox x:Name="CboTargetMonitor" Grid.Column="1" Width="260" HorizontalAlignment="Left" />
+                        <ComboBox x:Name="CboTargetMonitor" Grid.Column="1" Width="280" HorizontalAlignment="Left" />
                     </Grid>
 
-                    <Grid ColumnDefinitions="200,*" VerticalAlignment="Center">
+                    <Grid ColumnDefinitions="220,*" VerticalAlignment="Center">
                         <TextBlock Grid.Column="0" Text="Overlay Yerleşimi:" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}" />
-                        <ComboBox x:Name="CboOverlayPosition" Grid.Column="1" Width="260" HorizontalAlignment="Left" />
+                        <ComboBox x:Name="CboOverlayPosition" Grid.Column="1" Width="280" HorizontalAlignment="Left" />
                     </Grid>
 
-                    <Separator Height="1" Background="{DynamicResource LyrowBorderBrush}" Opacity="0.5"/>
+                    <Separator Height="1" Background="{DynamicResource LyrowBorderBrush}"/>
 
-                    <!-- Click-through Toggle -->
-                    <Grid ColumnDefinitions="200,*" VerticalAlignment="Center">
+                    <!-- Click-through Toggle (Apple Switch Style) -->
+                    <Grid ColumnDefinitions="220,*,Auto" VerticalAlignment="Center">
                         <TextBlock Grid.Column="0" Text="Tıklama Geçirgenliği:" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}" />
-                        <CheckBox x:Name="ChkClickThrough" 
-                                  Content="Overlay pencerelerinde arka plana tıklamaya izin ver (Click-Through / WS_EX_TRANSPARENT)" 
-                                  IsCheckedChanged="OnClickThroughChanged" />
+                        <TextBlock Grid.Column="1" Text="Overlay pencerelerinde fare tıklamalarını arkadaki uygulamalara geçir (Click-Through)" FontSize="12" Foreground="{DynamicResource LyrowTextMuted}" VerticalAlignment="Center"/>
+                        <ToggleSwitch x:Name="ChkClickThrough" Grid.Column="2" IsCheckedChanged="OnClickThroughChanged" />
                     </Grid>
 
-                    <!-- Lumn Sensitivity Slider -->
-                    <Grid ColumnDefinitions="200,*,Auto" VerticalAlignment="Center">
-                        <TextBlock Grid.Column="0" Text="Lumn Spektrum Hassasiyeti:" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}" />
+                    <!-- Glow Sensitivity Slider -->
+                    <Grid ColumnDefinitions="220,*,Auto" VerticalAlignment="Center">
+                        <TextBlock Grid.Column="0" Text="Glow Spektrum Hassasiyeti:" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}" />
                         <Slider x:Name="SliderLumnSensitivity" Grid.Column="1" Minimum="0.5" Maximum="2.5" Value="1.0" Margin="0,0,14,0" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtSensitivityValue" Grid.Column="2" Text="1.0x" Width="40" FontSize="12" Foreground="{DynamicResource LyrowTextMuted}" VerticalAlignment="Center"/>
                     </Grid>
 
-                    <Separator Height="1" Background="{DynamicResource LyrowBorderBrush}" Opacity="0.5"/>
+                    <Separator Height="1" Background="{DynamicResource LyrowBorderBrush}"/>
 
-                    <!-- Verci Lyrics Preferences & Offset -->
-                    <Grid ColumnDefinitions="200,*" VerticalAlignment="Center">
+                    <!-- Lyrics Preferences & Offset -->
+                    <Grid ColumnDefinitions="220,*" VerticalAlignment="Center">
                         <TextBlock Grid.Column="0" Text="Şarkı Sözü Tercihleri:" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}" />
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="20">
-                            <CheckBox x:Name="ChkAutoFetchLyrics" Content="Otomatik Söz Çekme (LRCLIB)" IsChecked="True" />
-                            <CheckBox x:Name="ChkCacheLyrics" Content="Yerel Diske Önbellekle" IsChecked="True" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="24">
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <ToggleSwitch x:Name="ChkAutoFetchLyrics" IsChecked="True" />
+                                <TextBlock Text="Otomatik Söz Çekme (LRCLIB)" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <ToggleSwitch x:Name="ChkCacheLyrics" IsChecked="True" />
+                                <TextBlock Text="Yerel Diske Önbellekle" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}"/>
+                            </StackPanel>
                         </StackPanel>
                     </Grid>
 
-                    <Grid ColumnDefinitions="200,*,Auto" VerticalAlignment="Center">
+                    <Grid ColumnDefinitions="220,*,Auto" VerticalAlignment="Center">
                         <TextBlock Grid.Column="0" Text="Söz Senkronizasyon Kaydırması:" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}" />
                         <Slider x:Name="SliderSyncOffset" Grid.Column="1" Minimum="-2000" Maximum="2000" Value="0" TickFrequency="100" Margin="0,0,14,0" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtSyncOffsetValue" Grid.Column="2" Text="0 ms" Width="60" FontSize="12" Foreground="{DynamicResource LyrowTextMuted}" VerticalAlignment="Center"/>
                     </Grid>
 
-                    <Separator Height="1" Background="{DynamicResource LyrowBorderBrush}" Opacity="0.5"/>
+                    <Separator Height="1" Background="{DynamicResource LyrowBorderBrush}"/>
 
                     <!-- System Tray & Windows Startup -->
-                    <Grid ColumnDefinitions="200,*" VerticalAlignment="Center">
+                    <Grid ColumnDefinitions="220,*" VerticalAlignment="Center">
                         <TextBlock Grid.Column="0" Text="Sistem &amp; Başlangıç:" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}" />
-                        <StackPanel Grid.Column="1" Spacing="8">
-                            <CheckBox x:Name="ChkMinimizeToTray" Content="Kapatıldığında ('X') Sistem Tepsisine (Tray) küçült" IsChecked="True" IsCheckedChanged="OnTraySettingsChanged"/>
-                            <CheckBox x:Name="ChkStartWithWindows" Content="Windows oturumu açıldığında Lyrow'u otomatik başlat" IsChecked="False" IsCheckedChanged="OnStartupSettingChanged"/>
+                        <StackPanel Grid.Column="1" Spacing="10">
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <ToggleSwitch x:Name="ChkMinimizeToTray" IsChecked="True" IsCheckedChanged="OnTraySettingsChanged"/>
+                                <TextBlock Text="Kapatıldığında ('X') Sistem Tepsisine (Tray) küçült" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <ToggleSwitch x:Name="ChkStartWithWindows" IsChecked="False" IsCheckedChanged="OnStartupSettingChanged"/>
+                                <TextBlock Text="Windows oturumu açıldığında Lyrow'u otomatik başlat" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}"/>
+                            </StackPanel>
                         </StackPanel>
                     </Grid>
 
-                    <Separator Height="1" Background="{DynamicResource LyrowBorderBrush}" Opacity="0.5"/>
+                    <Separator Height="1" Background="{DynamicResource LyrowBorderBrush}"/>
 
                     <!-- Global Hotkeys Info -->
-                    <Grid ColumnDefinitions="200,*" VerticalAlignment="Top">
+                    <Grid ColumnDefinitions="220,*" VerticalAlignment="Top">
                         <TextBlock Grid.Column="0" Text="Global Kısayol Tuşları:" VerticalAlignment="Center" Foreground="{DynamicResource LyrowTextSecondary}" />
-                        <StackPanel Grid.Column="1" Spacing="6">
-                            <Border Background="{DynamicResource LyrowInnerContainerBackground}" CornerRadius="8" Padding="10,8" BorderBrush="{DynamicResource LyrowBorderBrush}" BorderThickness="1">
+                        <StackPanel Grid.Column="1" Spacing="8">
+                            <Border Background="{DynamicResource LyrowInnerContainerBackground}" CornerRadius="8" Padding="12,10" BorderBrush="{DynamicResource LyrowBorderBrush}" BorderThickness="1">
                                 <Grid ColumnDefinitions="*,*,*">
-                                    <TextBlock Grid.Column="0" Text="Ctrl + Shift + L : Lumn" FontSize="11" Foreground="{DynamicResource LyrowTextPrimary}"/>
-                                    <TextBlock Grid.Column="1" Text="Ctrl + Shift + V : Verci" FontSize="11" Foreground="{DynamicResource LyrowTextPrimary}"/>
-                                    <TextBlock Grid.Column="2" Text="Ctrl + Shift + C : Click-through" FontSize="11" Foreground="{DynamicResource LyrowTextPrimary}"/>
+                                    <TextBlock Grid.Column="0" Text="Ctrl + Shift + L : Glow" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource LyrowTextPrimary}"/>
+                                    <TextBlock Grid.Column="1" Text="Ctrl + Shift + V : Lyrics" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource LyrowTextPrimary}"/>
+                                    <TextBlock Grid.Column="2" Text="Ctrl + Shift + C : Click-through" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource LyrowTextPrimary}"/>
                                 </Grid>
                             </Border>
-                            <TextBlock x:Name="TxtHotkeyStatus" Text="🟢 Global kısayollar aktif (Pencereler odakta değilken de çalışır)" FontSize="11" Foreground="#A6E3A1"/>
+                            <TextBlock x:Name="TxtHotkeyStatus" Text="🟢 Global kısayollar aktif (Pencereler odakta değilken de çalışır)" FontSize="11" Foreground="{DynamicResource LyrowSuccess}"/>
                         </StackPanel>
                     </Grid>
 
                     <!-- Status Notification Text -->
                     <Border Background="{DynamicResource LyrowInnerContainerBackground}" CornerRadius="8" Padding="12,10" BorderBrush="{DynamicResource LyrowBorderBrush}" BorderThickness="1">
                         <Grid ColumnDefinitions="Auto,*">
-                            <TextBlock Text="ℹ️" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="ℹ️" Margin="0,0,10,0" VerticalAlignment="Center"/>
                             <TextBlock Grid.Column="1" x:Name="StatusMessageText" 
-                                       Text="Lyrow hazır. Modüller, kısayollar ve sistem tepsisi aktif." 
+                                       Text="Lyrow v1.1 hazır. Glow, Lyrics ve sistem tepsisi aktif." 
                                        FontSize="12" 
                                        Foreground="{DynamicResource LyrowTextSecondary}" 
                                        VerticalAlignment="Center"
