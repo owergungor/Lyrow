@@ -46,6 +46,7 @@ public partial class VerciWindow : Window
         MinimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
 
         // Manual sync offset adjustment buttons
+        OffsetLabelText.Text = $"{_settingsManager.Current.Verci.SyncOffsetMs:+0;-0;0} ms";
         BtnOffsetMinus.Click += (_, _) => AdjustOffset(-500);
         BtnOffsetPlus.Click += (_, _) => AdjustOffset(500);
 
@@ -94,10 +95,13 @@ public partial class VerciWindow : Window
         }
     }
 
+    private SyncedLyrics? _lastRenderedLyrics;
+
     private void AdjustOffset(int deltaMs)
     {
         int newOffset = (_settingsManager.Current.Verci.SyncOffsetMs) + deltaMs;
         _settingsManager.Current.Verci.SyncOffsetMs = newOffset;
+        _verciModule.SetSyncOffset(newOffset);
         OffsetLabelText.Text = $"{newOffset:+0;-0;0} ms";
     }
 
@@ -141,11 +145,12 @@ public partial class VerciWindow : Window
             TimelineProgress.Value = 0;
         }
 
-        // 3. Populate or refresh lyrics list only if song changed
+        // 3. Populate or refresh lyrics list only if song changed or lyrics object updated
         string songKey = $"{track.Artist}_{track.Title}";
-        if (songKey != _lastRenderedSongKey)
+        if (songKey != _lastRenderedSongKey || !ReferenceEquals(lyrics, _lastRenderedLyrics))
         {
             _lastRenderedSongKey = songKey;
+            _lastRenderedLyrics = lyrics;
             RebuildLyricsUi(lyrics);
         }
 

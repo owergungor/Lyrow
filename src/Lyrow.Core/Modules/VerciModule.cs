@@ -1,15 +1,17 @@
 using Lyrow.Core.Contracts;
+using Lyrow.Core.Lyrics;
 using Lyrow.Core.Models;
 
 namespace Lyrow.Core.Modules;
 
 /// <summary>
-/// Core implementation of the Verci module managing synchronized lyrics and music metadata overlay.
-/// Operates completely independently from Lumn and coordinates the media monitor, lyrics cache and synchronizer.
+/// Core implementation of the Verci / Lyrics module managing synchronized lyrics and music metadata overlay.
+/// Operates completely independently from Lumn/Glow and coordinates the media monitor, lyrics cache and synchronizer.
 /// </summary>
 public sealed class VerciModule : ILyrowModule
 {
     private readonly SemaphoreSlim _stateLock = new(1, 1);
+    private readonly LyricsTimelineSynchronizer _synchronizer;
     private IMediaSessionMonitor? _mediaSessionMonitor;
     private ILyricsClient? _lyricsClient;
     private ILyricsCache? _lyricsCache;
@@ -36,17 +38,21 @@ public sealed class VerciModule : ILyrowModule
         _lyricsCache = lyricsCache;
         _eventBus = eventBus;
         _settingsManager = settingsManager;
+
+        _synchronizer = new LyricsTimelineSynchronizer(eventBus);
+        _synchronizer.ActiveLineChanged += OnSynchronizerActiveLineChanged;
     }
 
     public string ModuleId => "verci";
-    public string DisplayName => "Verci (Synced Lyrics & Metadata)";
+    public string DisplayName => "Lyrics (Synced Lyrics & Metadata)";
     public ModuleState State { get; private set; } = ModuleState.Uninitialized;
     public Exception? LastFault { get; private set; }
 
     public SyncedLyrics CurrentLyrics => _currentLyrics;
     public MediaTrackInfo CurrentTrack => _currentTrack;
     public MediaTimelineInfo CurrentTimeline => _currentTimeline;
-    public int ActiveLineIndex => _activeLineIndex;
+    public int ActiveLineIndex => _synchronizer.CurrentActiveIndex;
+    public LyricsTimelineSynchronizer Synchronizer => _synchronizer;
 
     /// <summary>
     /// Attaches or updates the media monitor, lyrics client and cache services.
@@ -86,6 +92,8 @@ public sealed class VerciModule : ILyrowModule
             State = ModuleState.Starting;
             _activeCts = new CancellationTokenSource();
             var ct = _activeCts.Token;
+
+            _synchronizer.SyncOffsetMs = _settingsManager?.Current.Verci.SyncOffsetMs ?? 0;
 
             if (_mediaSessionMonitor != null)
             {
@@ -135,6 +143,7 @@ public sealed class VerciModule : ILyrowModule
                 await _mediaSessionMonitor.StopAsync(cancellationToken).ConfigureAwait(false);
             }
 
+            _synchronizer.Reset();
             _currentLyrics = SyncedLyrics.Empty;
             _currentTrack = MediaTrackInfo.Empty;
             _currentTimeline = MediaTimelineInfo.Zero;
@@ -157,6 +166,16 @@ public sealed class VerciModule : ILyrowModule
         }
     }
 
+    public void SetSyncOffset(int offsetMs)
+    {
+        _synchronizer.SyncOffsetMs = offsetMs;
+    }
+
+    private void OnSynchronizerActiveLineChanged(object? sender, ActiveLyricLineChangedEventArgs e)
+    {
+        _activeLineIndex = e.LineIndex;
+    }
+
     private void OnTrackChanged(object? sender, MediaTrackInfo track)
     {
         if (State != ModuleState.Running) return;
@@ -168,24 +187,8 @@ public sealed class VerciModule : ILyrowModule
         if (State != ModuleState.Running) return;
         _currentTimeline = timeline;
 
-        // Evaluate active line index
-        int offsetMs = _settingsManager?.Current.Verci.SyncOffsetMs ?? 0;
-        var pos = timeline.GetInterpolatedPosition() + TimeSpan.FromMilliseconds(offsetMs);
-        if (pos < TimeSpan.Zero) pos = TimeSpan.Zero;
-
-        int newIndex = _currentLyrics.FindActiveLineIndex(pos);
-        if (newIndex != _activeLineIndex)
-        {
-            _activeLineIndex = newIndex;
-            LyricLine? line = (newIndex >= 0 && newIndex < _currentLyrics.Lines.Count)
-                ? _currentLyrics.Lines[newIndex]
-                : null;
-
-            if (_eventBus != null)
-            {
-                _ = _eventBus.PublishAsync(new ActiveLyricLineChangedEvent(newIndex, line));
-            }
-        }
+        _synchronizer.SyncOffsetMs = _settingsManager?.Current.Verci.SyncOffsetMs ?? 0;
+        _synchronizer.UpdateTimeline(timeline);
 
         if (_eventBus != null)
         {
@@ -202,6 +205,7 @@ public sealed class VerciModule : ILyrowModule
     {
         _currentTrack = track;
         _activeLineIndex = -1;
+        _synchronizer.Reset();
 
         if (_eventBus != null)
         {
@@ -211,6 +215,7 @@ public sealed class VerciModule : ILyrowModule
         if (track.IsEmpty)
         {
             _currentLyrics = SyncedLyrics.Empty;
+            _synchronizer.SetLyrics(SyncedLyrics.Empty);
             return;
         }
 
@@ -221,6 +226,9 @@ public sealed class VerciModule : ILyrowModule
             if (cached != null)
             {
                 _currentLyrics = cached;
+                _synchronizer.SetLyrics(cached);
+                _synchronizer.UpdateTimeline(_currentTimeline);
+
                 if (_eventBus != null)
                 {
                     await _eventBus.PublishAsync(new LyricsLoadedEvent(cached, "Cache"), ct).ConfigureAwait(false);
@@ -243,6 +251,7 @@ public sealed class VerciModule : ILyrowModule
                         RetryAfterSeconds: remaining), ct).ConfigureAwait(false);
                 }
                 _currentLyrics = SyncedLyrics.Empty;
+                _synchronizer.SetLyrics(SyncedLyrics.Empty);
                 return;
             }
 
@@ -250,6 +259,8 @@ public sealed class VerciModule : ILyrowModule
             if (result.Found && result.Lyrics != null)
             {
                 _currentLyrics = result.Lyrics;
+                _synchronizer.SetLyrics(result.Lyrics);
+                _synchronizer.UpdateTimeline(_currentTimeline);
 
                 if (_lyricsCache != null && (_settingsManager?.Current.Verci.CacheLyricsLocally ?? true))
                 {
@@ -279,6 +290,7 @@ public sealed class VerciModule : ILyrowModule
 
         // If not found or client missing
         _currentLyrics = SyncedLyrics.Empty;
+        _synchronizer.SetLyrics(SyncedLyrics.Empty);
     }
 
     public async ValueTask DisposeAsync()
@@ -290,6 +302,8 @@ public sealed class VerciModule : ILyrowModule
         {
             await StopAsync().ConfigureAwait(false);
         }
+
+        _synchronizer.Dispose();
 
         if (_mediaSessionMonitor != null)
         {
