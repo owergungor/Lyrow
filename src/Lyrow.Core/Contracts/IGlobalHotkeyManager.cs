@@ -3,13 +3,25 @@ using Lyrow.Core.Models;
 namespace Lyrow.Core.Contracts;
 
 /// <summary>
+/// Detailed state of a global hotkey registration.
+/// </summary>
+public enum HotkeyRegistrationState
+{
+    NotRegistered,
+    Registered,
+    Conflict,
+    Failed
+}
+
+/// <summary>
 /// Status of a registered global keyboard shortcut.
 /// </summary>
 public sealed record HotkeyStatus(
     string ActionName,
     string KeyGesture,
     bool IsRegistered,
-    string? ErrorMessage = null);
+    string? ErrorMessage = null,
+    HotkeyRegistrationState State = HotkeyRegistrationState.NotRegistered);
 
 /// <summary>
 /// Abstraction for registering system-wide global hotkeys and monitoring display topology changes.
@@ -23,7 +35,7 @@ public interface IGlobalHotkeyManager : IDisposable
     event EventHandler? DisplayConfigurationChanged;
 
     /// <summary>
-    /// Registers global shortcuts for Lumn, Verci, and Click-through.
+    /// Registers global shortcuts for Glow, Lyrics, and Click-through.
     /// Unregisters existing hotkeys before applying new ones.
     /// </summary>
     bool RegisterHotkeys(

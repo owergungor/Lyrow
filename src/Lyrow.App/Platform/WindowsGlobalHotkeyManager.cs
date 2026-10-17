@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Avalonia.Threading;
@@ -8,19 +9,21 @@ namespace Lyrow.App.Platform;
 
 /// <summary>
 /// Hardware Windows global hotkey and display change event manager.
-/// Uses Win32 RegisterHotKey with a dedicated background native window sink to receive
+/// Uses Win32 RegisterHotKey inside a dedicated background native message-loop thread
+/// to eliminate Win32 error 1408 (ERROR_WINDOW_OF_OTHER_THREAD) and receive
 /// WM_HOTKEY, WM_DISPLAYCHANGE, and WM_SETTINGCHANGE without polling.
 /// </summary>
 public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
 {
-    private const int HotkeyIdLumn = 1;
-    private const int HotkeyIdVerci = 2;
+    private const int HotkeyIdGlow = 1;
+    private const int HotkeyIdLyrics = 2;
     private const int HotkeyIdClickThrough = 3;
 
     private const uint WM_DESTROY = 0x0002;
     private const uint WM_SETTINGCHANGE = 0x001A;
     private const uint WM_DISPLAYCHANGE = 0x007E;
     private const uint WM_HOTKEY = 0x0312;
+    private const uint WM_APP_DISPATCH = 0x8001;
 
     private const uint MOD_ALT = 0x0001;
     private const uint MOD_CONTROL = 0x0002;
@@ -30,6 +33,7 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
 
     private readonly object _lock = new();
     private readonly List<HotkeyStatus> _statuses = new();
+    private readonly ConcurrentQueue<Action> _dispatchQueue = new();
 
     private Thread? _messageLoopThread;
     private IntPtr _hwnd = IntPtr.Zero;
@@ -37,8 +41,8 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
     private readonly AutoResetEvent _windowCreatedEvent = new(false);
     private bool _isDisposed;
 
-    private Action? _onLumn;
-    private Action? _onVerci;
+    private Action? _onGlow;
+    private Action? _onLyrics;
     private Action? _onClickThrough;
 
     public bool IsSupported => OperatingSystem.IsWindows();
@@ -61,6 +65,7 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
             Name = "LyrowNativeHookSinkThread",
             IsBackground = true
         };
+        _messageLoopThread.SetApartmentState(ApartmentState.STA);
         _messageLoopThread.Start();
         _windowCreatedEvent.WaitOne(TimeSpan.FromSeconds(3));
     }
@@ -114,6 +119,20 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
     {
         switch (msg)
         {
+            case WM_APP_DISPATCH:
+                while (_dispatchQueue.TryDequeue(out var action))
+                {
+                    try
+                    {
+                        action();
+                    }
+                    catch
+                    {
+                        // Prevent callback exception from killing native pump
+                    }
+                }
+                return IntPtr.Zero;
+
             case WM_HOTKEY:
                 int hotkeyId = wParam.ToInt32();
                 HandleHotkey(hotkeyId);
@@ -139,8 +158,8 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
     {
         Action? action = id switch
         {
-            HotkeyIdLumn => _onLumn,
-            HotkeyIdVerci => _onVerci,
+            HotkeyIdGlow => _onGlow,
+            HotkeyIdLyrics => _onLyrics,
             HotkeyIdClickThrough => _onClickThrough,
             _ => null
         };
@@ -151,6 +170,31 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
         }
     }
 
+    /// <summary>
+    /// Executes a delegate synchronously on the dedicated message-loop thread.
+    /// This guarantees calling RegisterHotKey/UnregisterHotKey from the exact thread that owns _hwnd.
+    /// </summary>
+    private bool RunOnMessageLoopThread(Action action, int timeoutMs = 2000)
+    {
+        if (!OperatingSystem.IsWindows() || _hwnd == IntPtr.Zero) return false;
+
+        using var completionEvent = new ManualResetEventSlim(false);
+        _dispatchQueue.Enqueue(() =>
+        {
+            try
+            {
+                action();
+            }
+            finally
+            {
+                completionEvent.Set();
+            }
+        });
+
+        PostMessage(_hwnd, WM_APP_DISPATCH, IntPtr.Zero, IntPtr.Zero);
+        return completionEvent.Wait(timeoutMs);
+    }
+
     public bool RegisterHotkeys(
         HotkeySettings settings,
         Action onLumnToggle,
@@ -159,49 +203,74 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
     {
         lock (_lock)
         {
-            UnregisterAll();
-
-            _onLumn = onLumnToggle;
-            _onVerci = onVerciToggle;
+            _onGlow = onLumnToggle;
+            _onLyrics = onVerciToggle;
             _onClickThrough = onClickThroughToggle;
 
             if (!OperatingSystem.IsWindows() || _hwnd == IntPtr.Zero)
             {
+                _statuses.Clear();
+                _statuses.Add(new HotkeyStatus("Glow", settings.ToggleLumn, false, "Windows platformu gereklidir", HotkeyRegistrationState.Failed));
                 return false;
             }
 
-            bool allSuccess = true;
+            bool allSuccess = false;
 
-            allSuccess &= TryRegisterSingleHotkey(HotkeyIdLumn, "Lumn", settings.ToggleLumn);
-            allSuccess &= TryRegisterSingleHotkey(HotkeyIdVerci, "Verci", settings.ToggleVerci);
-            allSuccess &= TryRegisterSingleHotkey(HotkeyIdClickThrough, "ClickThrough", settings.ToggleClickThrough);
+            // Execute registration strictly on the message loop thread that owns _hwnd
+            RunOnMessageLoopThread(() =>
+            {
+                UnregisterHotkeysInternal();
+                _statuses.Clear();
+
+                bool ok1 = TryRegisterSingleHotkeyInternal(HotkeyIdGlow, "Glow", settings.ToggleLumn);
+                bool ok2 = TryRegisterSingleHotkeyInternal(HotkeyIdLyrics, "Lyrics", settings.ToggleVerci);
+                bool ok3 = TryRegisterSingleHotkeyInternal(HotkeyIdClickThrough, "ClickThrough", settings.ToggleClickThrough);
+
+                allSuccess = ok1 && ok2 && ok3;
+            });
 
             return allSuccess;
         }
     }
 
     [SupportedOSPlatform("windows")]
-    private bool TryRegisterSingleHotkey(int id, string actionName, string gesture)
+    private bool TryRegisterSingleHotkeyInternal(int id, string actionName, string gesture)
     {
         if (!ParseGesture(gesture, out uint modifiers, out uint vk))
         {
-            _statuses.Add(new HotkeyStatus(actionName, gesture, false, "Geçersiz tuş kombinasyonu"));
+            _statuses.Add(new HotkeyStatus(
+                actionName,
+                gesture,
+                false,
+                "Geçersiz tuş kombinasyonu",
+                HotkeyRegistrationState.Failed));
             return false;
         }
 
         bool ok = RegisterHotKey(_hwnd, id, modifiers | MOD_NOREPEAT, vk);
         if (ok)
         {
-            _statuses.Add(new HotkeyStatus(actionName, gesture, true));
+            _statuses.Add(new HotkeyStatus(
+                actionName,
+                gesture,
+                true,
+                ErrorMessage: null,
+                HotkeyRegistrationState.Registered));
             return true;
         }
 
         int errorCode = Marshal.GetLastWin32Error();
         string message = errorCode == 1409 // ERROR_HOTKEY_ALREADY_REGISTERED
-            ? "Kısayol tuşu başka bir uygulama tarafından kullanılıyor."
-            : $"Win32 Kayıt hatası: {errorCode}";
+            ? $"{gesture} kullanılamıyor. Bu kısayol başka bir uygulama tarafından kullanılıyor olabilir."
+            : $"{gesture} kısayolu kaydedilemedi (Kayıt çakışması).";
 
-        _statuses.Add(new HotkeyStatus(actionName, gesture, false, message));
+        _statuses.Add(new HotkeyStatus(
+            actionName,
+            gesture,
+            false,
+            message,
+            HotkeyRegistrationState.Conflict));
+
         return false;
     }
 
@@ -253,15 +322,24 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
         {
             if (OperatingSystem.IsWindows() && _hwnd != IntPtr.Zero)
             {
-                UnregisterHotKey(_hwnd, HotkeyIdLumn);
-                UnregisterHotKey(_hwnd, HotkeyIdVerci);
-                UnregisterHotKey(_hwnd, HotkeyIdClickThrough);
+                RunOnMessageLoopThread(UnregisterHotkeysInternal);
             }
 
             _statuses.Clear();
-            _onLumn = null;
-            _onVerci = null;
+            _onGlow = null;
+            _onLyrics = null;
             _onClickThrough = null;
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private void UnregisterHotkeysInternal()
+    {
+        if (_hwnd != IntPtr.Zero)
+        {
+            UnregisterHotKey(_hwnd, HotkeyIdGlow);
+            UnregisterHotKey(_hwnd, HotkeyIdLyrics);
+            UnregisterHotKey(_hwnd, HotkeyIdClickThrough);
         }
     }
 

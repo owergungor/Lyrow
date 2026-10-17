@@ -33,15 +33,15 @@ public sealed class SyntheticGlobalHotkeyManager : IGlobalHotkeyManager
 
         if (SimulateConflict)
         {
-            _statuses.Add(new HotkeyStatus("Lumn", settings.ToggleLumn, false, "Kısayol başka bir uygulama tarafından kullanılıyor."));
-            _statuses.Add(new HotkeyStatus("Verci", settings.ToggleVerci, true));
-            _statuses.Add(new HotkeyStatus("ClickThrough", settings.ToggleClickThrough, true));
+            _statuses.Add(new HotkeyStatus("Glow", settings.ToggleLumn, false, $"{settings.ToggleLumn} kullanılamıyor. Bu kısayol başka bir uygulama tarafından kullanılıyor olabilir.", HotkeyRegistrationState.Conflict));
+            _statuses.Add(new HotkeyStatus("Lyrics", settings.ToggleVerci, true, null, HotkeyRegistrationState.Registered));
+            _statuses.Add(new HotkeyStatus("ClickThrough", settings.ToggleClickThrough, true, null, HotkeyRegistrationState.Registered));
             return false;
         }
 
-        _statuses.Add(new HotkeyStatus("Lumn", settings.ToggleLumn, true));
-        _statuses.Add(new HotkeyStatus("Verci", settings.ToggleVerci, true));
-        _statuses.Add(new HotkeyStatus("ClickThrough", settings.ToggleClickThrough, true));
+        _statuses.Add(new HotkeyStatus("Glow", settings.ToggleLumn, true, null, HotkeyRegistrationState.Registered));
+        _statuses.Add(new HotkeyStatus("Lyrics", settings.ToggleVerci, true, null, HotkeyRegistrationState.Registered));
+        _statuses.Add(new HotkeyStatus("ClickThrough", settings.ToggleClickThrough, true, null, HotkeyRegistrationState.Registered));
         return true;
     }
 
