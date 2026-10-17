@@ -14,80 +14,116 @@ namespace Lyrow.App;
 public partial class App : Application
 {
     public static IServiceProvider Services { get; private set; } = null!;
+    public static MainWindow? MainWindowInstance { get; private set; }
 
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
     }
 
-    public override async void OnFrameworkInitializationCompleted()
+    public override void OnFrameworkInitializationCompleted()
     {
-        var services = new ServiceCollection();
-        ConfigureServices(services);
-        Services = services.BuildServiceProvider();
-
-        // Initialize settings and apply saved theme
-        var settingsManager = Services.GetRequiredService<ISettingsManager>();
-        var settings = await settingsManager.LoadAsync();
-        ApplyTheme(settings.Theme);
-
-        // Register core modules into module manager
-        var moduleManager = Services.GetRequiredService<IModuleManager>();
-        var lumn = Services.GetRequiredService<LumnModule>();
-        var verci = Services.GetRequiredService<VerciModule>();
-
-        moduleManager.RegisterModule(lumn);
-        moduleManager.RegisterModule(verci);
-
-        // Apply saved startup execution mode
-        var startupMode = (settings.LumnEnabled, settings.VerciEnabled) switch
+        try
         {
-            (false, false) => ModuleExecutionMode.BothDisabled,
-            (true, false) => ModuleExecutionMode.LumnOnly,
-            (false, true) => ModuleExecutionMode.VerciOnly,
-            (true, true) => ModuleExecutionMode.BothEnabled
-        };
-        await moduleManager.ApplyExecutionModeAsync(startupMode);
+            LocalDiagnosticLogger.LogInfo("Initializing Lyrow application framework and DI container...");
+            var services = new ServiceCollection();
+            ConfigureServices(services);
+            Services = services.BuildServiceProvider();
 
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
+            // Initialize settings and apply saved theme
+            var settingsManager = Services.GetRequiredService<ISettingsManager>();
+            var settings = settingsManager.LoadAsync().GetAwaiter().GetResult();
+            ApplyTheme(settings.Theme);
 
-            var platformAdapter = Services.GetRequiredService<IWindowPlatformAdapter>();
-            var startupManager = Services.GetRequiredService<IWindowsStartupManager>();
-            var hotkeyManager = Services.GetRequiredService<IGlobalHotkeyManager>();
-            var trayIconManager = Services.GetRequiredService<Lyrow.App.Platform.LyrowTrayIconManager>();
+            // Register core modules into module manager
+            var moduleManager = Services.GetRequiredService<IModuleManager>();
+            var lumn = Services.GetRequiredService<LumnModule>();
+            var verci = Services.GetRequiredService<VerciModule>();
 
-            var mainWindow = new MainWindow(
-                moduleManager,
-                settingsManager,
-                platformAdapter,
-                startupManager,
-                hotkeyManager,
-                trayIconManager);
+            moduleManager.RegisterModule(lumn);
+            moduleManager.RegisterModule(verci);
 
-            desktop.MainWindow = mainWindow;
-            desktop.Exit += OnAppExit;
-
-            if (settings.SystemTrayEnabled)
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                trayIconManager.Initialize(
-                    onShowMainWindow: () => mainWindow.ShowAndActivate(),
-                    onToggleLumn: () => mainWindow.ToggleLumnFromExternal(),
-                    onToggleVerci: () => mainWindow.ToggleVerciFromExternal(),
-                    onToggleClickThrough: () => mainWindow.ToggleClickThroughFromExternal(),
-                    onOpenSettings: () => mainWindow.ShowAndActivate(),
-                    onExit: () => mainWindow.RequestExit());
-            }
-        }
+                desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
 
-        base.OnFrameworkInitializationCompleted();
+                var platformAdapter = Services.GetRequiredService<IWindowPlatformAdapter>();
+                var startupManager = Services.GetRequiredService<IWindowsStartupManager>();
+                var hotkeyManager = Services.GetRequiredService<IGlobalHotkeyManager>();
+                var trayIconManager = Services.GetRequiredService<Lyrow.App.Platform.LyrowTrayIconManager>();
+
+                var mainWindow = new MainWindow(
+                    moduleManager,
+                    settingsManager,
+                    platformAdapter,
+                    startupManager,
+                    hotkeyManager,
+                    trayIconManager);
+
+                desktop.MainWindow = mainWindow;
+                MainWindowInstance = mainWindow;
+                desktop.Exit += OnAppExit;
+
+                if (settings.SystemTrayEnabled)
+                {
+                    try
+                    {
+                        trayIconManager.Initialize(
+                            onShowMainWindow: () => mainWindow.ShowAndActivate(),
+                            onToggleLumn: () => mainWindow.ToggleLumnFromExternal(),
+                            onToggleVerci: () => mainWindow.ToggleVerciFromExternal(),
+                            onToggleClickThrough: () => mainWindow.ToggleClickThroughFromExternal(),
+                            onOpenSettings: () => mainWindow.ShowAndActivate(),
+                            onExit: () => mainWindow.RequestExit());
+                    }
+                    catch (Exception ex)
+                    {
+                        LocalDiagnosticLogger.LogError("Tray initialization non-fatal error", ex);
+                    }
+                }
+
+                // Explicitly show and activate main window on application startup
+                mainWindow.Show();
+                mainWindow.Activate();
+                LocalDiagnosticLogger.LogInfo("MainWindow created and displayed successfully.");
+
+                // Start modules asynchronously in the background so UI never stalls or fails to open
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var startupMode = (settings.LumnEnabled, settings.VerciEnabled) switch
+                        {
+                            (false, false) => ModuleExecutionMode.BothDisabled,
+                            (true, false) => ModuleExecutionMode.LumnOnly,
+                            (false, true) => ModuleExecutionMode.VerciOnly,
+                            (true, true) => ModuleExecutionMode.BothEnabled
+                        };
+
+                        LocalDiagnosticLogger.LogInfo($"Applying startup execution mode: {startupMode}");
+                        await moduleManager.ApplyExecutionModeAsync(startupMode).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        LocalDiagnosticLogger.LogError("Module startup background error", ex);
+                    }
+                });
+            }
+
+            base.OnFrameworkInitializationCompleted();
+        }
+        catch (Exception ex)
+        {
+            LocalDiagnosticLogger.LogError("Fatal error in OnFrameworkInitializationCompleted", ex);
+            throw;
+        }
     }
 
     private static void OnAppExit(object? sender, ControlledApplicationLifetimeExitEventArgs e)
     {
         try
         {
+            LocalDiagnosticLogger.LogInfo("Application exit requested, performing cleanup...");
             var hotkeys = Services?.GetService<IGlobalHotkeyManager>();
             hotkeys?.Dispose();
 
@@ -113,10 +149,11 @@ public partial class App : Application
             gsmtc?.DisposeAsync().AsTask().GetAwaiter().GetResult();
 
             (Services as IDisposable)?.Dispose();
+            LocalDiagnosticLogger.LogInfo("Application cleanup complete.");
         }
-        catch
+        catch (Exception ex)
         {
-            // Suppress teardown exceptions during process exit
+            LocalDiagnosticLogger.LogError("Error during application exit cleanup", ex);
         }
     }
 
