@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:Lyrow.App.Controls"
         x:Class="Lyrow.App.LumnWindow"
-        Title="Lyrow — Lumn Audio Visualizer"
+        Title="Lyrow v1.1 — Glow Audio Visualizer"
         Width="680" Height="280"
         MinWidth="400" MinHeight="200"
         WindowStartupLocation="CenterScreen"
@@ -16,8 +16,8 @@
             <!-- Header Bar -->
             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                    <Border Width="10" Height="10" CornerRadius="5" Background="#89B4FA" />
-                    <TextBlock Text="Lumn" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource LyrowTextPrimary}" VerticalAlignment="Center"/>
+                    <Border Width="10" Height="10" CornerRadius="5" Background="{DynamicResource LyrowAccent}" />
+                    <TextBlock Text="Glow" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource LyrowTextPrimary}" VerticalAlignment="Center"/>
                     <Border Background="{DynamicResource LyrowSubtleButtonBackground}" CornerRadius="8" Padding="8,3">
                         <TextBlock x:Name="DeviceNameText" Text="Sistem Sesi (WASAPI)" FontSize="11" Foreground="{DynamicResource LyrowTextSecondary}" />
                     </Border>

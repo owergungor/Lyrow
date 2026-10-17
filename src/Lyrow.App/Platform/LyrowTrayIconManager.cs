@@ -37,11 +37,11 @@ public sealed class LyrowTrayIconManager : IDisposable
 
             menu.Add(new NativeMenuItemSeparator());
 
-            _itemLumn = new NativeMenuItem("Lumn Görselleştirici (Aç)");
+            _itemLumn = new NativeMenuItem("Glow Görselleştirici (Aç)");
             _itemLumn.Click += (_, _) => onToggleLumn();
             menu.Add(_itemLumn);
 
-            _itemVerci = new NativeMenuItem("Verci Şarkı Sözleri (Aç)");
+            _itemVerci = new NativeMenuItem("Lyrics Şarkı Sözleri (Aç)");
             _itemVerci.Click += (_, _) => onToggleVerci();
             menu.Add(_itemVerci);
 
@@ -63,7 +63,7 @@ public sealed class LyrowTrayIconManager : IDisposable
 
             _trayIcon = new TrayIcon
             {
-                ToolTipText = "Lyrow — Multimedya Deneyim Merkezi",
+                ToolTipText = "Lyrow v1.1 — Multimedya Deneyim Merkezi",
                 Menu = menu,
                 IsVisible = true
             };
@@ -101,12 +101,12 @@ public sealed class LyrowTrayIconManager : IDisposable
     {
         if (_itemLumn != null)
         {
-            _itemLumn.Header = lumnOpen ? "Lumn Görselleştirici (Kapat)" : "Lumn Görselleştirici (Aç)";
+            _itemLumn.Header = lumnOpen ? "Glow Görselleştirici (Kapat)" : "Glow Görselleştirici (Aç)";
         }
 
         if (_itemVerci != null)
         {
-            _itemVerci.Header = verciOpen ? "Verci Şarkı Sözleri (Kapat)" : "Verci Şarkı Sözleri (Aç)";
+            _itemVerci.Header = verciOpen ? "Lyrics Şarkı Sözleri (Kapat)" : "Lyrics Şarkı Sözleri (Aç)";
         }
 
         if (_itemClickThrough != null)
