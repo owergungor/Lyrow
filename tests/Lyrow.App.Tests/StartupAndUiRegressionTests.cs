@@ -32,9 +32,9 @@ public class StartupAndUiRegressionTests
         settings.LumnEnabled.Should().BeTrue();
         settings.VerciEnabled.Should().BeTrue();
         settings.MinimizeToTray.Should().BeTrue();
-        settings.Hotkeys.ToggleLumn.Should().Be("Ctrl+Shift+L");
-        settings.Hotkeys.ToggleVerci.Should().Be("Ctrl+Shift+V");
-        settings.Hotkeys.ToggleClickThrough.Should().Be("Ctrl+Shift+C");
+        settings.Hotkeys.ToggleLumn.Should().BeEmpty();
+        settings.Hotkeys.ToggleVerci.Should().BeEmpty();
+        settings.Hotkeys.ToggleClickThrough.Should().BeEmpty();
     }
 
     [Fact]

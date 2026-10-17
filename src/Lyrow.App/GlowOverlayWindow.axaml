@@ -1,0 +1,18 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:Lyrow.App.Controls"
+        x:Class="Lyrow.App.GlowOverlayWindow"
+        Title="Lyrow v1.2 — Glow Ambient Edge Lighting"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        WindowDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True">
+
+    <Panel Background="Transparent">
+        <controls:GlowEdgeOverlayControl x:Name="GlowEdgeControl" 
+                                         HorizontalAlignment="Stretch" 
+                                         VerticalAlignment="Stretch" />
+    </Panel>
+</Window>

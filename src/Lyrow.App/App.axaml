@@ -105,6 +105,16 @@
             </Setter>
         </Style>
 
+        <!-- Modern Top-Right Toast Notification Card Style -->
+        <Style Selector="Border.toast-card">
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Background" Value="{DynamicResource LyrowCardElevated}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LyrowBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="BoxShadow" Value="0 8 24 0 #33000000" />
+        </Style>
+
         <!-- Legacy fallback alias for existing styles -->
         <Style Selector="Border.neumorphic-card">
             <Setter Property="CornerRadius" Value="12" />

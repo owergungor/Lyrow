@@ -4,6 +4,7 @@ using System.Runtime.Versioning;
 using Avalonia.Threading;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
+using Lyrow.Core.Services;
 
 namespace Lyrow.App.Platform;
 
@@ -214,6 +215,20 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
                 return false;
             }
 
+            // 1. Check for local collisions between configured shortcuts
+            if (!HotkeyValidator.CheckInternalCollisions(settings, out var collisionError))
+            {
+                _statuses.Clear();
+                bool glowCol = HotkeyValidator.AreColliding(settings.ToggleLumn, settings.ToggleVerci) || HotkeyValidator.AreColliding(settings.ToggleLumn, settings.ToggleClickThrough);
+                bool lyricsCol = HotkeyValidator.AreColliding(settings.ToggleVerci, settings.ToggleLumn) || HotkeyValidator.AreColliding(settings.ToggleVerci, settings.ToggleClickThrough);
+                bool clickCol = HotkeyValidator.AreColliding(settings.ToggleClickThrough, settings.ToggleLumn) || HotkeyValidator.AreColliding(settings.ToggleClickThrough, settings.ToggleVerci);
+
+                _statuses.Add(new HotkeyStatus("Glow", settings.ToggleLumn, false, glowCol ? collisionError : null, glowCol ? HotkeyRegistrationState.Conflict : (string.IsNullOrWhiteSpace(settings.ToggleLumn) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered)));
+                _statuses.Add(new HotkeyStatus("Lyrics", settings.ToggleVerci, false, lyricsCol ? collisionError : null, lyricsCol ? HotkeyRegistrationState.Conflict : (string.IsNullOrWhiteSpace(settings.ToggleVerci) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered)));
+                _statuses.Add(new HotkeyStatus("ClickThrough", settings.ToggleClickThrough, false, clickCol ? collisionError : null, clickCol ? HotkeyRegistrationState.Conflict : (string.IsNullOrWhiteSpace(settings.ToggleClickThrough) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered)));
+                return false;
+            }
+
             bool allSuccess = false;
 
             // Execute registration strictly on the message loop thread that owns _hwnd
@@ -236,6 +251,17 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
     [SupportedOSPlatform("windows")]
     private bool TryRegisterSingleHotkeyInternal(int id, string actionName, string gesture)
     {
+        if (string.IsNullOrWhiteSpace(gesture))
+        {
+            _statuses.Add(new HotkeyStatus(
+                actionName,
+                string.Empty,
+                false,
+                ErrorMessage: null,
+                HotkeyRegistrationState.NotRegistered));
+            return true;
+        }
+
         if (!ParseGesture(gesture, out uint modifiers, out uint vk))
         {
             _statuses.Add(new HotkeyStatus(
@@ -261,8 +287,8 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
 
         int errorCode = Marshal.GetLastWin32Error();
         string message = errorCode == 1409 // ERROR_HOTKEY_ALREADY_REGISTERED
-            ? $"{gesture} kullanılamıyor. Bu kısayol başka bir uygulama tarafından kullanılıyor olabilir."
-            : $"{gesture} kısayolu kaydedilemedi (Kayıt çakışması).";
+            ? $"{gesture} kullanılamıyor. Bu kısayol Windows veya başka bir uygulama tarafından kullanılıyor."
+            : $"{gesture} kısayolu kaydedilemedi (Win32 hata kodu: {errorCode}).";
 
         _statuses.Add(new HotkeyStatus(
             actionName,

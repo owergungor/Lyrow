@@ -2,7 +2,7 @@
 ; Inno Setup 6.x
 
 #define MyAppName "Lyrow"
-#define MyAppVersion "1.1"
+#define MyAppVersion "1.2"
 #define MyAppPublisher "Lyrow Team"
 #define MyAppURL "https://github.com/owergungor/Lyrow"
 #define MyAppExeName "Lyrow.App.exe"

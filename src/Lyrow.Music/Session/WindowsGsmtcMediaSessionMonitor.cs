@@ -178,15 +178,31 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 try
                 {
                     using var stream = await props.Thumbnail.OpenReadAsync();
-                    if (stream.Size > 0)
+                    if (stream != null && stream.Size > 0)
                     {
-                        thumbnailBytes = new byte[stream.Size];
-                        using var dataReader = new DataReader(stream);
-                        await dataReader.LoadAsync((uint)stream.Size);
-                        dataReader.ReadBytes(thumbnailBytes);
+                        stream.Seek(0);
+                        using var netStream = stream.AsStreamForRead();
+                        using var ms = new MemoryStream();
+                        await netStream.CopyToAsync(ms).ConfigureAwait(false);
+                        thumbnailBytes = ms.ToArray();
                     }
                 }
-                catch { }
+                catch
+                {
+                    try
+                    {
+                        using var stream = await props.Thumbnail.OpenReadAsync();
+                        if (stream != null && stream.Size > 0)
+                        {
+                            stream.Seek(0);
+                            thumbnailBytes = new byte[stream.Size];
+                            using var dataReader = new DataReader(stream);
+                            await dataReader.LoadAsync((uint)stream.Size);
+                            dataReader.ReadBytes(thumbnailBytes);
+                        }
+                    }
+                    catch { }
+                }
             }
 
             var timelineProps = session.GetTimelineProperties();

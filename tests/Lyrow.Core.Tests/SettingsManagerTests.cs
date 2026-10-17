@@ -143,9 +143,9 @@ public sealed class SettingsManagerTests : IDisposable
         loaded.SystemTrayEnabled.Should().BeTrue();
         loaded.MinimizeToTray.Should().BeTrue();
         loaded.StartWithWindows.Should().BeFalse();
-        loaded.Hotkeys.ToggleLumn.Should().Be("Ctrl+Shift+L");
-        loaded.Hotkeys.ToggleVerci.Should().Be("Ctrl+Shift+V");
-        loaded.Hotkeys.ToggleClickThrough.Should().Be("Ctrl+Shift+C");
+        loaded.Hotkeys.ToggleLumn.Should().BeEmpty();
+        loaded.Hotkeys.ToggleVerci.Should().BeEmpty();
+        loaded.Hotkeys.ToggleClickThrough.Should().BeEmpty();
     }
 
     [Fact]

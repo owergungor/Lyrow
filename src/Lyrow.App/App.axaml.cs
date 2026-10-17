@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
+using Lyrow.App.Platform;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
 using Lyrow.Core.Modules;
@@ -192,6 +193,9 @@ public partial class App : Application
         });
         services.AddSingleton<ILyricsClient, Lyrow.Music.Lyrics.LrclibClient>();
         services.AddSingleton<ILyricsCache, Lyrow.Music.Lyrics.LocalFileLyricsCache>();
+        services.AddSingleton<IArtworkService, ArtworkService>();
+        services.AddSingleton<ArtworkBitmapManager>();
+        services.AddSingleton<IToastNotificationService, ToastNotificationService>();
 
         services.AddSingleton<VerciModule>(sp => new VerciModule(
             sp.GetRequiredService<IMediaSessionMonitor>(),

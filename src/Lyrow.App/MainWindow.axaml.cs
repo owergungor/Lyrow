@@ -8,6 +8,7 @@ using Lyrow.App.Platform;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
 using Lyrow.Core.Modules;
+using Lyrow.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Lyrow.App;
@@ -21,6 +22,8 @@ public partial class MainWindow : Window
     private readonly IGlobalHotkeyManager _hotkeyManager;
     private readonly LyrowTrayIconManager? _trayIconManager;
     private readonly IEventBus? _eventBus;
+    private readonly ArtworkBitmapManager? _artworkBitmapManager;
+    private readonly IToastNotificationService _toastService;
 
     private readonly List<IDisposable> _subscriptions = new();
     private bool _isExplicitExit;
@@ -31,6 +34,7 @@ public partial class MainWindow : Window
     private static readonly SolidColorBrush StatusStoppedTextBrush = new(Color.Parse("#71717A"));
 
     private LumnWindow? _lumnWindow;
+    private GlowOverlayWindow? _glowOverlayWindow;
     private VerciWindow? _verciWindow;
 
     // Parameterless constructor for XAML Designer / Previewer
@@ -40,7 +44,9 @@ public partial class MainWindow : Window
         App.Services?.GetService<IWindowPlatformAdapter>() ?? new SyntheticWindowPlatformAdapter(),
         App.Services?.GetService<IWindowsStartupManager>() ?? new SyntheticStartupManager(),
         App.Services?.GetService<IGlobalHotkeyManager>() ?? new SyntheticGlobalHotkeyManager(),
-        App.Services?.GetService<LyrowTrayIconManager>())
+        App.Services?.GetService<LyrowTrayIconManager>(),
+        App.Services?.GetService<ArtworkBitmapManager>(),
+        App.Services?.GetService<IToastNotificationService>() ?? new ToastNotificationService())
     {
     }
 
@@ -50,7 +56,9 @@ public partial class MainWindow : Window
         IWindowPlatformAdapter? platformAdapter = null,
         IWindowsStartupManager? startupManager = null,
         IGlobalHotkeyManager? hotkeyManager = null,
-        LyrowTrayIconManager? trayIconManager = null)
+        LyrowTrayIconManager? trayIconManager = null,
+        ArtworkBitmapManager? artworkBitmapManager = null,
+        IToastNotificationService? toastService = null)
     {
         InitializeComponent();
         _moduleManager = moduleManager;
@@ -60,9 +68,12 @@ public partial class MainWindow : Window
         _hotkeyManager = hotkeyManager ?? new SyntheticGlobalHotkeyManager();
         _trayIconManager = trayIconManager;
         _eventBus = App.Services?.GetService<IEventBus>();
+        _artworkBitmapManager = artworkBitmapManager ?? App.Services?.GetService<ArtworkBitmapManager>();
+        _toastService = toastService ?? App.Services?.GetService<IToastNotificationService>() ?? new ToastNotificationService();
 
         _moduleManager.ModuleStateChanged += OnModuleStateChanged;
         _hotkeyManager.DisplayConfigurationChanged += OnDisplayConfigurationChanged;
+        _toastService.ToastReceived += OnToastReceived;
 
         HookEventBus();
         
@@ -88,19 +99,65 @@ public partial class MainWindow : Window
             if (!track.IsEmpty)
             {
                 LiveTrackTitleText.Text = track.Title;
-                LiveTrackArtistText.Text = string.IsNullOrEmpty(track.Album) ? track.Artist : $"{track.Artist} — {track.Album}";
+                ToolTip.SetTip(LiveTrackTitleText, track.Title);
+                string artistAlbum = string.IsNullOrEmpty(track.Album) ? track.Artist : $"{track.Artist} — {track.Album}";
+                LiveTrackArtistText.Text = artistAlbum;
+                ToolTip.SetTip(LiveTrackArtistText, artistAlbum);
+
                 LivePlaybackText.Text = "Çalıyor";
                 LivePlaybackBadge.BorderBrush = StatusRunningBorderBrush;
+
+                _ = UpdateLiveArtworkAsync(track);
             }
             else
             {
                 LiveTrackTitleText.Text = "Şarkı Bekleniyor...";
+                ToolTip.SetTip(LiveTrackTitleText, null);
                 LiveTrackArtistText.Text = "Spotify veya Medya Oynatıcıyı Başlatın";
+                ToolTip.SetTip(LiveTrackArtistText, null);
+
                 LivePlaybackText.Text = "Boşta";
                 LivePlaybackBadge.BorderBrush = StatusStoppedBorderBrush;
                 LiveLyricsStatusText.Text = "Bekleniyor";
+
+                LiveArtworkImage.Source = null;
+                LiveArtworkImage.IsVisible = false;
+                LiveArtworkPlaceholder.IsVisible = true;
             }
         });
+    }
+
+    private async Task UpdateLiveArtworkAsync(MediaTrackInfo track)
+    {
+        if (_artworkBitmapManager == null) return;
+        try
+        {
+            var bitmap = await _artworkBitmapManager.GetArtworkBitmapAsync(track).ConfigureAwait(false);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (track.Title == LiveTrackTitleText.Text && bitmap != null)
+                {
+                    LiveArtworkImage.Source = bitmap;
+                    LiveArtworkImage.IsVisible = true;
+                    LiveArtworkPlaceholder.IsVisible = false;
+                }
+                else if (track.Title == LiveTrackTitleText.Text)
+                {
+                    LiveArtworkImage.Source = null;
+                    LiveArtworkImage.IsVisible = false;
+                    LiveArtworkPlaceholder.IsVisible = true;
+                }
+            });
+        }
+        catch
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                LiveArtworkImage.Source = null;
+                LiveArtworkImage.IsVisible = false;
+                LiveArtworkPlaceholder.IsVisible = true;
+            });
+        }
     }
 
     private void OnLyricsLoaded(LyricsLoadedEvent e)
@@ -111,6 +168,7 @@ public partial class MainWindow : Window
             {
                 LiveLyricsStatusText.Text = $"Hazır ({e.Lyrics.Lines.Count} satır - {e.Source})";
                 LiveLyricsStatusText.Foreground = StatusRunningTextBrush;
+                _toastService.ShowInfo($"Şarkı sözleri yüklendi ({e.Lyrics.Lines.Count} satır)");
             }
             else if (e.Lyrics != null && !string.IsNullOrWhiteSpace(e.Lyrics.PlainLyrics))
             {
@@ -129,17 +187,8 @@ public partial class MainWindow : Window
     {
         Dispatcher.UIThread.Post(() =>
         {
-            if (e.IsRateLimited)
-            {
-                LiveLyricsStatusText.Text = $"Limit Aşımı ({e.RetryAfterSeconds}s)";
-                LiveLyricsStatusText.Foreground = new SolidColorBrush(Color.Parse("#EF4444"));
-                StatusMessageText.Text = $"⏱️ LRCLIB istek limiti aşıldı. {e.RetryAfterSeconds} saniye sonra tekrar denenecek.";
-            }
-            else
-            {
-                LiveLyricsStatusText.Text = "Söz Bulunamadı";
-                LiveLyricsStatusText.Foreground = StatusStoppedTextBrush;
-            }
+            LiveLyricsStatusText.Text = e.IsRateLimited ? "Limit Aşıldı" : "Söz Bulunamadı";
+            LiveLyricsStatusText.Foreground = StatusStoppedTextBrush;
         });
     }
 
@@ -150,25 +199,29 @@ public partial class MainWindow : Window
             var levels = e.Levels;
             if (levels.IsSilent)
             {
-                LiveAudioMeterText.Text = "Sessiz (-90 dBFS)";
-                LiveAudioMeterText.Foreground = StatusStoppedTextBrush;
+                LiveAudioMeterText.Text = "-90 dBFS (Sessiz)";
                 VolumeProgressBar.Value = 0;
             }
             else
             {
-                LiveAudioMeterText.Text = $"{levels.Decibels:F1} dB (RMS: {levels.Rms:F2})";
-                LiveAudioMeterText.Foreground = StatusRunningTextBrush;
-                VolumeProgressBar.Value = Math.Clamp(levels.Rms * 100.0 * 2.0, 0, 100);
+                LiveAudioMeterText.Text = $"{levels.Decibels:F1} dBFS (RMS: {levels.Rms:F2})";
+                VolumeProgressBar.Value = Math.Clamp(levels.Rms * 120.0, 0, 100);
             }
         });
     }
 
     private void OnMainWindowClosing(object? sender, WindowClosingEventArgs e)
     {
-        if (!_isExplicitExit && _settingsManager.Current.MinimizeToTray)
+        if (_isExplicitExit)
+        {
+            PerformShutdownCleanup();
+            return;
+        }
+
+        if (_settingsManager.Current.MinimizeToTray)
         {
             e.Cancel = true;
-            this.Hide();
+            Hide();
             return;
         }
 
@@ -200,12 +253,12 @@ public partial class MainWindow : Window
 
     public void ToggleLumnFromExternal()
     {
-        Dispatcher.UIThread.Post(() => OnToggleLumnWindowClick(null, null));
+        Dispatcher.UIThread.Post(() => OnToggleLumnClick(null, null!));
     }
 
     public void ToggleVerciFromExternal()
     {
-        Dispatcher.UIThread.Post(() => OnToggleVerciWindowClick(null, null));
+        Dispatcher.UIThread.Post(() => OnToggleVerciClick(null, null!));
     }
 
     public void ToggleClickThroughFromExternal()
@@ -221,6 +274,7 @@ public partial class MainWindow : Window
     {
         _moduleManager.ModuleStateChanged -= OnModuleStateChanged;
         _hotkeyManager.DisplayConfigurationChanged -= OnDisplayConfigurationChanged;
+        _toastService.ToastReceived -= OnToastReceived;
         _hotkeyManager.UnregisterAll();
 
         foreach (var sub in _subscriptions)
@@ -231,6 +285,9 @@ public partial class MainWindow : Window
 
         _lumnWindow?.ShutdownWindow();
         _lumnWindow = null;
+
+        _glowOverlayWindow?.ShutdownWindow();
+        _glowOverlayWindow = null;
 
         _verciWindow?.ShutdownWindow();
         _verciWindow = null;
@@ -256,11 +313,15 @@ public partial class MainWindow : Window
             {
                 OverlayPositionManager.ApplyPosition(_lumnWindow, _settingsManager.Current.OverlayPosition, _settingsManager.Current.TargetMonitorIndex);
             }
+            if (_glowOverlayWindow != null && _glowOverlayWindow.IsVisible)
+            {
+                _glowOverlayWindow.PositionToTargetMonitor(_settingsManager.Current.TargetMonitorIndex);
+            }
             if (_verciWindow != null && _verciWindow.IsVisible)
             {
                 OverlayPositionManager.ApplyPosition(_verciWindow, _settingsManager.Current.OverlayPosition, _settingsManager.Current.TargetMonitorIndex);
             }
-            StatusMessageText.Text = "Ekran yapılandırması değişikliği algılandı; overlay pencereleri yeniden konumlandırıldı.";
+            _toastService.ShowInfo("Ekran yapılandırması güncellendi.");
         });
     }
 
@@ -279,16 +340,25 @@ public partial class MainWindow : Window
             onVerciToggle: ToggleVerciFromExternal,
             onClickThroughToggle: ToggleClickThroughFromExternal);
 
-        var statuses = _hotkeyManager.GetStatus();
-        var failed = statuses.FirstOrDefault(s => !s.IsRegistered);
-        if (failed != null)
+        UpdateHotkeyStatusSummary();
+    }
+
+    private void UpdateHotkeyStatusSummary()
+    {
+        var hotkeys = _settingsManager.Current.Hotkeys;
+        var list = new List<string>();
+        if (!string.IsNullOrWhiteSpace(hotkeys.ToggleLumn)) list.Add($"Glow: {hotkeys.ToggleLumn}");
+        if (!string.IsNullOrWhiteSpace(hotkeys.ToggleVerci)) list.Add($"Lyrics: {hotkeys.ToggleVerci}");
+        if (!string.IsNullOrWhiteSpace(hotkeys.ToggleClickThrough)) list.Add($"Click-Through: {hotkeys.ToggleClickThrough}");
+
+        if (list.Count == 0)
         {
-            TxtHotkeyStatus.Text = $"⚠️ Kısayol: {failed.ErrorMessage}";
-            TxtHotkeyStatus.Foreground = new SolidColorBrush(Color.Parse("#F59E0B"));
+            TxtHotkeyStatus.Text = "Varsayılan olarak hiçbir global kısayol atanmamıştır. Dilediğiniz kombinasyonu tanımlayabilirsiniz.";
+            TxtHotkeyStatus.Foreground = StatusStoppedTextBrush;
         }
         else
         {
-            TxtHotkeyStatus.Text = "🟢 Global kısayollar aktif (Glow: Ctrl+Shift+L, Lyrics: Ctrl+Shift+V, Click-through: Ctrl+Shift+C)";
+            TxtHotkeyStatus.Text = $"🟢 Aktif global kısayollar: {string.Join(" | ", list)}";
             TxtHotkeyStatus.Foreground = StatusRunningTextBrush;
         }
     }
@@ -298,7 +368,6 @@ public partial class MainWindow : Window
         CboOverlayPosition.SelectionChanged -= OnOverlayPositionSelectionChanged;
         CboTargetMonitor.SelectionChanged -= OnTargetMonitorSelectionChanged;
 
-        // 1. Overlay position options
         CboOverlayPosition.ItemsSource = new[]
         {
             "Merkez (Center)",
@@ -310,7 +379,6 @@ public partial class MainWindow : Window
             "Sağ Alt (Bottom-Right)"
         };
 
-        // 2. Multi-monitor detection
         var screens = Screens?.All;
         var screenItems = new List<string>();
         if (screens != null && screens.Count > 0)
@@ -339,7 +407,6 @@ public partial class MainWindow : Window
             CboTargetMonitor.SelectedIndex = 0;
         }
 
-        // Wire change events
         CboOverlayPosition.SelectionChanged += OnOverlayPositionSelectionChanged;
         CboTargetMonitor.SelectionChanged += OnTargetMonitorSelectionChanged;
     }
@@ -367,6 +434,11 @@ public partial class MainWindow : Window
         ChkMinimizeToTray.IsChecked = settings.MinimizeToTray;
         ChkStartWithWindows.IsChecked = _startupManager.IsStartupEnabled();
 
+        // Populate Hotkeys to inputs
+        TxtGlowHotkey.Text = settings.Hotkeys.ToggleLumn;
+        TxtLyricsHotkey.Text = settings.Hotkeys.ToggleVerci;
+        TxtClickThroughHotkey.Text = settings.Hotkeys.ToggleClickThrough;
+
         SliderLumnSensitivity.ValueChanged += OnLumnSensitivityChanged;
         ChkAutoFetchLyrics.IsCheckedChanged += OnVerciSettingsChanged;
         ChkCacheLyrics.IsCheckedChanged += OnVerciSettingsChanged;
@@ -374,8 +446,9 @@ public partial class MainWindow : Window
 
     private void UpdateTrayMenuStates()
     {
+        bool glowVis = (_glowOverlayWindow?.IsVisible ?? false) || (_lumnWindow?.IsVisible ?? false);
         _trayIconManager?.UpdateStates(
-            _lumnWindow?.IsVisible ?? false,
+            glowVis,
             _verciWindow?.IsVisible ?? false,
             _settingsManager.Current.ClickThroughEnabled);
     }
@@ -397,24 +470,24 @@ public partial class MainWindow : Window
         bool lumnRunning = lumn?.State == ModuleState.Running;
         bool verciRunning = verci?.State == ModuleState.Running;
 
-        // Glow (Lumn) state
+        // Glow state
         LumnStatusBorder.BorderBrush = lumnRunning ? StatusRunningBorderBrush : StatusStoppedBorderBrush;
         LumnStatusText.Text = lumnRunning ? "Aktif" : "Durduruldu";
         LumnStatusText.Foreground = lumnRunning ? StatusRunningTextBrush : StatusStoppedTextBrush;
         BtnToggleLumn.Content = lumnRunning ? "Glow'u Durdur" : "Glow'u Başlat";
 
-        // Lyrics (Verci) state
+        // Lyrics state
         VerciStatusBorder.BorderBrush = verciRunning ? StatusRunningBorderBrush : StatusStoppedBorderBrush;
         VerciStatusText.Text = verciRunning ? "Aktif" : "Durduruldu";
         VerciStatusText.Foreground = verciRunning ? StatusRunningTextBrush : StatusStoppedTextBrush;
         BtnToggleVerci.Content = verciRunning ? "Lyrics'i Durdur" : "Lyrics'i Başlat";
 
         // Window buttons & states
-        bool lumnWinVisible = _lumnWindow != null && _lumnWindow.IsVisible;
+        bool lumnWinVisible = (_glowOverlayWindow != null && _glowOverlayWindow.IsVisible) || (_lumnWindow != null && _lumnWindow.IsVisible);
         bool verciWinVisible = _verciWindow != null && _verciWindow.IsVisible;
 
-        BtnOpenVisualizer.Content = lumnWinVisible ? "Pencereyi Gizle" : "Spektrum Penceresi";
-        BtnOpenLyrics.Content = verciWinVisible ? "Pencereyi Gizle" : "Sözler Penceresi";
+        BtnOpenVisualizer.Content = lumnWinVisible ? "Işığı Gizle" : "Kenar Işığı Aç";
+        BtnOpenLyrics.Content = verciWinVisible ? "Sözleri Gizle" : "Sözler Penceresi";
 
         LumnWindowStateText.Text = lumnWinVisible ? "Açık / Görünür" : "Kapalı";
         LumnWindowStateText.Foreground = lumnWinVisible ? StatusRunningTextBrush : StatusStoppedTextBrush;
@@ -431,13 +504,14 @@ public partial class MainWindow : Window
         await _moduleManager.SetModuleActiveAsync("lumn", !currentlyRunning);
         await _settingsManager.UpdateAsync(s => s.LumnEnabled = !currentlyRunning);
 
-        if (!currentlyRunning && (_lumnWindow == null || !_lumnWindow.IsVisible))
+        if (!currentlyRunning)
         {
-            OpenLumnWindow();
+            OpenGlowOverlayWindow();
         }
-        else if (currentlyRunning && _lumnWindow != null && _lumnWindow.IsVisible)
+        else
         {
-            _lumnWindow.Hide();
+            _glowOverlayWindow?.Hide();
+            _lumnWindow?.Hide();
         }
 
         RefreshUiStates();
@@ -465,21 +539,21 @@ public partial class MainWindow : Window
         UpdateTrayMenuStates();
     }
 
-    private void OnToggleLumnWindowClick(object? sender, RoutedEventArgs? e)
+    private void OnOpenVisualizerClick(object? sender, RoutedEventArgs e)
     {
-        if (_lumnWindow != null && _lumnWindow.IsVisible)
+        if (_glowOverlayWindow != null && _glowOverlayWindow.IsVisible)
         {
-            _lumnWindow.Hide();
+            _glowOverlayWindow.Hide();
         }
         else
         {
-            OpenLumnWindow();
+            OpenGlowOverlayWindow();
         }
         RefreshUiStates();
         UpdateTrayMenuStates();
     }
 
-    private void OnToggleVerciWindowClick(object? sender, RoutedEventArgs? e)
+    private void OnOpenLyricsClick(object? sender, RoutedEventArgs e)
     {
         if (_verciWindow != null && _verciWindow.IsVisible)
         {
@@ -493,25 +567,22 @@ public partial class MainWindow : Window
         UpdateTrayMenuStates();
     }
 
-    private void OnOpenVisualizerClick(object? sender, RoutedEventArgs e) => OnToggleLumnWindowClick(sender, e);
-    private void OnOpenLyricsClick(object? sender, RoutedEventArgs e) => OnToggleVerciWindowClick(sender, e);
-
-    private void OpenLumnWindow()
+    private void OpenGlowOverlayWindow()
     {
-        if (_lumnWindow == null)
+        if (_glowOverlayWindow == null)
         {
-            _lumnWindow = new LumnWindow();
-            _lumnWindow.Closed += (_, _) =>
+            _glowOverlayWindow = new GlowOverlayWindow();
+            _glowOverlayWindow.Closed += (_, _) =>
             {
-                _lumnWindow = null;
+                _glowOverlayWindow = null;
                 RefreshUiStates();
                 UpdateTrayMenuStates();
             };
         }
 
-        _lumnWindow.Show();
-        OverlayPositionManager.ApplyPosition(_lumnWindow, _settingsManager.Current.OverlayPosition, _settingsManager.Current.TargetMonitorIndex);
-        _lumnWindow.ApplyClickThrough(_settingsManager.Current.ClickThroughEnabled, _platformAdapter);
+        _glowOverlayWindow.Show();
+        _glowOverlayWindow.PositionToTargetMonitor(_settingsManager.Current.TargetMonitorIndex);
+        _glowOverlayWindow.ApplyClickThrough(_settingsManager.Current.ClickThroughEnabled, _platformAdapter);
     }
 
     private void OpenVerciWindow()
@@ -535,12 +606,21 @@ public partial class MainWindow : Window
     private async void OnThemeChanged(object? sender, RoutedEventArgs e)
     {
         ThemeMode selectedTheme = ThemeMode.SystemDefault;
-        if (RbThemeDark.IsChecked == true) selectedTheme = ThemeMode.Dark;
-        else if (RbThemeLight.IsChecked == true) selectedTheme = ThemeMode.Light;
+        string themeName = "Sistem Varsayılanı";
+        if (RbThemeDark.IsChecked == true)
+        {
+            selectedTheme = ThemeMode.Dark;
+            themeName = "Koyu Tema";
+        }
+        else if (RbThemeLight.IsChecked == true)
+        {
+            selectedTheme = ThemeMode.Light;
+            themeName = "Açık Tema";
+        }
 
         App.ApplyTheme(selectedTheme);
         await _settingsManager.UpdateAsync(s => s.Theme = selectedTheme);
-        StatusMessageText.Text = $"Tema başarıyla '{selectedTheme}' olarak değiştirildi.";
+        _toastService.ShowSuccess($"Tema değiştirildi: {themeName}");
     }
 
     private async void OnClickThroughChanged(object? sender, RoutedEventArgs e)
@@ -548,6 +628,10 @@ public partial class MainWindow : Window
         bool isChecked = ChkClickThrough.IsChecked ?? false;
         await _settingsManager.UpdateAsync(s => s.ClickThroughEnabled = isChecked);
 
+        if (_glowOverlayWindow != null && _glowOverlayWindow.IsVisible)
+        {
+            _glowOverlayWindow.ApplyClickThrough(isChecked, _platformAdapter);
+        }
         if (_lumnWindow != null && _lumnWindow.IsVisible)
         {
             _lumnWindow.ApplyClickThrough(isChecked, _platformAdapter);
@@ -558,10 +642,7 @@ public partial class MainWindow : Window
         }
 
         UpdateTrayMenuStates();
-
-        StatusMessageText.Text = isChecked
-            ? "Tıklama geçirgenliği (Click-Through) AÇILDI. Pencereler artık tıklamaları arkadaki uygulamalara geçirir."
-            : "Tıklama geçirgenliği (Click-Through) KAPATILDI. Normal fare etkileşimi devrede.";
+        _toastService.ShowInfo(isChecked ? "Tıklama geçirgenliği açıldı." : "Tıklama geçirgenliği kapatıldı.");
     }
 
     private async void OnOverlayPositionSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -572,16 +653,12 @@ public partial class MainWindow : Window
         var position = (OverlayPosition)idx;
         await _settingsManager.UpdateAsync(s => s.OverlayPosition = position);
 
-        if (_lumnWindow != null && _lumnWindow.IsVisible)
-        {
-            OverlayPositionManager.ApplyPosition(_lumnWindow, position, _settingsManager.Current.TargetMonitorIndex);
-        }
         if (_verciWindow != null && _verciWindow.IsVisible)
         {
             OverlayPositionManager.ApplyPosition(_verciWindow, position, _settingsManager.Current.TargetMonitorIndex);
         }
 
-        StatusMessageText.Text = $"Overlay pencere konumu '{position}' olarak ayarlandı.";
+        _toastService.ShowInfo($"Overlay konumu: {position}");
     }
 
     private async void OnTargetMonitorSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -591,16 +668,16 @@ public partial class MainWindow : Window
 
         await _settingsManager.UpdateAsync(s => s.TargetMonitorIndex = idx);
 
-        if (_lumnWindow != null && _lumnWindow.IsVisible)
+        if (_glowOverlayWindow != null && _glowOverlayWindow.IsVisible)
         {
-            OverlayPositionManager.ApplyPosition(_lumnWindow, _settingsManager.Current.OverlayPosition, idx);
+            _glowOverlayWindow.PositionToTargetMonitor(idx);
         }
         if (_verciWindow != null && _verciWindow.IsVisible)
         {
             OverlayPositionManager.ApplyPosition(_verciWindow, _settingsManager.Current.OverlayPosition, idx);
         }
 
-        StatusMessageText.Text = $"Hedef monitör {idx + 1}. Ekran olarak seçildi.";
+        _toastService.ShowInfo($"Hedef monitör: {idx + 1}. Ekran");
     }
 
     private async void OnLumnSensitivityChanged(object? sender, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
@@ -630,14 +707,14 @@ public partial class MainWindow : Window
             s.Verci.CacheLyricsLocally = cacheLyrics;
         });
 
-        StatusMessageText.Text = "Şarkı sözü tercihleri güncellendi.";
+        _toastService.ShowInfo("Şarkı sözü tercihleri güncellendi.");
     }
 
     private async void OnTraySettingsChanged(object? sender, RoutedEventArgs e)
     {
         bool minToTray = ChkMinimizeToTray.IsChecked ?? true;
         await _settingsManager.UpdateAsync(s => s.MinimizeToTray = minToTray);
-        StatusMessageText.Text = minToTray ? "Kapatıldığında sistem tepsisine küçültme aktif." : "Pencere kapatıldığında uygulama çıkacak.";
+        _toastService.ShowInfo(minToTray ? "Sistem tepsisine küçültme aktif." : "Pencere kapatıldığında çıkış modu aktif.");
     }
 
     private async void OnStartupSettingChanged(object? sender, RoutedEventArgs e)
@@ -647,12 +724,202 @@ public partial class MainWindow : Window
         if (ok)
         {
             await _settingsManager.UpdateAsync(s => s.StartWithWindows = start);
-            StatusMessageText.Text = start ? "Lyrow Windows başlangıcına eklendi." : "Lyrow Windows başlangıcından kaldırıldı.";
+            _toastService.ShowSuccess(start ? "Windows başlangıcına eklendi." : "Windows başlangıcından kaldırıldı.");
         }
         else
         {
             ChkStartWithWindows.IsChecked = !start;
-            StatusMessageText.Text = "Başlangıç ayarı güncellenemedi.";
+            _toastService.ShowError("Başlangıç ayarı güncellenemedi.");
         }
+    }
+
+    // --- Interactive Custom Hotkey Handlers ---
+    private void OnSaveGlowHotkeyClick(object? sender, RoutedEventArgs e)
+    {
+        HandleHotkeySave("Glow", TxtGlowHotkey.Text ?? string.Empty, (s, val) => s.ToggleLumn = val, TxtGlowHotkey);
+    }
+
+    private void OnClearGlowHotkeyClick(object? sender, RoutedEventArgs e)
+    {
+        HandleHotkeyClear("Glow", (s, val) => s.ToggleLumn = val, TxtGlowHotkey);
+    }
+
+    private void OnSaveLyricsHotkeyClick(object? sender, RoutedEventArgs e)
+    {
+        HandleHotkeySave("Lyrics", TxtLyricsHotkey.Text ?? string.Empty, (s, val) => s.ToggleVerci = val, TxtLyricsHotkey);
+    }
+
+    private void OnClearLyricsHotkeyClick(object? sender, RoutedEventArgs e)
+    {
+        HandleHotkeyClear("Lyrics", (s, val) => s.ToggleVerci = val, TxtLyricsHotkey);
+    }
+
+    private void OnSaveClickThroughHotkeyClick(object? sender, RoutedEventArgs e)
+    {
+        HandleHotkeySave("Click-Through", TxtClickThroughHotkey.Text ?? string.Empty, (s, val) => s.ToggleClickThrough = val, TxtClickThroughHotkey);
+    }
+
+    private void OnClearClickThroughHotkeyClick(object? sender, RoutedEventArgs e)
+    {
+        HandleHotkeyClear("Click-Through", (s, val) => s.ToggleClickThrough = val, TxtClickThroughHotkey);
+    }
+
+    private async void HandleHotkeySave(
+        string actionName,
+        string newGesture,
+        Action<HotkeySettings, string> applyToSettings,
+        TextBox inputField)
+    {
+        newGesture = (newGesture ?? string.Empty).Trim();
+
+        if (!string.IsNullOrEmpty(newGesture))
+        {
+            if (!HotkeyValidator.IsValidGesture(newGesture, out var syntaxError))
+            {
+                _toastService.ShowError($"Geçersiz kısayol: {syntaxError}");
+                return;
+            }
+        }
+
+        // 1. Create trial settings to test locally
+        var trialSettings = new HotkeySettings
+        {
+            ToggleLumn = _settingsManager.Current.Hotkeys.ToggleLumn,
+            ToggleVerci = _settingsManager.Current.Hotkeys.ToggleVerci,
+            ToggleClickThrough = _settingsManager.Current.Hotkeys.ToggleClickThrough
+        };
+        applyToSettings(trialSettings, newGesture);
+
+        // 2. Check internal duplicate collisions within Lyrow
+        if (!HotkeyValidator.CheckInternalCollisions(trialSettings, out var collisionError))
+        {
+            _toastService.ShowError($"Kısayol çakışması: {collisionError}");
+            return;
+        }
+
+        // 3. Attempt registration with the OS
+        bool ok = _hotkeyManager.RegisterHotkeys(
+            trialSettings,
+            onLumnToggle: ToggleLumnFromExternal,
+            onVerciToggle: ToggleVerciFromExternal,
+            onClickThroughToggle: ToggleClickThroughFromExternal);
+
+        if (!ok)
+        {
+            var failedStatus = _hotkeyManager.GetStatus().FirstOrDefault(s => s.ActionName.Equals(actionName, StringComparison.OrdinalIgnoreCase) && !s.IsRegistered);
+            string err = failedStatus?.ErrorMessage ?? "Bu kısayol Windows veya başka bir uygulama tarafından kullanılıyor.";
+            _toastService.ShowError($"Kayıt reddedildi: {err}");
+
+            // Revert registration back to existing valid settings
+            _hotkeyManager.RegisterHotkeys(
+                _settingsManager.Current.Hotkeys,
+                ToggleLumnFromExternal,
+                ToggleVerciFromExternal,
+                ToggleClickThroughFromExternal);
+            return;
+        }
+
+        // 4. Persistence
+        applyToSettings(_settingsManager.Current.Hotkeys, newGesture);
+        await _settingsManager.SaveAsync(_settingsManager.Current);
+
+        inputField.Text = HotkeyValidator.NormalizeGesture(newGesture);
+        UpdateHotkeyStatusSummary();
+
+        if (string.IsNullOrEmpty(newGesture))
+        {
+            _toastService.ShowInfo($"{actionName} kısayolu kaldırıldı.");
+        }
+        else
+        {
+            _toastService.ShowSuccess($"{actionName} kısayolu kaydedildi: {inputField.Text}");
+        }
+    }
+
+    private void HandleHotkeyClear(
+        string actionName,
+        Action<HotkeySettings, string> applyToSettings,
+        TextBox inputField)
+    {
+        HandleHotkeySave(actionName, string.Empty, applyToSettings, inputField);
+    }
+
+    // --- Modern Top-Right Minimal Toast UI ---
+    private void OnToastReceived(object? sender, ToastItem toast)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            var toastCard = new Border
+            {
+                Classes = { "toast-card" },
+                Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand)
+            };
+
+            var dotColor = toast.Type switch
+            {
+                ToastType.Success => Color.Parse("#10B981"),
+                ToastType.Error => Color.Parse("#EF4444"),
+                ToastType.Warning => Color.Parse("#F59E0B"),
+                _ => Color.Parse("#3B82F6")
+            };
+
+            var grid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("Auto,*")
+            };
+
+            var indicator = new Border
+            {
+                Width = 8,
+                Height = 8,
+                CornerRadius = new CornerRadius(4),
+                Background = new SolidColorBrush(dotColor),
+                Margin = new Thickness(0, 0, 10, 0),
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            };
+
+            var text = new TextBlock
+            {
+                Text = toast.Message,
+                FontSize = 12,
+                FontWeight = FontWeight.Medium,
+                Foreground = (IBrush)this.FindResource("LyrowTextPrimary")!,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            Grid.SetColumn(indicator, 0);
+            Grid.SetColumn(text, 1);
+            grid.Children.Add(indicator);
+            grid.Children.Add(text);
+
+            toastCard.Child = grid;
+
+            // Dismiss immediately when clicked
+            toastCard.PointerPressed += (_, _) =>
+            {
+                ToastContainer.Children.Remove(toastCard);
+            };
+
+            // Auto dismiss timer (2.8 seconds)
+            var timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(2800)
+            };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                ToastContainer.Children.Remove(toastCard);
+            };
+            timer.Start();
+
+            // Limit simultaneous toasts to 3
+            while (ToastContainer.Children.Count >= 3)
+            {
+                ToastContainer.Children.RemoveAt(0);
+            }
+
+            ToastContainer.Children.Add(toastCard);
+        });
     }
 }

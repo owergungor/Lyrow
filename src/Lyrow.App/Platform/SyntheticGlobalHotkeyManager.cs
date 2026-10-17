@@ -1,5 +1,6 @@
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
+using Lyrow.Core.Services;
 
 namespace Lyrow.App.Platform;
 
@@ -27,22 +28,47 @@ public sealed class SyntheticGlobalHotkeyManager : IGlobalHotkeyManager
         Action onClickThroughToggle)
     {
         _statuses.Clear();
-        _onLumn = onLumnToggle;
-        _onVerci = onVerciToggle;
-        _onClickThrough = onClickThroughToggle;
+        _onLumn = string.IsNullOrWhiteSpace(settings.ToggleLumn) ? null : onLumnToggle;
+        _onVerci = string.IsNullOrWhiteSpace(settings.ToggleVerci) ? null : onVerciToggle;
+        _onClickThrough = string.IsNullOrWhiteSpace(settings.ToggleClickThrough) ? null : onClickThroughToggle;
 
         if (SimulateConflict)
         {
-            _statuses.Add(new HotkeyStatus("Glow", settings.ToggleLumn, false, $"{settings.ToggleLumn} kullanılamıyor. Bu kısayol başka bir uygulama tarafından kullanılıyor olabilir.", HotkeyRegistrationState.Conflict));
-            _statuses.Add(new HotkeyStatus("Lyrics", settings.ToggleVerci, true, null, HotkeyRegistrationState.Registered));
-            _statuses.Add(new HotkeyStatus("ClickThrough", settings.ToggleClickThrough, true, null, HotkeyRegistrationState.Registered));
+            _statuses.Add(new HotkeyStatus("Glow", settings.ToggleLumn, false, $"{settings.ToggleLumn} kullanılamıyor. Bu kısayol Windows veya başka bir uygulama tarafından kullanılıyor.", HotkeyRegistrationState.Conflict));
+            _statuses.Add(new HotkeyStatus("Lyrics", settings.ToggleVerci, !string.IsNullOrWhiteSpace(settings.ToggleVerci), null, string.IsNullOrWhiteSpace(settings.ToggleVerci) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered));
+            _statuses.Add(new HotkeyStatus("ClickThrough", settings.ToggleClickThrough, !string.IsNullOrWhiteSpace(settings.ToggleClickThrough), null, string.IsNullOrWhiteSpace(settings.ToggleClickThrough) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered));
             return false;
         }
 
-        _statuses.Add(new HotkeyStatus("Glow", settings.ToggleLumn, true, null, HotkeyRegistrationState.Registered));
-        _statuses.Add(new HotkeyStatus("Lyrics", settings.ToggleVerci, true, null, HotkeyRegistrationState.Registered));
-        _statuses.Add(new HotkeyStatus("ClickThrough", settings.ToggleClickThrough, true, null, HotkeyRegistrationState.Registered));
+        // Check internal collisions
+        if (!HotkeyValidator.CheckInternalCollisions(settings, out var collisionError))
+        {
+            bool glowCol = HotkeyValidator.AreColliding(settings.ToggleLumn, settings.ToggleVerci) || HotkeyValidator.AreColliding(settings.ToggleLumn, settings.ToggleClickThrough);
+            bool lyricsCol = HotkeyValidator.AreColliding(settings.ToggleVerci, settings.ToggleLumn) || HotkeyValidator.AreColliding(settings.ToggleVerci, settings.ToggleClickThrough);
+            bool clickCol = HotkeyValidator.AreColliding(settings.ToggleClickThrough, settings.ToggleLumn) || HotkeyValidator.AreColliding(settings.ToggleClickThrough, settings.ToggleVerci);
+
+            _statuses.Add(new HotkeyStatus("Glow", settings.ToggleLumn, false, glowCol ? collisionError : null, glowCol ? HotkeyRegistrationState.Conflict : (string.IsNullOrWhiteSpace(settings.ToggleLumn) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered)));
+            _statuses.Add(new HotkeyStatus("Lyrics", settings.ToggleVerci, false, lyricsCol ? collisionError : null, lyricsCol ? HotkeyRegistrationState.Conflict : (string.IsNullOrWhiteSpace(settings.ToggleVerci) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered)));
+            _statuses.Add(new HotkeyStatus("ClickThrough", settings.ToggleClickThrough, false, clickCol ? collisionError : null, clickCol ? HotkeyRegistrationState.Conflict : (string.IsNullOrWhiteSpace(settings.ToggleClickThrough) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered)));
+            return false;
+        }
+
+        AddSingleStatus("Glow", settings.ToggleLumn);
+        AddSingleStatus("Lyrics", settings.ToggleVerci);
+        AddSingleStatus("ClickThrough", settings.ToggleClickThrough);
         return true;
+    }
+
+    private void AddSingleStatus(string actionName, string gesture)
+    {
+        if (string.IsNullOrWhiteSpace(gesture))
+        {
+            _statuses.Add(new HotkeyStatus(actionName, string.Empty, false, null, HotkeyRegistrationState.NotRegistered));
+        }
+        else
+        {
+            _statuses.Add(new HotkeyStatus(actionName, gesture, true, null, HotkeyRegistrationState.Registered));
+        }
     }
 
     public void UnregisterAll()

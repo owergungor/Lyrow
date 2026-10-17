@@ -1,4 +1,4 @@
-# Lyrow v1.1
+# Lyrow v1.2
 
 [![CI](https://github.com/owergungor/Lyrow/actions/workflows/ci.yml/badge.svg)](https://github.com/owergungor/Lyrow/actions/workflows/ci.yml)
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?logo=windows)](https://microsoft.com/windows)
@@ -11,22 +11,24 @@
 
 Lyrow iki bağımsız ancak birbiriyle uyum içinde çalışan ana modülden oluşur:
 
-- **Glow:** Sistem ses çıkışını (WASAPI Loopback) anlık yakalayan, sıfır-tahsisli FFT frekans analiziyle donanım hızlandırmalı ritim ve spektrum dalgaları oluşturan dinamik ses görselleştiricisi.
-- **Lyrics:** Sistemde çalan müziği (Spotify, Apple Music, YouTube vb.) Windows GSMTC üzerinden yakalayan, LRCLIB ile senkronize şarkı sözlerini milisaniye hassasiyetinde çeken ve pürüzsüz kaydırma ile masaüstünüzde sergileyen yüzen şarkı sözü penceresi.
+- **Glow:** Sistem ses çıkışını (WASAPI Loopback) anlık yakalayan, sıfır-tahsisli FFT ve geçiş/ritim (transient beat) algılama motoruyla ekranın dört kenarında ortama yayılan ambient kenar aydınlatması sunan dinamik görselleştirici.
+- **Lyrics:** Sistemde çalan müziği (Spotify, Apple Music, YouTube vb.) Windows GSMTC üzerinden yakalayan, albüm kapağını (artwork) asenkron çözen, LRCLIB ile senkronize şarkı sözlerini milisaniye hassasiyetinde çeken ve çalan satırı ekranın dikey merkezinde tutan modern şarkı sözü penceresi.
 
 ---
 
-## 📸 Temel Özellikler
+## 📸 v1.2 Temel Özellikleri
 
 - **🎨 Vercel & Apple İlhamlı Modern Tasarım:** Temiz koyu ve açık yüzeyler, 1px zarif sınırlar, akıcı Apple tarzı anahtarlar (ToggleSwitch) ve yüksek okunabilirlikli tipografi.
-- **⚡ Kusursuz Şarkı Sözü Senkronizasyonu:** Gerçek zamanlı interpolasyon ve ikili arama (Binary Search) ile anında doğru satır vurgusu ve otomatik merkezleme kaydırması.
-- **🖱️ Gerçek Win32 Click-Through:** Tek bir anahtarla veya global kısayolla (`WS_EX_LAYERED` & `WS_EX_TRANSPARENT`) overlay pencereleri saydamlaştırılır ve tüm fare tıklamaları arka plandaki oyunlara ve uygulamalara pürüzsüzce geçer.
+- **⚡ Merkezlenmiş Şarkı Sözü Akışı (Lyrics Centering):** Çalan satır her zaman viewport'un görsel merkezinde konumlanır; ileri/geri aramalarda (seek) anında yumuşak merkezleme yapılır; duraklatma/sürdürmede konum bozulmaz.
+- **🖼️ Asenkron Albüm Kapağı Hattı (Artwork Pipeline):** Windows GSMTC üzerinden albüm kapakları UI thread'i bloklamadan okunur, bellek içi önbelleğe (cache) alınır ve yüksek çözünürlüklü zarif yuvarlatılmış kartlarda gösterilir.
+- **✨ Ambient Glow — 4 Kenarlı Ekran Kenar Aydınlatması:** Ekran sınırlarında bas, orta ve tiz frekans enerjisine ve ritim transient'larına tepki veren, titreşimsiz, GPU hızlandırmalı yumuşak kenar ışıması.
+- **⌨️ Sıfır Varsayılanlı & Özelleştirilebilir Global Kısayollar:** İlk kurulumda 0 varsayılan kısayol rezerve edilir. Kullanıcı ayarlar kartından kendi tuş kombinasyonlarını belirleyebilir, kaldırabilir; dahili ve Win32 sistem çakışmaları anında tespit edilip engellenir (Win32 1408 thread güvenliği korunmuştur).
+- **📐 Sabit Dashboard Kart Geometrisi:** Şarkı adı, sanatçı veya durum metinleri ne kadar uzun olursa olsun kart ölçüleri (`76px`, `104px`, `200px`) deterministik kalır; metinler zarif şekilde kısaltılır (ellipsis + tooltip).
+- **🍞 Modern Sağ Üst Toast Sistemi:** Kalıcı alt durum metinleri kaldırıldı; sağ üst köşede kaybolan, anti-spam korumalı, yarı saydam ve hafif gölgeli toast bildirimleri eklendi.
+- **🖱️ Gerçek Win32 Click-Through:** Tek bir anahtarla veya kullanıcı kısayoluyla (`WS_EX_LAYERED` & `WS_EX_TRANSPARENT`) overlay pencereleri saydamlaştırılır ve tüm fare tıklamaları arka plandaki oyunlara ve uygulamalara pürüzsüzce geçer.
 - **🔔 Windows System Tray (Sistem Tepsisi):** Bildirim alanı simgesi üzerinden Lyrow'u tek tıkla arka plana alabilir, 'X' butonu ile tepsiye küçültebilir ve sağ tık menüsüyle modülleri yönetebilirsiniz.
-- **⌨️ Güvenilir Global Kısayollar (Hotkeys):** Dedicated mesaj döngüsü iş parçacığı ile Win32 çakışmalarından arındırılmış global kısayollar (`Ctrl+Shift+L` : Glow, `Ctrl+Shift+V` : Lyrics, `Ctrl+Shift+C` : Click-through).
 - **🚀 Tekil Örnek (Single-Instance) Güvencesi:** Uygulama tekrar çalıştırıldığında yeni bir kopya açılmaz; mevcut pencere anında öne getirilir.
 - **🖥️ Akıllı Çoklu Monitör & Dinamik Ekran Değişikliği:** Sistemdeki tüm ekranlar algılanır (`Screens.All`). Monitör takılıp çıkarıldığında veya DPI değiştiğinde overlay'ler otomatik olarak yeniden konumlandırılır.
-- **🛡️ Akıllı LRCLIB Rate-Limit Yönetimi:** HTTP 429 durumlarında `Retry-After` süresi UI'da canlı geri sayımla gösterilir; çevrimdışı yerel önbellek önceliklendirilir.
-- **💾 Yerel Tanı Günlüğü (Zero-Telemetry):** `%APPDATA%\Lyrow\logs\app.log` altında güvenli yerel hata günlüğü tutulur; hiçbir telemetri verisi dışarıya iletilmez.
 
 ---
 
@@ -46,7 +48,7 @@ Lyrow iki bağımsız ancak birbiriyle uyum içinde çalışan ana modülden olu
 ## 🚀 Kurulum
 
 ### Yöntem 1: Windows Kurulum Paketi (Önerilen)
-1. [GitHub Releases](https://github.com/owergungor/Lyrow/releases) sayfasından en son `Lyrow-1.1-Setup-x64.exe` dosyasını indirin.
+1. [GitHub Releases](https://github.com/owergungor/Lyrow/releases) sayfasından en son `Lyrow-1.2-Setup-x64.exe` dosyasını indirin.
 2. Kurulum sihirbazını çalıştırın. İsteğe bağlı olarak masaüstü kısayolu oluşturun.
 3. Kurulum tamamlandığında Lyrow otomatik olarak başlayacaktır.
 4. *Not:* Kurulum ve yükseltmelerde kullanıcı ayarlarınız (`%APPDATA%\Lyrow`) silinmez, korunur.
@@ -69,7 +71,7 @@ cd Lyrow
 dotnet restore Lyrow.sln
 dotnet build Lyrow.sln -c Release
 
-# Tüm test paketini çalıştırın (108 test)
+# Tüm test paketini çalıştırın (140 test)
 dotnet test Lyrow.sln
 
 # Bağımsız win-x64 paketi üretin

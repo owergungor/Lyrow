@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Lyrow.App.VerciWindow"
-        Title="Lyrow v1.1 — Lyrics Synced Lyrics"
+        Title="Lyrow v1.2 — Lyrics Synced Lyrics"
         Width="540" Height="680"
         MinWidth="380" MinHeight="420"
         WindowStartupLocation="CenterScreen"
@@ -37,11 +37,24 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Track Title & Artist -->
-                <StackPanel Grid.Row="1" Spacing="3" Margin="0,4,0,10">
-                    <TextBlock x:Name="TrackTitleText" Text="Şarkı Çalınmıyor" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource LyrowTextPrimary}" TextTrimming="CharacterEllipsis"/>
-                    <TextBlock x:Name="TrackArtistText" Text="Spotify veya Medya Oynatıcıyı Başlatın" FontSize="13" Foreground="#89B4FA" TextTrimming="CharacterEllipsis"/>
-                </StackPanel>
+                <!-- Track Artwork, Title & Artist -->
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*" Margin="0,4,0,10">
+                    <Border Grid.Column="0" Width="44" Height="44" CornerRadius="8" ClipToBounds="True"
+                            Background="{DynamicResource LyrowInnerContainerBackground}"
+                            BorderBrush="{DynamicResource LyrowBorderBrush}"
+                            BorderThickness="1"
+                            Margin="0,0,12,0"
+                            VerticalAlignment="Center">
+                        <Panel>
+                            <Image x:Name="VerciArtworkImage" Width="44" Height="44" Stretch="UniformToFill" IsVisible="False" />
+                            <TextBlock x:Name="VerciArtworkPlaceholder" Text="🎵" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.75"/>
+                        </Panel>
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                        <TextBlock x:Name="TrackTitleText" Text="Şarkı Çalınmıyor" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource LyrowTextPrimary}" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="TrackArtistText" Text="Spotify veya Medya Oynatıcıyı Başlatın" FontSize="13" Foreground="#89B4FA" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Grid>
 
                 <!-- Timeline Progress Bar -->
                 <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,4">
@@ -60,9 +73,9 @@
                         <TextBlock Text="Şarkı sözleri bekleniyor..." FontSize="14" Foreground="{DynamicResource LyrowTextMuted}" HorizontalAlignment="Center"/>
                     </StackPanel>
 
-                    <!-- Scrollable Lyrics List -->
+                    <!-- Scrollable Lyrics List with Viewport Centering -->
                     <ScrollViewer x:Name="LyricsScrollViewer" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel x:Name="LyricsPanel" Spacing="14" VerticalAlignment="Center" Margin="0,60"/>
+                        <StackPanel x:Name="LyricsPanel" Spacing="16" HorizontalAlignment="Stretch" Margin="0"/>
                     </ScrollViewer>
                 </Grid>
             </Border>
