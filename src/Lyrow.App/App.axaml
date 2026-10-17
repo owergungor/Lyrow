@@ -2,43 +2,86 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Lyrow.App.App"
              RequestedThemeVariant="Default">
-    <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+    <!-- Vercel + Apple Modern Desktop Design System -->
 
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.ThemeDictionaries>
+                <!-- Dark / Default Theme (Vercel True-Black & Neutral-Zinc) -->
                 <ResourceDictionary x:Key="Default">
-                    <SolidColorBrush x:Key="LyrowWindowBackground" Color="#181825" />
-                    <SolidColorBrush x:Key="LyrowCardBackground" Color="#1E1E2E" />
-                    <SolidColorBrush x:Key="LyrowInnerContainerBackground" Color="#11111B" />
-                    <SolidColorBrush x:Key="LyrowBorderBrush" Color="#313244" />
-                    <SolidColorBrush x:Key="LyrowTextPrimary" Color="#CDD6F4" />
-                    <SolidColorBrush x:Key="LyrowTextSecondary" Color="#A6ADC8" />
-                    <SolidColorBrush x:Key="LyrowTextMuted" Color="#6C7086" />
-                    <SolidColorBrush x:Key="LyrowSubtleButtonBackground" Color="#252538" />
-                    <SolidColorBrush x:Key="LyrowBadgeBackground" Color="#1E1E2E" />
+                    <SolidColorBrush x:Key="LyrowWindowBackground" Color="#000000" />
+                    <SolidColorBrush x:Key="LyrowCardBackground" Color="#0A0A0A" />
+                    <SolidColorBrush x:Key="LyrowCardElevated" Color="#121212" />
+                    <SolidColorBrush x:Key="LyrowInnerContainerBackground" Color="#141415" />
+                    <SolidColorBrush x:Key="LyrowBorderBrush" Color="#27272A" />
+                    <SolidColorBrush x:Key="LyrowBorderSubtle" Color="#1F1F22" />
+                    <SolidColorBrush x:Key="LyrowTextPrimary" Color="#EDEDED" />
+                    <SolidColorBrush x:Key="LyrowTextSecondary" Color="#A1A1AA" />
+                    <SolidColorBrush x:Key="LyrowTextMuted" Color="#71717A" />
+                    <SolidColorBrush x:Key="LyrowAccent" Color="#3B82F6" />
+                    <SolidColorBrush x:Key="LyrowAccentSubtle" Color="#1E293B" />
+                    <SolidColorBrush x:Key="LyrowAccentForeground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="LyrowSuccess" Color="#10B981" />
+                    <SolidColorBrush x:Key="LyrowSuccessSubtle" Color="#064E3B" />
+                    <SolidColorBrush x:Key="LyrowWarning" Color="#F59E0B" />
+                    <SolidColorBrush x:Key="LyrowError" Color="#EF4444" />
+                    <SolidColorBrush x:Key="LyrowSubtleButtonBackground" Color="#18181B" />
+                    <SolidColorBrush x:Key="LyrowSubtleButtonHover" Color="#27272A" />
+                    <SolidColorBrush x:Key="LyrowBadgeBackground" Color="#18181B" />
+                    <SolidColorBrush x:Key="LyrowSwitchOnBackground" Color="#3B82F6" />
+                    <SolidColorBrush x:Key="LyrowSwitchOffBackground" Color="#27272A" />
+                    <SolidColorBrush x:Key="LyrowSwitchThumb" Color="#FFFFFF" />
                 </ResourceDictionary>
+
                 <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="LyrowWindowBackground" Color="#181825" />
-                    <SolidColorBrush x:Key="LyrowCardBackground" Color="#1E1E2E" />
-                    <SolidColorBrush x:Key="LyrowInnerContainerBackground" Color="#11111B" />
-                    <SolidColorBrush x:Key="LyrowBorderBrush" Color="#313244" />
-                    <SolidColorBrush x:Key="LyrowTextPrimary" Color="#CDD6F4" />
-                    <SolidColorBrush x:Key="LyrowTextSecondary" Color="#A6ADC8" />
-                    <SolidColorBrush x:Key="LyrowTextMuted" Color="#6C7086" />
-                    <SolidColorBrush x:Key="LyrowSubtleButtonBackground" Color="#252538" />
-                    <SolidColorBrush x:Key="LyrowBadgeBackground" Color="#1E1E2E" />
+                    <SolidColorBrush x:Key="LyrowWindowBackground" Color="#000000" />
+                    <SolidColorBrush x:Key="LyrowCardBackground" Color="#0A0A0A" />
+                    <SolidColorBrush x:Key="LyrowCardElevated" Color="#121212" />
+                    <SolidColorBrush x:Key="LyrowInnerContainerBackground" Color="#141415" />
+                    <SolidColorBrush x:Key="LyrowBorderBrush" Color="#27272A" />
+                    <SolidColorBrush x:Key="LyrowBorderSubtle" Color="#1F1F22" />
+                    <SolidColorBrush x:Key="LyrowTextPrimary" Color="#EDEDED" />
+                    <SolidColorBrush x:Key="LyrowTextSecondary" Color="#A1A1AA" />
+                    <SolidColorBrush x:Key="LyrowTextMuted" Color="#71717A" />
+                    <SolidColorBrush x:Key="LyrowAccent" Color="#3B82F6" />
+                    <SolidColorBrush x:Key="LyrowAccentSubtle" Color="#1E293B" />
+                    <SolidColorBrush x:Key="LyrowAccentForeground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="LyrowSuccess" Color="#10B981" />
+                    <SolidColorBrush x:Key="LyrowSuccessSubtle" Color="#064E3B" />
+                    <SolidColorBrush x:Key="LyrowWarning" Color="#F59E0B" />
+                    <SolidColorBrush x:Key="LyrowError" Color="#EF4444" />
+                    <SolidColorBrush x:Key="LyrowSubtleButtonBackground" Color="#18181B" />
+                    <SolidColorBrush x:Key="LyrowSubtleButtonHover" Color="#27272A" />
+                    <SolidColorBrush x:Key="LyrowBadgeBackground" Color="#18181B" />
+                    <SolidColorBrush x:Key="LyrowSwitchOnBackground" Color="#3B82F6" />
+                    <SolidColorBrush x:Key="LyrowSwitchOffBackground" Color="#27272A" />
+                    <SolidColorBrush x:Key="LyrowSwitchThumb" Color="#FFFFFF" />
                 </ResourceDictionary>
+
+                <!-- Light Theme (Clean Vercel Geist Light) -->
                 <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="LyrowWindowBackground" Color="#F8FAFC" />
+                    <SolidColorBrush x:Key="LyrowWindowBackground" Color="#FAFAFA" />
                     <SolidColorBrush x:Key="LyrowCardBackground" Color="#FFFFFF" />
-                    <SolidColorBrush x:Key="LyrowInnerContainerBackground" Color="#F1F5F9" />
-                    <SolidColorBrush x:Key="LyrowBorderBrush" Color="#CBD5E1" />
-                    <SolidColorBrush x:Key="LyrowTextPrimary" Color="#0F172A" />
-                    <SolidColorBrush x:Key="LyrowTextSecondary" Color="#334155" />
-                    <SolidColorBrush x:Key="LyrowTextMuted" Color="#64748B" />
-                    <SolidColorBrush x:Key="LyrowSubtleButtonBackground" Color="#E2E8F0" />
-                    <SolidColorBrush x:Key="LyrowBadgeBackground" Color="#E2E8F0" />
+                    <SolidColorBrush x:Key="LyrowCardElevated" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="LyrowInnerContainerBackground" Color="#F4F4F5" />
+                    <SolidColorBrush x:Key="LyrowBorderBrush" Color="#E4E4E7" />
+                    <SolidColorBrush x:Key="LyrowBorderSubtle" Color="#F4F4F5" />
+                    <SolidColorBrush x:Key="LyrowTextPrimary" Color="#09090B" />
+                    <SolidColorBrush x:Key="LyrowTextSecondary" Color="#52525B" />
+                    <SolidColorBrush x:Key="LyrowTextMuted" Color="#A1A1AA" />
+                    <SolidColorBrush x:Key="LyrowAccent" Color="#2563EB" />
+                    <SolidColorBrush x:Key="LyrowAccentSubtle" Color="#EFF6FF" />
+                    <SolidColorBrush x:Key="LyrowAccentForeground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="LyrowSuccess" Color="#059669" />
+                    <SolidColorBrush x:Key="LyrowSuccessSubtle" Color="#D1FAE5" />
+                    <SolidColorBrush x:Key="LyrowWarning" Color="#D97706" />
+                    <SolidColorBrush x:Key="LyrowError" Color="#DC2626" />
+                    <SolidColorBrush x:Key="LyrowSubtleButtonBackground" Color="#F4F4F5" />
+                    <SolidColorBrush x:Key="LyrowSubtleButtonHover" Color="#E4E4E7" />
+                    <SolidColorBrush x:Key="LyrowBadgeBackground" Color="#F4F4F5" />
+                    <SolidColorBrush x:Key="LyrowSwitchOnBackground" Color="#2563EB" />
+                    <SolidColorBrush x:Key="LyrowSwitchOffBackground" Color="#E4E4E7" />
+                    <SolidColorBrush x:Key="LyrowSwitchThumb" Color="#FFFFFF" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
@@ -46,39 +89,117 @@
 
     <Application.Styles>
         <FluentTheme />
-        
-        <!-- Neumorphic & Modern Dashboard Styling -->
-        <Style Selector="Border.neumorphic-card">
-            <Setter Property="CornerRadius" Value="16" />
-            <Setter Property="Padding" Value="20" />
+
+        <!-- Vercel Clean Card Style -->
+        <Style Selector="Border.vercel-card">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{DynamicResource LyrowCardBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LyrowBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="18" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
                 </Transitions>
             </Setter>
         </Style>
 
+        <!-- Legacy fallback alias for existing styles -->
+        <Style Selector="Border.neumorphic-card">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{DynamicResource LyrowCardBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LyrowBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="18" />
+        </Style>
+
         <Style Selector="Border.module-card">
-            <Setter Property="CornerRadius" Value="14" />
-            <Setter Property="Padding" Value="16" />
-            <Setter Property="Margin" Value="0,8" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{DynamicResource LyrowCardBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LyrowBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="18" />
         </Style>
 
+        <!-- Vercel Secondary Action Button -->
         <Style Selector="Button.action-button">
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,8" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="{DynamicResource LyrowSubtleButtonBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource LyrowTextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LyrowBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
         </Style>
 
+        <Style Selector="Button.action-button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource LyrowSubtleButtonHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LyrowTextMuted}" />
+        </Style>
+
+        <!-- Vercel Primary Button -->
+        <Style Selector="Button.primary-button">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="{DynamicResource LyrowAccent}" />
+            <Setter Property="Foreground" Value="{DynamicResource LyrowAccentForeground}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.primary-button:pointerover">
+            <Setter Property="Opacity" Value="0.9" />
+        </Style>
+
+        <!-- Apple-Inspired Modern Toggle Switch -->
+        <Style Selector="ToggleSwitch">
+            <Setter Property="OnContent" Value="" />
+            <Setter Property="OffContent" Value="" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Modern Typography -->
         <Style Selector="TextBlock.header">
-            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontSize" Value="24" />
             <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="LetterSpacing" Value="-0.5" />
+            <Setter Property="Foreground" Value="{DynamicResource LyrowTextPrimary}" />
         </Style>
 
         <Style Selector="TextBlock.subheader">
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="Opacity" Value="0.75" />
+            <Setter Property="Foreground" Value="{DynamicResource LyrowTextSecondary}" />
+        </Style>
+
+        <Style Selector="TextBlock.metric-label">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="{DynamicResource LyrowTextMuted}" />
+            <Setter Property="LetterSpacing" Value="0.5" />
+        </Style>
+
+        <Style Selector="TextBlock.metric-value">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource LyrowTextPrimary}" />
         </Style>
     </Application.Styles>
 </Application>
