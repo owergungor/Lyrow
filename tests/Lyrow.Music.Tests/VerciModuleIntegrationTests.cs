@@ -120,7 +120,14 @@ public sealed class VerciModuleIntegrationTests : IDisposable
 
         // Simulate track change for pre-cached song
         monitor.SimulateTrack("Cached Song", "Cached Artist", "Album", TimeSpan.FromMinutes(2));
-        await Task.Delay(50);
+
+        // Deterministically wait for lyrics to be loaded from cache (polling up to 3 seconds)
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        while (stopwatch.Elapsed < TimeSpan.FromSeconds(3) &&
+               !verci.CurrentLyrics.Lines.Any(l => l.Text == "Pre-cached lyric line"))
+        {
+            await Task.Delay(25);
+        }
 
         // Should successfully use cache even though network client fails!
         verci.CurrentLyrics.Lines.Should().ContainSingle(l => l.Text == "Pre-cached lyric line");
