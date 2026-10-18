@@ -16,11 +16,11 @@
     <Nullable>enable</Nullable>
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>1.3</Version>
-    <PackageVersion>1.3</PackageVersion>
-    <InformationalVersion>1.3</InformationalVersion>
-    <AssemblyVersion>1.3.0.0</AssemblyVersion>
-    <FileVersion>1.3.0.0</FileVersion>
+    <Version>1.3.1</Version>
+    <PackageVersion>1.3.1</PackageVersion>
+    <InformationalVersion>1.3.1</InformationalVersion>
+    <AssemblyVersion>1.3.1.0</AssemblyVersion>
+    <FileVersion>1.3.1.0</FileVersion>
     <Authors>Lyrow Team</Authors>
     <Company>Lyrow</Company>
     <Product>Lyrow</Product>
@@ -44,4 +44,11 @@
     <Manifest Include="$(ApplicationManifest)" />
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <Target Name="CopyWinUIResourcesToPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <WinUIOutputFiles Include="$(TargetDir)*.xbf;$(TargetDir)*.pri" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WinUIOutputFiles)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

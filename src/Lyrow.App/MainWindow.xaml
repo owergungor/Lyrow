@@ -24,8 +24,7 @@
         <NavigationView x:Name="NavView" Grid.Row="1"
                         PaneDisplayMode="Left"
                         IsBackButtonVisible="Collapsed"
-                        IsSettingsVisible="True"
-                        SelectionChanged="NavView_SelectionChanged">
+                        IsSettingsVisible="True">
             <NavigationView.MenuItems>
                 <NavigationViewItem x:Name="NavHome" Content="Dashboard" Tag="Home">
                     <NavigationViewItem.Icon>
@@ -354,8 +353,7 @@
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <StackPanel Spacing="10">
                                 <TextBlock Text="Theme Preference" FontWeight="SemiBold" FontSize="14" />
-                                <ComboBox x:Name="ComboTheme" SelectedIndex="0" HorizontalAlignment="Stretch"
-                                          SelectionChanged="ComboTheme_SelectionChanged">
+                                <ComboBox x:Name="ComboTheme" SelectedIndex="0" HorizontalAlignment="Stretch">
                                     <ComboBoxItem Content="Windows Default" Tag="SystemDefault" />
                                     <ComboBoxItem Content="Dark" Tag="Dark" />
                                     <ComboBoxItem Content="Light" Tag="Light" />

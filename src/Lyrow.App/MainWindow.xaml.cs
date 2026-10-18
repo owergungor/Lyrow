@@ -45,8 +45,6 @@ public sealed partial class MainWindow : Window
         ArtworkBitmapManager? artworkBitmapManager = null,
         IToastNotificationService? toastService = null)
     {
-        InitializeComponent();
-
         _moduleManager = moduleManager;
         _settingsManager = settingsManager;
         _platformAdapter = platformAdapter ?? new SyntheticWindowPlatformAdapter();
@@ -58,6 +56,16 @@ public sealed partial class MainWindow : Window
         _toastService = toastService ?? new ToastNotificationService();
         _eventBus = App.Services?.GetService<IEventBus>();
         _mediaMonitor = App.Services?.GetService<IMediaSessionMonitor>();
+
+        try
+        {
+            InitializeComponent();
+        }
+        catch (Exception ex)
+        {
+            LocalDiagnosticLogger.LogError($"[DIAGNOSTIC] MainWindow.InitializeComponent FAILED! HResult=0x{ex.HResult:X8}, Message={ex.Message}\nDetails: {ex}", ex);
+            throw;
+        }
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
@@ -254,6 +262,10 @@ public sealed partial class MainWindow : Window
         {
             if (_mediaMonitor != null) await _mediaMonitor.TrySkipPreviousAsync();
         };
+
+        // Navigation and theme events
+        NavView.SelectionChanged += NavView_SelectionChanged;
+        ComboTheme.SelectionChanged += ComboTheme_SelectionChanged;
     }
 
     private async Task SetGlowStateAsync(bool active)
@@ -438,6 +450,7 @@ public sealed partial class MainWindow : Window
 
     private void ShowPage(UIElement activePage)
     {
+        if (PageHome == null || PageGlow == null || PageLyrics == null || PageSettings == null) return;
         PageHome.Visibility = (activePage == PageHome) ? Visibility.Visible : Visibility.Collapsed;
         PageGlow.Visibility = (activePage == PageGlow) ? Visibility.Visible : Visibility.Collapsed;
         PageLyrics.Visibility = (activePage == PageLyrics) ? Visibility.Visible : Visibility.Collapsed;
@@ -446,6 +459,7 @@ public sealed partial class MainWindow : Window
 
     private void ComboTheme_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_settingsManager == null || ComboTheme == null) return;
         if (ComboTheme.SelectedItem is ComboBoxItem item)
         {
             string tag = item.Tag?.ToString() ?? "SystemDefault";
