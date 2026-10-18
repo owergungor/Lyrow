@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using Avalonia.Threading;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
 using Lyrow.Core.Services;
@@ -141,10 +140,7 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
 
             case WM_DISPLAYCHANGE:
             case WM_SETTINGCHANGE:
-                Dispatcher.UIThread.Post(() =>
-                {
-                    DisplayConfigurationChanged?.Invoke(this, EventArgs.Empty);
-                });
+                Task.Run(() => DisplayConfigurationChanged?.Invoke(this, EventArgs.Empty));
                 return IntPtr.Zero;
 
             case WM_DESTROY:
@@ -167,7 +163,7 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
 
         if (action != null)
         {
-            Dispatcher.UIThread.Post(action);
+            Task.Run(action);
         }
     }
 

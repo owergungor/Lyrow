@@ -11,11 +11,31 @@ namespace Lyrow.App.Platform;
 /// </summary>
 public sealed class WindowsWindowPlatformAdapter : IWindowPlatformAdapter
 {
-    private const int GWL_EXSTYLE = -20;
-    private const uint WS_EX_LAYERED = 0x00080000;
-    private const uint WS_EX_TRANSPARENT = 0x00000020;
+    public const int GWL_EXSTYLE = -20;
+    public const uint WS_EX_LAYERED = 0x00080000;
+    public const uint WS_EX_TRANSPARENT = 0x00000020;
+    public const uint WS_EX_NOACTIVATE = 0x08000000;
+    public const uint WS_EX_TOOLWINDOW = 0x00000080;
+    public const uint WS_EX_TOPMOST = 0x00000008;
 
     public bool IsSupported => OperatingSystem.IsWindows();
+
+    public bool ApplyOverlayWindowStyles(IntPtr windowHandle)
+    {
+        if (!OperatingSystem.IsWindows() || windowHandle == IntPtr.Zero) return false;
+        try
+        {
+            var exStyle = GetWindowLongPtr(windowHandle, GWL_EXSTYLE);
+            long styleVal = exStyle.ToInt64();
+            styleVal |= (WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST);
+            var result = SetWindowLongPtr(windowHandle, GWL_EXSTYLE, new IntPtr(styleVal));
+            return result != IntPtr.Zero || Marshal.GetLastWin32Error() == 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     public bool SetClickThrough(IntPtr windowHandle, bool enabled)
     {

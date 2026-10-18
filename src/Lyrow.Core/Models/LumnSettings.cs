@@ -5,7 +5,7 @@ namespace Lyrow.Core.Models;
 /// </summary>
 public sealed class LumnSettings
 {
-    public bool IsEnabled { get; set; } = true;
+    public bool IsEnabled { get; set; } = false;
 
     /// <summary>
     /// FFT sample window size (must be a power of two, e.g. 512, 1024, 2048, 4096).
@@ -46,7 +46,7 @@ public sealed class LumnSettings
     /// <summary>
     /// Whether the dedicated visualizer window is open.
     /// </summary>
-    public bool ShowVisualizerWindow { get; set; } = true;
+    public bool ShowVisualizerWindow { get; set; } = false;
 
     /// <summary>
     /// Silence detection threshold in decibels below which analysis enters power-saving idle.

@@ -90,7 +90,31 @@ public sealed class SettingsManager : ISettingsManager
                 await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            File.Move(tempPath, _filePath, overwrite: true);
+            bool moved = false;
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                try
+                {
+                    File.Move(tempPath, _filePath, overwrite: true);
+                    moved = true;
+                    break;
+                }
+                catch (IOException) when (attempt < 2)
+                {
+                    await Task.Delay(20, cancellationToken).ConfigureAwait(false);
+                }
+                catch (UnauthorizedAccessException) when (attempt < 2)
+                {
+                    await Task.Delay(20, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            if (!moved)
+            {
+                File.Copy(tempPath, _filePath, overwrite: true);
+                try { File.Delete(tempPath); } catch { }
+            }
+
             _current = settings;
             _logger.LogInformation("Settings successfully persisted to {Path}.", _filePath);
 

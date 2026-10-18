@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Lyrow.App.LyricsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Lyrow Lyrics"
+    mc:Ignorable="d">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="Base" />
+    </Window.SystemBackdrop>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <!-- Custom WinUI 3 TitleBar -->
+        <TitleBar x:Name="LyricsTitleBar" Grid.Row="0" Title="Lyrow — Synchronized Lyrics">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="Assets/lyrow.ico" />
+            </TitleBar.IconSource>
+        </TitleBar>
+
+        <!-- Track Header Card -->
+        <Border Grid.Row="1" Margin="16,4,16,12" Padding="14" CornerRadius="12"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <Grid ColumnDefinitions="56,*,Auto" RowDefinitions="Auto,Auto">
+                <!-- Album Artwork -->
+                <Border Grid.RowSpan="2" Grid.Column="0" Width="48" Height="48" CornerRadius="8"
+                        Background="{ThemeResource LayerFillColorDefaultBrush}" VerticalAlignment="Center" HorizontalAlignment="Left">
+                    <Grid>
+                        <Image x:Name="ImgTrackArtwork" Stretch="UniformToFill" />
+                        <FontIcon x:Name="IconArtworkPlaceholder" Glyph="&#xE8D6;" FontSize="20"
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <!-- Track Info -->
+                <StackPanel Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="8,0,8,0">
+                    <TextBlock x:Name="TxtSongTitle" Text="Waiting for playback..." FontWeight="SemiBold"
+                               FontSize="15" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="TxtArtistName" Text="No active media session" FontSize="13"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <!-- Sync Offset Controls -->
+                <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+                    <Button x:Name="BtnOffsetMinus" Content="−" Width="28" Height="28" Padding="0" ToolTipService.ToolTip="−500ms Delay" />
+                    <TextBlock x:Name="TxtOffsetMs" Text="0 ms" FontSize="11" VerticalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0" />
+                    <Button x:Name="BtnOffsetPlus" Content="+" Width="28" Height="28" Padding="0" ToolTipService.ToolTip="+500ms Advance" />
+                </StackPanel>
+
+                <!-- Progress Bar -->
+                <ProgressBar x:Name="ProgressTimeline" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                             Margin="8,8,0,0" Minimum="0" Maximum="100" Value="0" Height="3" />
+            </Grid>
+        </Border>
+
+        <!-- Centered Animated Lyrics Viewport -->
+        <ScrollViewer x:Name="LyricsScrollViewer" Grid.Row="2"
+                      VerticalScrollBarVisibility="Hidden"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel x:Name="LyricsPanel" Spacing="16" HorizontalAlignment="Stretch" />
+        </ScrollViewer>
+
+        <!-- Empty State Message -->
+        <StackPanel x:Name="PanelEmptyState" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Spacing="12" Visibility="Visible">
+            <FontIcon Glyph="&#xE8D6;" FontSize="40" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <TextBlock x:Name="TxtEmptyState" Text="Play a song in Spotify, Apple Music, or Chrome"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <!-- Bottom Controls Bar -->
+        <Border Grid.Row="3" Padding="16,8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock x:Name="TxtTimestamp" Text="00:00 / 00:00" FontSize="12" VerticalAlignment="Center"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <ToggleSwitch x:Name="SwitchAutoScroll" Grid.Column="1" Header="Auto-Center" IsOn="True"
+                              FontSize="12" Margin="0" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -38,6 +38,10 @@ public sealed class SyntheticMediaSessionMonitor : IMediaSessionMonitor
         return Task.CompletedTask;
     }
 
+    public Task<bool> TryTogglePlayPauseAsync() => Task.FromResult(true);
+    public Task<bool> TrySkipNextAsync() => Task.FromResult(true);
+    public Task<bool> TrySkipPreviousAsync() => Task.FromResult(true);
+
     /// <summary>Simulates changing the currently playing song in media player.</summary>
     public void SimulateTrack(string title, string artist, string album, TimeSpan duration, string? albumArtUri = null)
     {

@@ -5,7 +5,7 @@ namespace Lyrow.Core.Models;
 /// </summary>
 public sealed class VerciSettings
 {
-    public bool IsEnabled { get; set; } = true;
+    public bool IsEnabled { get; set; } = false;
 
     /// <summary>
     /// Whether the lyrics view automatically scrolls to follow active line.
@@ -40,5 +40,5 @@ public sealed class VerciSettings
     /// <summary>
     /// Whether the dedicated lyrics window is open.
     /// </summary>
-    public bool ShowLyricsWindow { get; set; } = true;
+    public bool ShowLyricsWindow { get; set; } = false;
 }

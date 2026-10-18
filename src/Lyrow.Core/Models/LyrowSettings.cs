@@ -7,17 +7,29 @@ public sealed class LyrowSettings
 {
     public ThemeMode Theme { get; set; } = ThemeMode.SystemDefault;
 
-    public bool LumnEnabled { get; set; } = true;
+    public bool LumnEnabled { get; set; } = false;
 
     public LumnSettings Lumn { get; set; } = new();
 
-    public bool VerciEnabled { get; set; } = true;
+    public bool VerciEnabled { get; set; } = false;
 
     public VerciSettings Verci { get; set; } = new();
 
     public bool VisualIntegrationEnabled { get; set; } = true;
 
-    public bool ClickThroughEnabled { get; set; } = false;
+    public bool ClickThroughEnabled { get; set; } = true;
+
+    public int GlowIntensity { get; set; } = 80;
+
+    public int GlowThickness { get; set; } = 60;
+
+    public string GlowPaletteMode { get; set; } = "AlbumArt";
+
+    public bool SyncWithAlbumArt { get; set; } = true;
+
+    public bool MultiMonitorGlow { get; set; } = true;
+
+    public List<int> SelectedDisplayIndices { get; set; } = new() { 0 };
 
     public OverlayPosition OverlayPosition { get; set; } = OverlayPosition.Center;
 

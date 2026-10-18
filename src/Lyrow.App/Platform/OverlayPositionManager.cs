@@ -1,9 +1,37 @@
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Platform;
 using Lyrow.Core.Models;
 
 namespace Lyrow.App.Platform;
+
+/// <summary>
+/// Lightweight point coordinates in physical pixels.
+/// </summary>
+public readonly record struct PixelPoint(int X, int Y);
+
+/// <summary>
+/// Lightweight dimensions in physical pixels.
+/// </summary>
+public readonly record struct PixelSize(int Width, int Height);
+
+/// <summary>
+/// Lightweight rectangle bounds in physical pixels.
+/// </summary>
+public readonly record struct PixelRect(int X, int Y, int Width, int Height)
+{
+    public PixelPoint Position => new(X, Y);
+}
+
+/// <summary>
+/// Screen display metadata.
+/// </summary>
+public sealed class DisplayScreenInfo
+{
+    public int Index { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public PixelRect Bounds { get; init; }
+    public PixelRect WorkingArea { get; init; }
+    public double Scaling { get; init; } = 1.0;
+    public bool IsPrimary { get; init; }
+}
 
 /// <summary>
 /// Multi-monitor aware window positioning service.
@@ -48,7 +76,7 @@ public static class OverlayPositionManager
     /// Selects the designated target screen, gracefully falling back to primary screen
     /// if index is invalid or monitor was unplugged.
     /// </summary>
-    public static Screen? ResolveTargetScreen(IReadOnlyList<Screen>? screens, int targetIndex)
+    public static DisplayScreenInfo? ResolveTargetScreen(IReadOnlyList<DisplayScreenInfo>? screens, int targetIndex)
     {
         if (screens == null || screens.Count == 0) return null;
 
@@ -58,29 +86,5 @@ public static class OverlayPositionManager
         }
 
         return screens.FirstOrDefault(s => s.IsPrimary) ?? screens[0];
-    }
-
-    /// <summary>
-    /// Applies the calculated DPI-aware position to an Avalonia window.
-    /// </summary>
-    public static void ApplyPosition(Window window, OverlayPosition position, int targetMonitorIndex)
-    {
-        if (position == OverlayPosition.Center && targetMonitorIndex == 0)
-        {
-            // Default center behavior
-            return;
-        }
-
-        var screens = window.Screens?.All;
-        var screen = ResolveTargetScreen(screens, targetMonitorIndex);
-        if (screen == null) return;
-
-        double scaling = screen.Scaling > 0 ? screen.Scaling : 1.0;
-        var windowPixelSize = new PixelSize(
-            (int)Math.Round(window.Width * scaling),
-            (int)Math.Round(window.Height * scaling));
-
-        var targetPoint = CalculatePosition(screen.WorkingArea, windowPixelSize, position);
-        window.Position = targetPoint;
     }
 }

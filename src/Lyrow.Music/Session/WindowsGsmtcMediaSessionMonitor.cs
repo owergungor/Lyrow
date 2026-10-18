@@ -257,6 +257,33 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         return Task.CompletedTask;
     }
 
+    public async Task<bool> TryTogglePlayPauseAsync()
+    {
+        if (_currentSession != null)
+        {
+            try { return await _currentSession.TryTogglePlayPauseAsync(); } catch { }
+        }
+        return false;
+    }
+
+    public async Task<bool> TrySkipNextAsync()
+    {
+        if (_currentSession != null)
+        {
+            try { return await _currentSession.TrySkipNextAsync(); } catch { }
+        }
+        return false;
+    }
+
+    public async Task<bool> TrySkipPreviousAsync()
+    {
+        if (_currentSession != null)
+        {
+            try { return await _currentSession.TrySkipPreviousAsync(); } catch { }
+        }
+        return false;
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_isDisposed) return;

@@ -29,8 +29,8 @@ public class StartupAndUiRegressionTests
         var settings = manager.Current;
 
         settings.Should().NotBeNull();
-        settings.LumnEnabled.Should().BeTrue();
-        settings.VerciEnabled.Should().BeTrue();
+        settings.LumnEnabled.Should().BeFalse();
+        settings.VerciEnabled.Should().BeFalse();
         settings.MinimizeToTray.Should().BeTrue();
         settings.Hotkeys.ToggleLumn.Should().BeEmpty();
         settings.Hotkeys.ToggleVerci.Should().BeEmpty();
@@ -40,17 +40,25 @@ public class StartupAndUiRegressionTests
     [Fact]
     public async Task SettingsManager_PersistsCustomPreferences_AcrossRestarts()
     {
-        var manager = new SettingsManager();
-        await manager.UpdateAsync(s =>
+        string tempFile = Path.Combine(Path.GetTempPath(), $"Lyrow_Settings_{Guid.NewGuid():N}.json");
+        try
         {
-            s.Theme = ThemeMode.Dark;
-            s.Verci.SyncOffsetMs = 250;
-            s.Lumn.Sensitivity = 1.8f;
-        });
+            var manager = new SettingsManager(tempFile);
+            await manager.UpdateAsync(s =>
+            {
+                s.Theme = ThemeMode.Dark;
+                s.Verci.SyncOffsetMs = 250;
+                s.Lumn.Sensitivity = 1.8f;
+            });
 
-        manager.Current.Theme.Should().Be(ThemeMode.Dark);
-        manager.Current.Verci.SyncOffsetMs.Should().Be(250);
-        manager.Current.Lumn.Sensitivity.Should().Be(1.8f);
+            manager.Current.Theme.Should().Be(ThemeMode.Dark);
+            manager.Current.Verci.SyncOffsetMs.Should().Be(250);
+            manager.Current.Lumn.Sensitivity.Should().Be(1.8f);
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
     }
 
     [Fact]

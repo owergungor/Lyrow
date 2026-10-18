@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
-using System.IO;
-using Avalonia.Media.Imaging;
+using System.Runtime.InteropServices.WindowsRuntime;
+using Windows.Storage.Streams;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
 using Lyrow.Core.Services;
@@ -8,13 +9,13 @@ using Lyrow.Core.Services;
 namespace Lyrow.App.Platform;
 
 /// <summary>
-/// Caches decoded Avalonia Bitmap artwork instances asynchronously off the UI thread
-/// to ensure 0 ms UI thread blocking and eliminate repeated JPEG/PNG decodes.
+/// Caches decoded WinUI 3 BitmapImage artwork instances asynchronously
+/// to eliminate UI stalls and repeated disk/memory decodes.
 /// </summary>
 public sealed class ArtworkBitmapManager
 {
     private readonly IArtworkService _artworkService;
-    private readonly ConcurrentDictionary<string, Bitmap?> _bitmapCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, byte[]> _rawBytesCache = new(StringComparer.OrdinalIgnoreCase);
 
     public ArtworkBitmapManager(IArtworkService artworkService)
     {
@@ -22,63 +23,64 @@ public sealed class ArtworkBitmapManager
     }
 
     /// <summary>
-    /// Asynchronously retrieves or decodes the album artwork Bitmap for a track.
+    /// Asynchronously retrieves or decodes the album artwork BitmapImage for a track.
     /// Returns null if unavailable or corrupt.
     /// </summary>
-    public async Task<Bitmap?> GetArtworkBitmapAsync(MediaTrackInfo track, CancellationToken ct = default)
+    public async Task<BitmapImage?> GetArtworkBitmapAsync(MediaTrackInfo track, CancellationToken ct = default)
     {
         if (track.IsEmpty) return null;
 
         string key = ArtworkService.CreateCacheKey(track.Artist, track.Title);
-        if (_bitmapCache.TryGetValue(key, out var cachedBitmap))
+
+        byte[]? rawBytes;
+        if (!_rawBytesCache.TryGetValue(key, out rawBytes))
         {
-            return cachedBitmap;
+            rawBytes = await _artworkService.GetArtworkBytesAsync(track, ct).ConfigureAwait(false);
+            if (rawBytes != null && rawBytes.Length > 0)
+            {
+                _rawBytesCache[key] = rawBytes;
+            }
         }
 
-        // 1. Fetch raw bytes from ArtworkService or track
-        byte[]? rawBytes = await _artworkService.GetArtworkBytesAsync(track, ct).ConfigureAwait(false);
         if (rawBytes == null || rawBytes.Length == 0)
         {
             return null;
         }
 
-        // 2. Decode on thread pool to avoid blocking UI thread
-        Bitmap? decoded = await Task.Run(() =>
+        try
         {
-            try
+            using var stream = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
             {
-                using var ms = new MemoryStream(rawBytes);
-                return new Bitmap(ms);
+                writer.WriteBytes(rawBytes);
+                await writer.StoreAsync();
             }
-            catch
-            {
-                return null;
-            }
-        }, ct).ConfigureAwait(false);
 
-        if (decoded != null)
-        {
-            _bitmapCache[key] = decoded;
+            var image = new BitmapImage();
+            await image.SetSourceAsync(stream);
+            return image;
         }
+        catch
+        {
+            return null;
+        }
+    }
 
-        return decoded;
+    public async Task<byte[]?> GetArtworkBytesAsync(MediaTrackInfo track, CancellationToken ct = default)
+    {
+        return await _artworkService.GetArtworkBytesAsync(track, ct).ConfigureAwait(false);
     }
 
     public void Invalidate(string artist, string title)
     {
         string key = ArtworkService.CreateCacheKey(artist, title);
-        _bitmapCache.TryRemove(key, out var removed);
-        removed?.Dispose();
+        _rawBytesCache.TryRemove(key, out _);
         _artworkService.Invalidate(artist, title);
     }
 
     public void Clear()
     {
-        foreach (var kvp in _bitmapCache)
-        {
-            kvp.Value?.Dispose();
-        }
-        _bitmapCache.Clear();
+        _rawBytesCache.Clear();
         _artworkService.ClearCache();
     }
 }

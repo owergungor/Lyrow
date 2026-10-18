@@ -26,8 +26,8 @@ public sealed class SettingsManagerTests : IDisposable
 
         settings.Should().NotBeNull();
         settings.Theme.Should().Be(ThemeMode.SystemDefault);
-        settings.LumnEnabled.Should().BeTrue();
-        settings.VerciEnabled.Should().BeTrue();
+        settings.LumnEnabled.Should().BeFalse();
+        settings.VerciEnabled.Should().BeFalse();
     }
 
     [Fact]

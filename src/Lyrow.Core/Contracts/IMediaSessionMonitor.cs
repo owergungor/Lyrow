@@ -30,4 +30,13 @@ public interface IMediaSessionMonitor : IAsyncDisposable
 
     /// <summary>Stops listening for media events and releases OS listeners.</summary>
     Task StopAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Toggles play/pause on the active OS media session.</summary>
+    Task<bool> TryTogglePlayPauseAsync();
+
+    /// <summary>Skips to next track on the active OS media session.</summary>
+    Task<bool> TrySkipNextAsync();
+
+    /// <summary>Skips to previous track on the active OS media session.</summary>
+    Task<bool> TrySkipPreviousAsync();
 }

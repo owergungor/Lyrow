@@ -1,4 +1,3 @@
-using Avalonia;
 using FluentAssertions;
 using Lyrow.App.Platform;
 using Lyrow.Core.Models;
@@ -94,7 +93,7 @@ public class OverlayPositionManagerTests
         var res1 = OverlayPositionManager.ResolveTargetScreen(null, 0);
         res1.Should().BeNull();
 
-        var res2 = OverlayPositionManager.ResolveTargetScreen(Array.Empty<Avalonia.Platform.Screen>(), 0);
+        var res2 = OverlayPositionManager.ResolveTargetScreen(Array.Empty<DisplayScreenInfo>(), 0);
         res2.Should().BeNull();
     }
 }

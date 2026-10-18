@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Lyrow.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Lyrow"
+    mc:Ignorable="d">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="Base" />
+    </Window.SystemBackdrop>
+
+    <Grid RowDefinitions="Auto,*" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <!-- Windows 11 Native Custom TitleBar -->
+        <TitleBar x:Name="AppTitleBar" Grid.Row="0" Title="Lyrow">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="Assets/lyrow.ico" />
+            </TitleBar.IconSource>
+        </TitleBar>
+
+        <!-- Main Navigation View -->
+        <NavigationView x:Name="NavView" Grid.Row="1"
+                        PaneDisplayMode="Left"
+                        IsBackButtonVisible="Collapsed"
+                        IsSettingsVisible="True"
+                        SelectionChanged="NavView_SelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem x:Name="NavHome" Content="Dashboard" Tag="Home">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE80F;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
+                <NavigationViewItem x:Name="NavGlow" Content="Ambient Glow" Tag="Glow">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE781;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
+                <NavigationViewItem x:Name="NavLyrics" Content="Synced Lyrics" Tag="Lyrics">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xEC4F;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="28,16,28,28">
+                    <!-- PAGE: HOME / DASHBOARD -->
+                    <StackPanel x:Name="PageHome" Spacing="20" Visibility="Visible">
+                        <!-- Top Toast InfoBar -->
+                        <InfoBar x:Name="TopToastBar" IsOpen="False" Severity="Informational" IsClosable="True" Margin="0,0,0,4" />
+
+                        <!-- Hero: Live Media Session -->
+                        <Border Padding="20" CornerRadius="12"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <Grid ColumnDefinitions="76,*,Auto" RowDefinitions="Auto,Auto">
+                                <!-- Album Artwork -->
+                                <Border Grid.RowSpan="2" Grid.Column="0" Width="68" Height="68" CornerRadius="10"
+                                        Background="{ThemeResource LayerFillColorDefaultBrush}" VerticalAlignment="Center">
+                                    <Grid>
+                                        <Image x:Name="HomeTrackArtwork" Stretch="UniformToFill" />
+                                        <FontIcon x:Name="HomeArtworkPlaceholder" Glyph="&#xE8D6;" FontSize="28"
+                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- Track Metadata -->
+                                <StackPanel Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="16,0,16,0">
+                                    <TextBlock x:Name="HomeTxtTitle" Text="Waiting for playback..."
+                                               FontWeight="SemiBold" FontSize="18" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="HomeTxtArtist" Text="Launch Spotify, Apple Music, or Chrome"
+                                               FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+
+                                <!-- Playback Controls -->
+                                <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <Button x:Name="BtnPrevTrack" Width="36" Height="36" Padding="0" ToolTipService.ToolTip="Previous">
+                                        <FontIcon Glyph="&#xE892;" FontSize="14" />
+                                    </Button>
+                                    <Button x:Name="BtnPlayPause" Width="40" Height="40" Padding="0" Style="{ThemeResource AccentButtonStyle}" ToolTipService.ToolTip="Play / Pause">
+                                        <FontIcon x:Name="IconPlayPause" Glyph="&#xE768;" FontSize="16" />
+                                    </Button>
+                                    <Button x:Name="BtnNextTrack" Width="36" Height="36" Padding="0" ToolTipService.ToolTip="Next">
+                                        <FontIcon Glyph="&#xE893;" FontSize="14" />
+                                    </Button>
+                                </StackPanel>
+
+                                <!-- Timeline Progress -->
+                                <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="16,10,0,0" ColumnDefinitions="*,Auto">
+                                    <ProgressBar x:Name="HomeProgressTimeline" Minimum="0" Maximum="100" Value="0"
+                                                 VerticalAlignment="Center" Height="4" Margin="0,0,12,0" />
+                                    <TextBlock x:Name="HomeTxtTimestamp" Grid.Column="1" Text="00:00 / 00:00"
+                                               FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Audio Volume Card: 0% - 100% Native Slider (NO dBFS!) -->
+                        <Border Padding="18" CornerRadius="12"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE767;" FontSize="20" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="Audio Output Volume" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtVolumePercent" Grid.Column="1" Text="78%" FontWeight="SemiBold"
+                                                   FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                    </Grid>
+                                    <Slider x:Name="SliderVolume" Minimum="0" Maximum="100" Value="78"
+                                            Margin="0,4,0,0" IsThumbToolTipEnabled="False" />
+                                </StackPanel>
+
+                                <Border Grid.Column="2" Padding="8,4" CornerRadius="6" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                                    <TextBlock x:Name="TxtAudioStatus" Text="WASAPI Loopback Active" FontSize="11"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Module Status Cards (Glow & Lyrics) -->
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                            <!-- Glow Module Card -->
+                            <Border Grid.Column="0" Padding="18" CornerRadius="12"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <StackPanel Spacing="12">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <FontIcon Glyph="&#xE781;" FontSize="22" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                            <TextBlock Text="Ambient Glow" FontWeight="SemiBold" FontSize="16" />
+                                            <TextBlock x:Name="TxtGlowStatus" Text="Stopped" FontSize="12"
+                                                       Foreground="{StaticResource LyrowStoppedBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SwitchHomeGlow" Grid.Column="2" IsOn="False" Margin="0" />
+                                    </Grid>
+
+                                    <TextBlock Text="Lumn-style 4-edge music reactive ambient lighting with zero interaction interference."
+                                               FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+                                    <Border Padding="10,6" CornerRadius="8" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                                        <TextBlock Text="Click-Through Active — Clicks pass through to other apps" FontSize="11"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Lyrics Module Card -->
+                            <Border Grid.Column="1" Padding="18" CornerRadius="12"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <StackPanel Spacing="12">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <FontIcon Glyph="&#xEC4F;" FontSize="22" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                            <TextBlock Text="Synchronized Lyrics" FontWeight="SemiBold" FontSize="16" />
+                                            <TextBlock x:Name="TxtLyricsStatus" Text="Stopped" FontSize="12"
+                                                       Foreground="{StaticResource LyrowStoppedBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SwitchHomeLyrics" Grid.Column="2" IsOn="False" Margin="0" />
+                                    </Grid>
+
+                                    <TextBlock Text="Apple Music-style fluid synchronized lyrics with centered active line and smooth scrolling."
+                                               FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+                                    <Border Padding="10,6" CornerRadius="8" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                                        <TextBlock Text="LRCLIB Powered — Automatic timestamp synchronization" FontSize="11"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- PAGE: GLOW SETTINGS -->
+                    <StackPanel x:Name="PageGlow" Spacing="20" Visibility="Collapsed">
+                        <TextBlock Text="Ambient Edge Lighting" FontSize="24" FontWeight="SemiBold" />
+
+                        <InfoBar IsOpen="True" Severity="Informational" IsClosable="False"
+                                 Message="Lumn-style 4-edge lighting runs as a transparent overlay with WS_EX_TRANSPARENT. You can interact with Spotify, Chrome, VS Code, and games normally without clicks being blocked." />
+
+                        <!-- Master Toggle -->
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Enable Ambient Glow" FontWeight="SemiBold" FontSize="15" />
+                                    <TextBlock Text="Display edge bloom reacting to music dynamics and beat transients"
+                                               FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                                <ToggleSwitch x:Name="SwitchGlowMaster" Grid.Column="1" IsOn="False" Margin="0" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Intensity & Thickness -->
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="16">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="Glow Intensity" FontWeight="Medium" FontSize="14" />
+                                    <TextBlock x:Name="TxtGlowIntensityVal" Grid.Column="1" Text="80%" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                </Grid>
+                                <Slider x:Name="SliderGlowIntensity" Minimum="10" Maximum="100" Value="80" />
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="Edge Bloom Thickness" FontWeight="Medium" FontSize="14" />
+                                    <TextBlock x:Name="TxtGlowThicknessVal" Grid.Column="1" Text="60 px" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                </Grid>
+                                <Slider x:Name="SliderGlowThickness" Minimum="30" Maximum="140" Value="60" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Color Palette & Album Art Sync -->
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="14">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel>
+                                        <TextBlock Text="Sync with Album Artwork" FontWeight="SemiBold" FontSize="14" />
+                                        <TextBlock Text="Extracts dominant and accent colors from track album art with smooth cross-fade"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchAlbumArtSync" Grid.Column="1" IsOn="True" Margin="0" />
+                                </Grid>
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Fallback Palette Preset" FontWeight="Medium" FontSize="13" />
+                                    <ComboBox x:Name="ComboPalettePreset" SelectedIndex="0" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="Celestial (Cyan, Magenta, Teal)" />
+                                        <ComboBoxItem Content="Aurora Borealis (Emerald, Azure)" />
+                                        <ComboBoxItem Content="Neon Sunset (Tangerine, Violet)" />
+                                        <ComboBoxItem Content="Cyberpunk (Neon Cyan, Pink)" />
+                                    </ComboBox>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Multi-Monitor Target -->
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Target Displays" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="Select which monitors receive ambient edge lighting"
+                                           FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <CheckBox x:Name="ChkMultiMonitor" Content="Enable on All Connected Displays" IsChecked="True" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- PAGE: LYRICS SETTINGS -->
+                    <StackPanel x:Name="PageLyrics" Spacing="20" Visibility="Collapsed">
+                        <TextBlock Text="Synchronized Lyrics" FontSize="24" FontWeight="SemiBold" />
+
+                        <!-- Master Toggle -->
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Lyrics Overlay Window" FontWeight="SemiBold" FontSize="15" />
+                                    <TextBlock Text="Show Apple Music-style floating lyrics window with centered active line"
+                                               FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                                <ToggleSwitch x:Name="SwitchLyricsMaster" Grid.Column="1" IsOn="False" Margin="0" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Sync Offset Adjustment -->
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="12">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel>
+                                        <TextBlock Text="Lyrics Timestamp Offset" FontWeight="SemiBold" FontSize="14" />
+                                        <TextBlock Text="Fine-tune lyrics synchronization with playback"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtPageLyricsOffset" Grid.Column="1" Text="0 ms"
+                                               FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                </Grid>
+
+                                <Slider x:Name="SliderLyricsOffset" Minimum="-3000" Maximum="3000" Value="0" StepFrequency="50" />
+
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="BtnOffsetMinus500" Content="−500 ms" />
+                                    <Button x:Name="BtnOffsetReset" Content="Reset (0 ms)" />
+                                    <Button x:Name="BtnOffsetPlus500" Content="+500 ms" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Typography & Auto Scroll -->
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="14">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel>
+                                        <TextBlock Text="Smooth Auto-Center Scroll" FontWeight="SemiBold" FontSize="14" />
+                                        <TextBlock Text="Active line automatically scrolls to the vertical center with fluid easing"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchLyricsAutoScroll" Grid.Column="1" IsOn="True" Margin="0" />
+                                </Grid>
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Font Scale" FontWeight="Medium" FontSize="13" />
+                                    <ComboBox x:Name="ComboFontScale" SelectedIndex="0" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="Standard (25px active, 17px inactive)" />
+                                        <ComboBoxItem Content="Large (30px active, 20px inactive)" />
+                                        <ComboBoxItem Content="Extra Large (36px active, 24px inactive)" />
+                                    </ComboBox>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- PAGE: SETTINGS -->
+                    <StackPanel x:Name="PageSettings" Spacing="20" Visibility="Collapsed">
+                        <TextBlock Text="Application Settings" FontSize="24" FontWeight="SemiBold" />
+
+                        <!-- General & Startup -->
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="14">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel>
+                                        <TextBlock Text="Launch on Windows Startup" FontWeight="SemiBold" FontSize="14" />
+                                        <TextBlock Text="Start Lyrow automatically when signing into Windows"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchStartWithWindows" Grid.Column="1" IsOn="False" Margin="0" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel>
+                                        <TextBlock Text="System Tray Integration" FontWeight="SemiBold" FontSize="14" />
+                                        <TextBlock Text="Keep Lyrow accessible from the taskbar notification area"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchSystemTray" Grid.Column="1" IsOn="True" Margin="0" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Appearance Theme -->
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Theme Preference" FontWeight="SemiBold" FontSize="14" />
+                                <ComboBox x:Name="ComboTheme" SelectedIndex="0" HorizontalAlignment="Stretch"
+                                          SelectionChanged="ComboTheme_SelectionChanged">
+                                    <ComboBoxItem Content="Windows Default" Tag="SystemDefault" />
+                                    <ComboBoxItem Content="Dark" Tag="Dark" />
+                                    <ComboBoxItem Content="Light" Tag="Light" />
+                                </ComboBox>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Global Hotkeys -->
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Global Hotkeys" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="User-configurable hotkeys. Lyrow uses no default hotkeys to avoid system key collisions."
+                                           FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="8">
+                                    <TextBlock Text="Toggle Glow Hotkey:" VerticalAlignment="Center" />
+                                    <TextBox x:Name="TxtHotkeyGlow" Grid.Column="1" Width="140" PlaceholderText="e.g. Ctrl+Alt+G" />
+
+                                    <TextBlock Grid.Row="1" Text="Toggle Lyrics Hotkey:" VerticalAlignment="Center" />
+                                    <TextBox x:Name="TxtHotkeyLyrics" Grid.Row="1" Grid.Column="1" Width="140" PlaceholderText="e.g. Ctrl+Alt+L" />
+                                </Grid>
+                                <Button x:Name="BtnSaveHotkeys" Content="Apply Hotkeys" HorizontalAlignment="Right" Margin="0,4,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Diagnostics & About -->
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Lyrow v1.3" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="Windows 11 Native Ambient Audio &amp; Synced Lyrics Experience"
+                                           FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="BtnResetSettings" Content="Reset Settings to Defaults" />
+                                    <Button x:Name="BtnOpenLogs" Content="Open Diagnostic Log" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </NavigationView>
+    </Grid>
+</Window>
