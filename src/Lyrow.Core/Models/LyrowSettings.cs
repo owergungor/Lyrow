@@ -49,6 +49,18 @@ public sealed class LyrowSettings
 
     public bool AutoUpdateEnabled { get; set; } = true;
 
+    public UpdateCheckFrequency UpdateFrequency { get; set; } = UpdateCheckFrequency.Weekly;
+
+    public DateTime? LastUpdateCheckUtc { get; set; }
+
+    public int GlowShutdownDelaySeconds { get; set; } = 3;
+
+    public double FocusedLyricFontSize { get; set; } = 28.0;
+
+    public double UnfocusedLyricFontSize { get; set; } = 20.0;
+
+    public int FallbackPalettePresetIndex { get; set; } = 0;
+
     public int LyricsFontScaleIndex { get; set; } = 0;
 
     public int GlowPresetIndex { get; set; } = 0;

@@ -69,12 +69,29 @@ public static class LyricsViewportCalculator
     /// </summary>
     public static LyricLineVisualTarget GetLineVisualTarget(int lineIndex, int activeIndex, int fontScalePreset = 0)
     {
-        var (activeSize, nearSize, farSize) = fontScalePreset switch
+        var (activeSize, nearSize) = fontScalePreset switch
         {
-            1 => (30.0, 22.0, 19.0),
-            2 => (34.0, 25.0, 21.0),
-            _ => (26.0, 20.0, 17.5)
+            1 => (30.0, 22.0),
+            2 => (34.0, 25.0),
+            _ => (26.0, 20.0)
         };
+
+        return GetLineVisualTarget(lineIndex, activeIndex, activeSize, nearSize);
+    }
+
+    /// <summary>
+    /// Computes target opacity, scale, and font size for a lyric line with user-defined focused and unfocused font sizes.
+    /// Invariant: active line has full opacity and primary scale; distance fades gracefully.
+    /// </summary>
+    public static LyricLineVisualTarget GetLineVisualTarget(
+        int lineIndex,
+        int activeIndex,
+        double focusedFontSize,
+        double unfocusedFontSize)
+    {
+        double activeSize = Math.Clamp(focusedFontSize, 18.0, 56.0);
+        double nearSize = Math.Clamp(unfocusedFontSize, 12.0, 40.0);
+        double farSize = Math.Max(11.0, nearSize * 0.88);
 
         if (activeIndex < 0)
         {

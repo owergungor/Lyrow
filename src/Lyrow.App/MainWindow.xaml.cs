@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.System;
+using Lyrow.App.Controls;
 using Lyrow.App.Platform;
 using Lyrow.Audio.Control;
 using Lyrow.Core.Contracts;
@@ -40,6 +41,7 @@ public sealed partial class MainWindow : Window
 
     private readonly List<IDisposable> _subscriptions = new();
     private readonly DispatcherTimer _dashboardTimer;
+    private ToastNotificationManager? _toastManager;
     private LyricsWindow? _lyricsWindow;
     private string _lastTrackCacheKey = string.Empty;
     private string? _latestUpdateReleaseUrl;
@@ -83,6 +85,7 @@ public sealed partial class MainWindow : Window
         try
         {
             InitializeComponent();
+            _toastManager = new ToastNotificationManager(ToastContainer, DispatcherQueue);
         }
         catch (Exception ex)
         {
@@ -245,10 +248,15 @@ public sealed partial class MainWindow : Window
             }
         }
 
-        // 2. Non-intrusive background update check if AutoUpdateEnabled is ON
+        // 2. Non-intrusive background update check if AutoUpdateEnabled is ON and due
         if (_settingsManager.Current.AutoUpdateEnabled)
         {
-            _ = CheckForUpdatesInternalAsync(userInitiated: false);
+            var freq = _settingsManager.Current.UpdateFrequency;
+            var lastCheck = _settingsManager.Current.LastUpdateCheckUtc;
+            if (GitHubUpdateService.IsUpdateCheckDue(freq, lastCheck, DateTime.UtcNow))
+            {
+                _ = CheckForUpdatesInternalAsync(userInitiated: false);
+            }
         }
     }
 
@@ -288,7 +296,13 @@ public sealed partial class MainWindow : Window
             SwitchAlbumArtSync.IsOn = settings.SyncWithAlbumArt;
             SwitchSettingsAlbumArtSync.IsOn = settings.SyncWithAlbumArt;
             ChkMultiMonitor.IsChecked = settings.MultiMonitorGlow;
-            ComboPalettePreset.SelectedIndex = Math.Clamp(settings.GlowPresetIndex, 0, 3);
+
+            // Rich Fallback Palette Presets (6 presets with 4-dot colored circle items)
+            PopulatePalettePresetCombo(ComboPalettePreset, settings.FallbackPalettePresetIndex);
+
+            // Shutdown Delay ComboBoxes
+            SelectShutdownDelayCombo(ComboGlowShutdownDelay, settings.GlowShutdownDelaySeconds);
+            SelectShutdownDelayCombo(ComboSettingsGlowShutdownDelay, settings.GlowShutdownDelaySeconds);
 
             // Lyrics controls
             SliderLyricsOffset.Value = settings.Verci.SyncOffsetMs;
@@ -298,12 +312,23 @@ public sealed partial class MainWindow : Window
 
             SwitchLyricsAutoScroll.IsOn = settings.Verci.AutoScroll;
             SwitchSettingsLyricsAutoScroll.IsOn = settings.Verci.AutoScroll;
-            ComboFontScale.SelectedIndex = Math.Clamp(settings.LyricsFontScaleIndex, 0, 2);
+
+            // Lyrics Font Sliders
+            SliderFocusedFontSize.Value = settings.FocusedLyricFontSize;
+            SliderSettingsFocusedFontSize.Value = settings.FocusedLyricFontSize;
+            TxtFocusedFontSize.Text = $"{settings.FocusedLyricFontSize:0} px";
+            TxtSettingsFocusedFontSize.Text = $"{settings.FocusedLyricFontSize:0} px";
+
+            SliderUnfocusedFontSize.Value = settings.UnfocusedLyricFontSize;
+            SliderSettingsUnfocusedFontSize.Value = settings.UnfocusedLyricFontSize;
+            TxtUnfocusedFontSize.Text = $"{settings.UnfocusedLyricFontSize:0} px";
+            TxtSettingsUnfocusedFontSize.Text = $"{settings.UnfocusedLyricFontSize:0} px";
 
             // General & Updates
             SwitchStartWithWindows.IsOn = settings.StartWithWindows;
             SwitchSystemTray.IsOn = settings.SystemTrayEnabled;
             SwitchAutoUpdate.IsOn = settings.AutoUpdateEnabled;
+            ComboUpdateFrequency.SelectedIndex = Math.Clamp((int)settings.UpdateFrequency, 0, 3);
             TxtCurrentVersion.Text = $"Current Version: v{_updateService.CurrentVersion}";
 
             TxtHotkeyGlow.Text = settings.Hotkeys.ToggleLumn;
@@ -316,7 +341,7 @@ public sealed partial class MainWindow : Window
                 _ => 0
             };
 
-            // Initialize Volume UI from real Windows Audio Service (0% - 100%)
+            // Initialize Dual Volume UI from real Windows Audio Service (0% - 100%)
             SyncVolumeUiFromHardware();
             UpdatePaletteSwatches(GlowPalette.Default);
         }
@@ -332,17 +357,25 @@ public sealed partial class MainWindow : Window
         _isUpdatingVolumeUi = true;
         try
         {
-            int currentVol = _volumeService.GetVolumePercent();
-            bool muted = _volumeService.IsMuted;
+            // 1. Playback session volume
+            int currentPlayback = _volumeService.GetPlaybackVolumePercent();
+            bool playbackMuted = _volumeService.IsPlaybackMuted;
+            SliderPlaybackVolume.Value = currentPlayback;
+            SliderSettingsPlaybackVolume.Value = currentPlayback;
+            TxtPlaybackVolumePercent.Text = playbackMuted ? $"Muted ({currentPlayback}%)" : $"{currentPlayback}%";
+            TxtSettingsPlaybackVolumePercent.Text = playbackMuted ? $"Muted ({currentPlayback}%)" : $"{currentPlayback}%";
+            TxtPlaybackTarget.Text = _volumeService.PlaybackTargetName;
+            IconPlaybackMute.Glyph = (playbackMuted || currentPlayback == 0) ? "\uE74F" : "\uE767";
 
-            SliderVolume.Value = currentVol;
-            SliderSettingsVolume.Value = currentVol;
-
-            string formatted = $"{currentVol}%";
-            TxtVolumePercent.Text = muted ? $"Muted ({formatted})" : formatted;
-            TxtSettingsVolumePercent.Text = muted ? $"Muted ({formatted})" : formatted;
-            TxtVolumeTarget.Text = _volumeService.ActiveTargetName;
-            IconVolumeMute.Glyph = (muted || currentVol == 0) ? "\uE74F" : "\uE767";
+            // 2. System endpoint master volume
+            int currentSystem = _volumeService.GetSystemVolumePercent();
+            bool systemMuted = _volumeService.IsSystemMuted;
+            SliderSystemVolume.Value = currentSystem;
+            SliderSettingsSystemVolume.Value = currentSystem;
+            TxtSystemVolumePercent.Text = systemMuted ? $"Muted ({currentSystem}%)" : $"{currentSystem}%";
+            TxtSettingsSystemVolumePercent.Text = systemMuted ? $"Muted ({currentSystem}%)" : $"{currentSystem}%";
+            TxtSystemTarget.Text = _volumeService.SystemTargetName;
+            IconSystemMute.Glyph = (systemMuted || currentSystem == 0) ? "\uE74F" : "\uE767";
         }
         finally
         {
@@ -361,13 +394,22 @@ public sealed partial class MainWindow : Window
         SwitchHomeLyrics.Toggled += async (_, _) => await SetLyricsStateAsync(SwitchHomeLyrics.IsOn);
         SwitchLyricsMaster.Toggled += async (_, _) => await SetLyricsStateAsync(SwitchLyricsMaster.IsOn);
 
-        // Real Windows Volume Sliders (0% - 100% linear percentage)
-        SliderVolume.ValueChanged += (_, e) => OnVolumeSliderChanged(e.NewValue);
-        SliderSettingsVolume.ValueChanged += (_, e) => OnVolumeSliderChanged(e.NewValue);
+        // Real Windows Dual Volume Sliders (0% - 100% linear percentage)
+        SliderPlaybackVolume.ValueChanged += (_, e) => OnPlaybackVolumeSliderChanged(e.NewValue);
+        SliderSettingsPlaybackVolume.ValueChanged += (_, e) => OnPlaybackVolumeSliderChanged(e.NewValue);
 
-        BtnMuteVolume.Click += (_, _) =>
+        BtnMutePlayback.Click += (_, _) =>
         {
-            _volumeService.ToggleMute();
+            _volumeService.TogglePlaybackMute();
+            SyncVolumeUiFromHardware();
+        };
+
+        SliderSystemVolume.ValueChanged += (_, e) => OnSystemVolumeSliderChanged(e.NewValue);
+        SliderSettingsSystemVolume.ValueChanged += (_, e) => OnSystemVolumeSliderChanged(e.NewValue);
+
+        BtnMuteSystem.Click += (_, _) =>
+        {
+            _volumeService.ToggleSystemMute();
             SyncVolumeUiFromHardware();
         };
 
@@ -400,13 +442,16 @@ public sealed partial class MainWindow : Window
         ComboPalettePreset.SelectionChanged += (_, _) =>
         {
             if (_isUpdatingSettingsUi || ComboPalettePreset == null) return;
-            int idx = Math.Clamp(ComboPalettePreset.SelectedIndex, 0, 3);
-            _settingsManager.Current.GlowPresetIndex = idx;
+            int idx = Math.Clamp(ComboPalettePreset.SelectedIndex, 0, PalettePresets.All.Count - 1);
+            _settingsManager.Current.FallbackPalettePresetIndex = idx;
             if (!_settingsManager.Current.SyncWithAlbumArt || (_mediaMonitor?.CurrentTrack.IsEmpty ?? true))
             {
                 ApplyFallbackPalettePreset(idx);
             }
         };
+
+        ComboGlowShutdownDelay.SelectionChanged += (_, _) => OnGlowShutdownDelayChanged(ComboGlowShutdownDelay);
+        ComboSettingsGlowShutdownDelay.SelectionChanged += (_, _) => OnGlowShutdownDelayChanged(ComboSettingsGlowShutdownDelay);
 
         ChkMultiMonitor.Checked += (_, _) =>
         {
@@ -432,10 +477,17 @@ public sealed partial class MainWindow : Window
         SwitchLyricsAutoScroll.Toggled += (_, _) => OnLyricsAutoScrollToggled(SwitchLyricsAutoScroll.IsOn);
         SwitchSettingsLyricsAutoScroll.Toggled += (_, _) => OnLyricsAutoScrollToggled(SwitchSettingsLyricsAutoScroll.IsOn);
 
-        ComboFontScale.SelectionChanged += (_, _) =>
+        // Lyrics Font Sliders
+        SliderFocusedFontSize.ValueChanged += (_, e) => OnFocusedFontSizeChanged(e.NewValue);
+        SliderSettingsFocusedFontSize.ValueChanged += (_, e) => OnFocusedFontSizeChanged(e.NewValue);
+
+        SliderUnfocusedFontSize.ValueChanged += (_, e) => OnUnfocusedFontSizeChanged(e.NewValue);
+        SliderSettingsUnfocusedFontSize.ValueChanged += (_, e) => OnUnfocusedFontSizeChanged(e.NewValue);
+
+        ComboUpdateFrequency.SelectionChanged += (_, _) =>
         {
-            if (_isUpdatingSettingsUi || ComboFontScale == null) return;
-            _settingsManager.Current.LyricsFontScaleIndex = Math.Clamp(ComboFontScale.SelectedIndex, 0, 2);
+            if (_isUpdatingSettingsUi || ComboUpdateFrequency == null) return;
+            _settingsManager.Current.UpdateFrequency = (UpdateCheckFrequency)Math.Clamp(ComboUpdateFrequency.SelectedIndex, 0, 3);
         };
 
         // General & Startup Settings
@@ -542,23 +594,47 @@ public sealed partial class MainWindow : Window
         ComboTheme.SelectionChanged += ComboTheme_SelectionChanged;
     }
 
-    private void OnVolumeSliderChanged(double newValue)
+    private void OnPlaybackVolumeSliderChanged(double newValue)
     {
         if (_isUpdatingVolumeUi || _isUpdatingSettingsUi) return;
         _isUpdatingVolumeUi = true;
         try
         {
             int percent = Math.Clamp((int)Math.Round(newValue), 0, 100);
-            _volumeService.SetVolumePercent(percent);
+            _volumeService.SetPlaybackVolumePercent(percent);
 
-            SliderVolume.Value = percent;
-            SliderSettingsVolume.Value = percent;
+            SliderPlaybackVolume.Value = percent;
+            SliderSettingsPlaybackVolume.Value = percent;
 
             string formatted = $"{percent}%";
-            TxtVolumePercent.Text = formatted;
-            TxtSettingsVolumePercent.Text = formatted;
-            TxtVolumeTarget.Text = _volumeService.ActiveTargetName;
-            IconVolumeMute.Glyph = percent == 0 ? "\uE74F" : "\uE767";
+            TxtPlaybackVolumePercent.Text = formatted;
+            TxtSettingsPlaybackVolumePercent.Text = formatted;
+            TxtPlaybackTarget.Text = _volumeService.PlaybackTargetName;
+            IconPlaybackMute.Glyph = percent == 0 ? "\uE74F" : "\uE767";
+        }
+        finally
+        {
+            _isUpdatingVolumeUi = false;
+        }
+    }
+
+    private void OnSystemVolumeSliderChanged(double newValue)
+    {
+        if (_isUpdatingVolumeUi || _isUpdatingSettingsUi) return;
+        _isUpdatingVolumeUi = true;
+        try
+        {
+            int percent = Math.Clamp((int)Math.Round(newValue), 0, 100);
+            _volumeService.SetSystemVolumePercent(percent);
+
+            SliderSystemVolume.Value = percent;
+            SliderSettingsSystemVolume.Value = percent;
+
+            string formatted = $"{percent}%";
+            TxtSystemVolumePercent.Text = formatted;
+            TxtSettingsSystemVolumePercent.Text = formatted;
+            TxtSystemTarget.Text = _volumeService.SystemTargetName;
+            IconSystemMute.Glyph = percent == 0 ? "\uE74F" : "\uE767";
         }
         finally
         {
@@ -597,7 +673,7 @@ public sealed partial class MainWindow : Window
 
             if (!enabled)
             {
-                ApplyFallbackPalettePreset(_settingsManager.Current.GlowPresetIndex);
+                ApplyFallbackPalettePreset(_settingsManager.Current.FallbackPalettePresetIndex);
             }
             else if (_mediaMonitor != null && !_mediaMonitor.CurrentTrack.IsEmpty)
             {
@@ -610,15 +686,163 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void OnFocusedFontSizeChanged(double newValue)
+    {
+        if (_isUpdatingSettingsUi) return;
+        _isUpdatingSettingsUi = true;
+        try
+        {
+            double val = Math.Clamp(Math.Round(newValue), 20.0, 48.0);
+            SliderFocusedFontSize.Value = val;
+            SliderSettingsFocusedFontSize.Value = val;
+            TxtFocusedFontSize.Text = $"{val:0} px";
+            TxtSettingsFocusedFontSize.Text = $"{val:0} px";
+            _settingsManager.Current.FocusedLyricFontSize = val;
+        }
+        finally
+        {
+            _isUpdatingSettingsUi = false;
+        }
+    }
+
+    private void OnUnfocusedFontSizeChanged(double newValue)
+    {
+        if (_isUpdatingSettingsUi) return;
+        _isUpdatingSettingsUi = true;
+        try
+        {
+            double val = Math.Clamp(Math.Round(newValue), 14.0, 36.0);
+            SliderUnfocusedFontSize.Value = val;
+            SliderSettingsUnfocusedFontSize.Value = val;
+            TxtUnfocusedFontSize.Text = $"{val:0} px";
+            TxtSettingsUnfocusedFontSize.Text = $"{val:0} px";
+            _settingsManager.Current.UnfocusedLyricFontSize = val;
+        }
+        finally
+        {
+            _isUpdatingSettingsUi = false;
+        }
+    }
+
+    private void OnGlowShutdownDelayChanged(ComboBox source)
+    {
+        if (_isUpdatingSettingsUi || source?.SelectedItem is not ComboBoxItem item) return;
+        if (int.TryParse(item.Tag?.ToString(), out int delaySec))
+        {
+            _settingsManager.Current.GlowShutdownDelaySeconds = delaySec;
+            if (source == ComboGlowShutdownDelay && ComboSettingsGlowShutdownDelay != null)
+            {
+                SelectShutdownDelayCombo(ComboSettingsGlowShutdownDelay, delaySec);
+            }
+            else if (source == ComboSettingsGlowShutdownDelay && ComboGlowShutdownDelay != null)
+            {
+                SelectShutdownDelayCombo(ComboGlowShutdownDelay, delaySec);
+            }
+        }
+    }
+
+    private static void SelectShutdownDelayCombo(ComboBox combo, int delaySec)
+    {
+        if (combo == null) return;
+        for (int i = 0; i < combo.Items.Count; i++)
+        {
+            if (combo.Items[i] is ComboBoxItem cbi && int.TryParse(cbi.Tag?.ToString(), out int tagVal) && tagVal == delaySec)
+            {
+                combo.SelectedIndex = i;
+                return;
+            }
+        }
+        combo.SelectedIndex = 2; // Default 3s
+    }
+
+    private static void PopulatePalettePresetCombo(ComboBox combo, int selectedIndex)
+    {
+        if (combo == null) return;
+        combo.Items.Clear();
+
+        foreach (var preset in PalettePresets.All)
+        {
+            var dots = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 4,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            dots.Children.Add(new Border
+            {
+                Width = 10,
+                Height = 10,
+                CornerRadius = new CornerRadius(5),
+                Background = HexToBrush(preset.TopColorHex)
+            });
+            dots.Children.Add(new Border
+            {
+                Width = 10,
+                Height = 10,
+                CornerRadius = new CornerRadius(5),
+                Background = HexToBrush(preset.RightColorHex)
+            });
+            dots.Children.Add(new Border
+            {
+                Width = 10,
+                Height = 10,
+                CornerRadius = new CornerRadius(5),
+                Background = HexToBrush(preset.BottomColorHex)
+            });
+            dots.Children.Add(new Border
+            {
+                Width = 10,
+                Height = 10,
+                CornerRadius = new CornerRadius(5),
+                Background = HexToBrush(preset.LeftColorHex)
+            });
+
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 10,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            row.Children.Add(dots);
+            row.Children.Add(new TextBlock
+            {
+                Text = preset.Name,
+                FontWeight = Microsoft.UI.Text.FontWeights.Medium,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var item = new ComboBoxItem
+            {
+                Content = row,
+                Tag = preset.Id
+            };
+            combo.Items.Add(item);
+        }
+
+        combo.SelectedIndex = Math.Clamp(selectedIndex, 0, PalettePresets.All.Count - 1);
+    }
+
+    private static SolidColorBrush HexToBrush(string hex)
+    {
+        try
+        {
+            hex = hex.TrimStart('#');
+            byte r = Convert.ToByte(hex.Substring(0, 2), 16);
+            byte g = Convert.ToByte(hex.Substring(2, 2), 16);
+            byte b = Convert.ToByte(hex.Substring(4, 2), 16);
+            return new SolidColorBrush(Windows.UI.Color.FromArgb(255, r, g, b));
+        }
+        catch
+        {
+            return new SolidColorBrush(Windows.UI.Color.FromArgb(255, 128, 128, 128));
+        }
+    }
+
     private void ApplyFallbackPalettePreset(int presetIndex)
     {
-        var palette = presetIndex switch
-        {
-            1 => GlowPalette.Aurora,
-            2 => GlowPalette.NeonSunset,
-            3 => GlowPalette.Cyberpunk,
-            _ => GlowPalette.Default
-        };
+        int safeIndex = Math.Clamp(presetIndex, 0, PalettePresets.All.Count - 1);
+        var palette = PalettePresets.All[safeIndex].Palette;
         _glowOverlayManager?.SetCustomPalette(palette);
         UpdatePaletteSwatches(palette);
     }
@@ -742,7 +966,15 @@ public sealed partial class MainWindow : Window
                     UpdateStatusInfoBar.Title = $"Update Available — v{result.LatestVersion}";
                     UpdateStatusInfoBar.Message = $"{result.ReleaseTitle} is available on GitHub Releases. Click 'View Release' when you are ready to update.";
                     UpdateStatusInfoBar.IsOpen = true;
-                    ShowToast($"Update available: Lyrow v{result.LatestVersion}", InfoBarSeverity.Informational);
+                    ShowToast(
+                        $"Lyrow v{result.LatestVersion} is available ({result.ReleaseTitle}).",
+                        InfoBarSeverity.Success,
+                        title: "Update Available",
+                        actionLabel: "View Release",
+                        onAction: () =>
+                        {
+                            try { Process.Start(new ProcessStartInfo(_latestUpdateReleaseUrl ?? GitHubUpdateService.DefaultReleasesPageUrl) { UseShellExecute = true }); } catch { }
+                        });
                     break;
 
                 case UpdateCheckStatus.UpToDate:
@@ -754,7 +986,7 @@ public sealed partial class MainWindow : Window
                         UpdateStatusInfoBar.Title = "Up to Date";
                         UpdateStatusInfoBar.Message = $"You are running the latest version of Lyrow (v{_updateService.CurrentVersion}).";
                         UpdateStatusInfoBar.IsOpen = true;
-                        ShowToast($"Lyrow v{_updateService.CurrentVersion} is up to date.", InfoBarSeverity.Success);
+                        ShowToast($"Lyrow v{_updateService.CurrentVersion} is up to date.", InfoBarSeverity.Success, title: "Up to Date");
                     }
                     break;
 
@@ -767,6 +999,7 @@ public sealed partial class MainWindow : Window
                         UpdateStatusInfoBar.Title = "Offline";
                         UpdateStatusInfoBar.Message = result.ErrorMessage ?? "Could not check for updates while offline.";
                         UpdateStatusInfoBar.IsOpen = true;
+                        ShowToast("Offline — Could not reach GitHub Releases", InfoBarSeverity.Warning, title: "Offline");
                     }
                     break;
 
@@ -782,6 +1015,9 @@ public sealed partial class MainWindow : Window
                     }
                     break;
             }
+
+            _settingsManager.Current.LastUpdateCheckUtc = DateTime.UtcNow;
+            _ = _settingsManager.SaveAsync(_settingsManager.Current);
         });
     }
 
@@ -1007,6 +1243,10 @@ public sealed partial class MainWindow : Window
 
     private void OnDashboardTimerTick(object? sender, object e)
     {
+        bool hasSession = _mediaMonitor?.HasActiveSession ?? false;
+        var status = _mediaMonitor?.CurrentTimeline.Status ?? MediaPlaybackStatus.Stopped;
+        _glowOverlayManager?.UpdatePlaybackState(status, hasSession);
+
         if (_mediaMonitor != null && !_mediaMonitor.CurrentTrack.IsEmpty)
         {
             var timeline = _mediaMonitor.CurrentTimeline;
@@ -1159,11 +1399,9 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    public void ShowToast(string message, InfoBarSeverity severity)
+    public void ShowToast(string message, InfoBarSeverity severity = InfoBarSeverity.Informational, string? title = null, string? actionLabel = null, Action? onAction = null)
     {
-        TopToastBar.Message = message;
-        TopToastBar.Severity = severity;
-        TopToastBar.IsOpen = true;
+        _toastManager?.ShowToast(message, title, severity, actionLabel, onAction);
     }
 
     public void ShowAndActivate()
@@ -1219,4 +1457,28 @@ public sealed partial class MainWindow : Window
 
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);
+}
+
+/// <summary>
+/// Display view model for FallbackPalettePreset with colored circle brushes for ComboBox preview.
+/// </summary>
+public sealed class PalettePresetViewModel
+{
+    public FallbackPalettePreset Preset { get; }
+    public string Name => Preset.Name;
+    public Brush TopBrush { get; }
+    public Brush RightBrush { get; }
+    public Brush BottomBrush { get; }
+    public Brush LeftBrush { get; }
+
+    public PalettePresetViewModel(FallbackPalettePreset preset)
+    {
+        Preset = preset;
+        TopBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, preset.Palette.TopColor.R, preset.Palette.TopColor.G, preset.Palette.TopColor.B));
+        RightBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, preset.Palette.RightColor.R, preset.Palette.RightColor.G, preset.Palette.RightColor.B));
+        BottomBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, preset.Palette.BottomColor.R, preset.Palette.BottomColor.G, preset.Palette.BottomColor.B));
+        LeftBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, preset.Palette.LeftColor.R, preset.Palette.LeftColor.G, preset.Palette.LeftColor.B));
+    }
+
+    public override string ToString() => Name;
 }

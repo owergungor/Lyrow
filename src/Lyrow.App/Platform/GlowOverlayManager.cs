@@ -23,6 +23,7 @@ public sealed class GlowOverlayManager : IDisposable
     private GlowPalette _currentPalette = GlowPalette.Default;
     private bool _isRunning = false;
     private bool _isDisposed = false;
+    private CancellationTokenSource? _shutdownCts;
 
     public GlowPalette CurrentPalette
     {
@@ -99,6 +100,73 @@ public sealed class GlowOverlayManager : IDisposable
             foreach (var overlay in _activeOverlays)
             {
                 overlay.SetPalette(_currentPalette, immediate: false);
+            }
+        }
+    }
+
+    public void UpdatePlaybackState(MediaPlaybackStatus status, bool hasSession)
+    {
+        lock (_lock)
+        {
+            if (status == MediaPlaybackStatus.Playing && hasSession)
+            {
+                // Resume cancels pending shutdown delay
+                _shutdownCts?.Cancel();
+                _shutdownCts = null;
+
+                foreach (var overlay in _activeOverlays)
+                {
+                    overlay.SetPlaybackState(MediaPlaybackStatus.Playing);
+                    overlay.SetFadeTarget(1.0f);
+                }
+            }
+            else if (status == MediaPlaybackStatus.Paused && hasSession)
+            {
+                // Pause freezes beat animation without instant shutdown
+                _shutdownCts?.Cancel();
+                _shutdownCts = null;
+
+                foreach (var overlay in _activeOverlays)
+                {
+                    overlay.SetPlaybackState(MediaPlaybackStatus.Paused);
+                }
+            }
+            else
+            {
+                // Stopped / inactive: countdown begins according to GlowShutdownDelaySeconds
+                foreach (var overlay in _activeOverlays)
+                {
+                    overlay.SetPlaybackState(MediaPlaybackStatus.Stopped);
+                }
+
+                _shutdownCts?.Cancel();
+                _shutdownCts = new CancellationTokenSource();
+                var token = _shutdownCts.Token;
+                int delaySec = _settingsManager?.Current.GlowShutdownDelaySeconds ?? 5;
+
+                if (delaySec <= 0)
+                {
+                    foreach (var overlay in _activeOverlays)
+                    {
+                        overlay.SetFadeTarget(0.0f);
+                    }
+                }
+                else
+                {
+                    Task.Delay(TimeSpan.FromSeconds(delaySec), token).ContinueWith(t =>
+                    {
+                        if (t.IsCompletedSuccessfully)
+                        {
+                            lock (_lock)
+                            {
+                                foreach (var overlay in _activeOverlays)
+                                {
+                                    overlay.SetFadeTarget(0.0f);
+                                }
+                            }
+                        }
+                    }, TaskScheduler.Default);
+                }
             }
         }
     }

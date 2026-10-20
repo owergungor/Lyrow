@@ -50,6 +50,8 @@ public sealed class SyntheticAudioVolumeService : IAudioVolumeService
     public bool HasActiveMediaSession => !string.IsNullOrWhiteSpace(_preferredAppId);
 
     public string ActiveTargetName => !string.IsNullOrWhiteSpace(_preferredAppId) ? _preferredAppId! : "System Output";
+    public string PlaybackTargetName => HasActiveMediaSession ? ActiveTargetName : "Playback Session";
+    public string SystemTargetName => "System Master";
 
     public int GetVolumePercent()
     {
@@ -108,6 +110,48 @@ public sealed class SyntheticAudioVolumeService : IAudioVolumeService
     {
         bool next = !IsMuted;
         SetMute(next);
+        return next;
+    }
+
+    public bool IsPlaybackMuted => IsMuted;
+
+    public bool IsSystemMuted => _masterMuted;
+
+    public int GetPlaybackVolumePercent() => GetVolumePercent();
+
+    public bool SetPlaybackVolumePercent(int percent) => SetVolumePercent(percent);
+
+    public int GetSystemVolumePercent() => MasterVolumePercent;
+
+    public bool SetSystemVolumePercent(int percent)
+    {
+        if (_isDisposed) return false;
+        int clamped = Math.Clamp(percent, 0, 100);
+        _masterVolumePercent = clamped;
+        if (clamped > 0)
+        {
+            _masterMuted = false;
+        }
+        VolumeChanged?.Invoke(this, clamped);
+        return true;
+    }
+
+    public bool SetPlaybackMute(bool muted) => SetMute(muted);
+
+    public bool SetSystemMute(bool muted)
+    {
+        if (_isDisposed) return false;
+        _masterMuted = muted;
+        VolumeChanged?.Invoke(this, MasterVolumePercent);
+        return true;
+    }
+
+    public bool TogglePlaybackMute() => ToggleMute();
+
+    public bool ToggleSystemMute()
+    {
+        bool next = !_masterMuted;
+        SetSystemMute(next);
         return next;
     }
 

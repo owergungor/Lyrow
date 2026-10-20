@@ -105,6 +105,8 @@ public sealed class WindowsAudioVolumeService : IAudioVolumeService
     public bool HasActiveMediaSession => _hasActiveMediaSession;
 
     public string ActiveTargetName => _activeTargetName;
+    public string PlaybackTargetName => _hasActiveMediaSession ? _activeTargetName : "Playback Session";
+    public string SystemTargetName => "System Master";
 
     public int GetVolumePercent()
     {
@@ -284,6 +286,89 @@ public sealed class WindowsAudioVolumeService : IAudioVolumeService
     {
         bool next = !IsMuted;
         SetMute(next);
+        return next;
+    }
+
+    public int GetPlaybackVolumePercent() => GetVolumePercent();
+
+    public bool SetPlaybackVolumePercent(int percent) => SetVolumePercent(percent);
+
+    public int GetSystemVolumePercent() => MasterVolumePercent;
+
+    public bool SetSystemVolumePercent(int percent)
+    {
+        int clamped = Math.Clamp(percent, 0, 100);
+        if (!OperatingSystem.IsWindows() || _isDisposed) return false;
+
+        lock (_lock)
+        {
+            try
+            {
+                EnsureDeviceConnected();
+                if (_currentDevice?.AudioEndpointVolume != null)
+                {
+                    float scalar = clamped / 100.0f;
+                    _currentDevice.AudioEndpointVolume.MasterVolumeLevelScalar = scalar;
+                    if (clamped > 0 && _currentDevice.AudioEndpointVolume.Mute)
+                    {
+                        _currentDevice.AudioEndpointVolume.Mute = false;
+                    }
+                    VolumeChanged?.Invoke(this, clamped);
+                    return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+    }
+
+    public bool IsPlaybackMuted => IsMuted;
+
+    public bool IsSystemMuted
+    {
+        get
+        {
+            lock (_lock)
+            {
+                try
+                {
+                    EnsureDeviceConnected();
+                    return _currentDevice?.AudioEndpointVolume?.Mute ?? false;
+                }
+                catch { }
+                return false;
+            }
+        }
+    }
+
+    public bool SetPlaybackMute(bool muted) => SetMute(muted);
+
+    public bool SetSystemMute(bool muted)
+    {
+        if (!OperatingSystem.IsWindows() || _isDisposed) return false;
+        lock (_lock)
+        {
+            try
+            {
+                EnsureDeviceConnected();
+                if (_currentDevice?.AudioEndpointVolume != null)
+                {
+                    _currentDevice.AudioEndpointVolume.Mute = muted;
+                    VolumeChanged?.Invoke(this, MasterVolumePercent);
+                    return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+    }
+
+    public bool TogglePlaybackMute() => ToggleMute();
+
+    public bool ToggleSystemMute()
+    {
+        bool next = !IsSystemMuted;
+        SetSystemMute(next);
         return next;
     }
 

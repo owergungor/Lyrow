@@ -14,7 +14,24 @@ public sealed class GitHubUpdateService : IUpdateService
 {
     public const string DefaultReleasesApiUrl = "https://api.github.com/repos/owergungor/Lyrow/releases/latest";
     public const string DefaultReleasesPageUrl = "https://github.com/owergungor/Lyrow/releases";
-    public const string AppVersion = "2.0";
+    public const string AppVersion = "2.2";
+
+    public static bool IsUpdateCheckDue(UpdateCheckFrequency frequency, DateTime? lastCheckUtc, DateTime? nowUtc = null)
+    {
+        if (lastCheckUtc == null) return true;
+        var now = nowUtc ?? DateTime.UtcNow;
+        var elapsed = now - lastCheckUtc.Value;
+        if (elapsed < TimeSpan.Zero) return true;
+
+        return frequency switch
+        {
+            UpdateCheckFrequency.OnStartup => true,
+            UpdateCheckFrequency.Daily => elapsed >= TimeSpan.FromHours(24),
+            UpdateCheckFrequency.Weekly => elapsed >= TimeSpan.FromDays(7),
+            UpdateCheckFrequency.Monthly => elapsed >= TimeSpan.FromDays(30),
+            _ => true
+        };
+    }
 
     private readonly HttpClient _httpClient;
     private readonly string _apiUrl;

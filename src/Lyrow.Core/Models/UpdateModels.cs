@@ -13,6 +13,17 @@ public enum UpdateCheckStatus
 }
 
 /// <summary>
+/// User-selected schedule frequency for checking GitHub Releases.
+/// </summary>
+public enum UpdateCheckFrequency
+{
+    OnStartup = 0,
+    Daily = 1,
+    Weekly = 2,
+    Monthly = 3
+}
+
+/// <summary>
 /// Immutable result returned by <see cref="Contracts.IUpdateService.CheckForUpdatesAsync"/>.
 /// </summary>
 public sealed record UpdateCheckResult(

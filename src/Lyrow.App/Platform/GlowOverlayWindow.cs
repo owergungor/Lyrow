@@ -69,6 +69,9 @@ public sealed class GlowOverlayWindow : IDisposable
     private GlowPalette _currentPalette = GlowPalette.Default;
     private GlowPalette _targetPalette = GlowPalette.Default;
     private float _paletteLerpProgress = 1.0f;
+    private volatile bool _isPaused = false;
+    private float _fadeMultiplier = 1.0f;
+    private float _targetFadeMultiplier = 1.0f;
 
     private Thread? _renderThread;
     private readonly ManualResetEventSlim _createdEvent = new(false);
@@ -80,6 +83,18 @@ public sealed class GlowOverlayWindow : IDisposable
     public bool IsCreated => _hwnd != IntPtr.Zero;
     public GlowBeatEngine BeatEngine => _beatEngine;
     public GlowPalette CurrentPalette => _currentPalette;
+    public bool IsPaused => _isPaused;
+    public float FadeMultiplier => _fadeMultiplier;
+
+    public void SetPlaybackState(MediaPlaybackStatus status)
+    {
+        _isPaused = (status == MediaPlaybackStatus.Paused);
+    }
+
+    public void SetFadeTarget(float target)
+    {
+        _targetFadeMultiplier = Math.Clamp(target, 0.0f, 1.0f);
+    }
 
     public float LastRenderedTopAlpha { get; private set; }
     public float LastRenderedBottomAlpha { get; private set; }
@@ -240,7 +255,18 @@ public sealed class GlowOverlayWindow : IDisposable
             var spectrum = _lumnModule?.LatestSpectrum ?? FrequencySpectrum.Empty;
             float sensitivity = _settingsManager?.Current.Lumn.Sensitivity ?? 1.0f;
 
-            _beatEngine.Process(spectrum, sensitivity, 16.6);
+            if (_isPaused)
+            {
+                // When paused, freeze beat dynamic animation and process silence to allow smooth decay
+                _beatEngine.Process(FrequencySpectrum.Empty, sensitivity, 16.6);
+            }
+            else
+            {
+                _beatEngine.Process(spectrum, sensitivity, 16.6);
+                float glow = _beatEngine.OverallGlowIntensity;
+                _animationPhase += 0.025f + (glow * 0.065f);
+                if (_animationPhase > 628.3185f) _animationPhase -= 628.3185f;
+            }
 
             // Cross-fade palette interpolation (smooth ~750ms ease transition)
             GlowPalette activePalette;
@@ -255,9 +281,12 @@ public sealed class GlowOverlayWindow : IDisposable
                 activePalette = _currentPalette;
             }
 
-            float glow = _beatEngine.OverallGlowIntensity;
-            _animationPhase += 0.025f + (glow * 0.065f);
-            if (_animationPhase > 628.3185f) _animationPhase -= 628.3185f;
+            // Smooth frame-rate independent fade multiplier interpolation (~600-900ms)
+            if (Math.Abs(_targetFadeMultiplier - _fadeMultiplier) > 0.001f)
+            {
+                float step = _targetFadeMultiplier > _fadeMultiplier ? 0.05f : 0.035f;
+                _fadeMultiplier = Math.Clamp(_fadeMultiplier + (_targetFadeMultiplier - _fadeMultiplier) * step, 0.0f, 1.0f);
+            }
 
             RenderAmbientEdgeLighting(activePalette);
             UpdateLayeredWindowInternal();
@@ -286,7 +315,15 @@ public sealed class GlowOverlayWindow : IDisposable
         int userIntensityPct = _settingsManager?.Current.GlowIntensity ?? 80;
         int userThicknessPx = _settingsManager?.Current.GlowThickness ?? 60;
 
-        float userScale = Math.Clamp(userIntensityPct / 100.0f, 0.15f, 1.0f);
+        float effectiveScale = Math.Clamp((userIntensityPct / 100.0f) * _fadeMultiplier, 0.0f, 1.0f);
+        if (effectiveScale < 0.005f)
+        {
+            LastRenderedTopAlpha = 0f;
+            LastRenderedBottomAlpha = 0f;
+            LastRenderedLeftAlpha = 0f;
+            LastRenderedRightAlpha = 0f;
+            return;
+        }
 
         float overall = _beatEngine.OverallGlowIntensity;
         float transient = _beatEngine.TransientEnergy;
@@ -302,10 +339,10 @@ public sealed class GlowOverlayWindow : IDisposable
         float breathLeft = 0.25f + 0.05f * MathF.Sin(_animationPhase + 2.4f);
         float breathRight = 0.25f + 0.05f * MathF.Sin(_animationPhase + 3.6f);
 
-        float alphaTop = Math.Clamp((breathTop + topEnergy * 0.72f + transient * 0.32f) * userScale, 0.08f, 1.0f);
-        float alphaBottom = Math.Clamp((breathBottom + bottomEnergy * 0.78f + transient * 0.38f) * userScale, 0.10f, 1.0f);
-        float alphaLeft = Math.Clamp((breathLeft + leftEnergy * 0.74f + transient * 0.28f) * userScale, 0.08f, 1.0f);
-        float alphaRight = Math.Clamp((breathRight + rightEnergy * 0.74f + transient * 0.28f) * userScale, 0.08f, 1.0f);
+        float alphaTop = Math.Clamp((breathTop + topEnergy * 0.72f + transient * 0.32f) * effectiveScale, 0.0f, 1.0f);
+        float alphaBottom = Math.Clamp((breathBottom + bottomEnergy * 0.78f + transient * 0.38f) * effectiveScale, 0.0f, 1.0f);
+        float alphaLeft = Math.Clamp((breathLeft + leftEnergy * 0.74f + transient * 0.28f) * effectiveScale, 0.0f, 1.0f);
+        float alphaRight = Math.Clamp((breathRight + rightEnergy * 0.74f + transient * 0.28f) * effectiveScale, 0.0f, 1.0f);
 
         LastRenderedTopAlpha = alphaTop;
         LastRenderedBottomAlpha = alphaBottom;

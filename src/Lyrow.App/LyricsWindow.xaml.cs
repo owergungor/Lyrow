@@ -36,6 +36,8 @@ public sealed partial class LyricsWindow : Window
 
     private int _currentActiveIndex = -99;
     private int _lastFontScaleIndex = -1;
+    private double _lastFocusedSize = -1;
+    private double _lastUnfocusedSize = -1;
     private string _lastSongKey = string.Empty;
     private SyncedLyrics? _lastLyrics;
     private double _currentScrollOffsetY = 0.0;
@@ -74,6 +76,19 @@ public sealed partial class LyricsWindow : Window
                 _userIsInteracting = false;
                 RecalculateCenterScrollTarget(immediate: false);
             }
+        };
+
+        BtnLyricsPrev.Click += async (_, _) =>
+        {
+            if (_mediaMonitor != null) await _mediaMonitor.TrySkipPreviousAsync();
+        };
+        BtnLyricsPlayPause.Click += async (_, _) =>
+        {
+            if (_mediaMonitor != null) await _mediaMonitor.TryTogglePlayPauseAsync();
+        };
+        BtnLyricsNext.Click += async (_, _) =>
+        {
+            if (_mediaMonitor != null) await _mediaMonitor.TrySkipNextAsync();
         };
 
         LyricsScrollViewer.SizeChanged += (_, _) =>
@@ -201,18 +216,28 @@ public sealed partial class LyricsWindow : Window
             ProgressTimeline.Value = 0;
         }
 
+        bool hasTrack = !track.IsEmpty;
+        BtnLyricsPrev.IsEnabled = hasTrack;
+        BtnLyricsPlayPause.IsEnabled = hasTrack;
+        BtnLyricsNext.IsEnabled = hasTrack;
+        IconLyricsPlayPause.Glyph = (timeline.Status == MediaPlaybackStatus.Playing) ? "\uE769" : "\uE768";
+
         // Ensure synchronizer evaluates latest interpolated position
         _verciModule.Synchronizer.EvaluatePosition(pos);
 
+        double focusedSize = _settingsManager.Current.FocusedLyricFontSize > 0 ? _settingsManager.Current.FocusedLyricFontSize : 28.0;
+        double unfocusedSize = _settingsManager.Current.UnfocusedLyricFontSize > 0 ? _settingsManager.Current.UnfocusedLyricFontSize : 20.0;
         int fontScaleIndex = _settingsManager.Current.LyricsFontScaleIndex;
         string songKey = $"{track.Artist}_{track.Title}";
 
-        if (songKey != _lastSongKey || !ReferenceEquals(lyrics, _lastLyrics) || fontScaleIndex != _lastFontScaleIndex)
+        if (songKey != _lastSongKey || !ReferenceEquals(lyrics, _lastLyrics) || fontScaleIndex != _lastFontScaleIndex || Math.Abs(focusedSize - _lastFocusedSize) > 0.5 || Math.Abs(unfocusedSize - _lastUnfocusedSize) > 0.5)
         {
             bool trackChanged = songKey != _lastSongKey;
             _lastSongKey = songKey;
             _lastLyrics = lyrics;
             _lastFontScaleIndex = fontScaleIndex;
+            _lastFocusedSize = focusedSize;
+            _lastUnfocusedSize = unfocusedSize;
             RebuildLyricsUi(lyrics);
 
             if (trackChanged)
@@ -300,12 +325,15 @@ public sealed partial class LyricsWindow : Window
         PanelEmptyState.Visibility = Visibility.Collapsed;
         LyricsScrollViewer.Visibility = Visibility.Visible;
 
-        int fontPreset = _settingsManager.Current.LyricsFontScaleIndex;
+        double focusedSize = _settingsManager.Current.FocusedLyricFontSize;
+        double unfocusedSize = _settingsManager.Current.UnfocusedLyricFontSize;
+        _lastFocusedSize = focusedSize;
+        _lastUnfocusedSize = unfocusedSize;
 
         for (int i = 0; i < lyrics.Lines.Count; i++)
         {
             var line = lyrics.Lines[i];
-            var target = LyricsViewportCalculator.GetLineVisualTarget(i, -1, fontPreset);
+            var target = LyricsViewportCalculator.GetLineVisualTarget(i, -1, focusedSize, unfocusedSize);
 
             var block = new TextBlock
             {
@@ -347,11 +375,12 @@ public sealed partial class LyricsWindow : Window
         if (_lineContainers.Count == 0) return;
 
         _currentActiveIndex = activeIdx;
-        int fontPreset = _settingsManager.Current.LyricsFontScaleIndex;
+        double focusedSize = _settingsManager.Current.FocusedLyricFontSize;
+        double unfocusedSize = _settingsManager.Current.UnfocusedLyricFontSize;
 
         for (int i = 0; i < _lineContainers.Count; i++)
         {
-            var target = LyricsViewportCalculator.GetLineVisualTarget(i, activeIdx, fontPreset);
+            var target = LyricsViewportCalculator.GetLineVisualTarget(i, activeIdx, focusedSize, unfocusedSize);
             _targetOpacities[i] = target.TargetOpacity;
             _targetScales[i] = target.TargetScale;
 

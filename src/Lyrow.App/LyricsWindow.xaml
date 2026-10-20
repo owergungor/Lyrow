@@ -82,10 +82,27 @@
         <!-- Bottom Controls Bar -->
         <Border Grid.Row="3" Padding="16,8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBlock x:Name="TxtTimestamp" Text="00:00 / 00:00" FontSize="12" VerticalAlignment="Center"
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <TextBlock x:Name="TxtTimestamp" Grid.Column="0" Text="00:00 / 00:00" FontSize="12" VerticalAlignment="Center"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                <ToggleSwitch x:Name="SwitchAutoScroll" Grid.Column="1" Header="Auto-Center" IsOn="True"
+
+                <!-- Apple Music-Style Minimal Media Transport Controls -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                    <Button x:Name="BtnLyricsPrev" Width="32" Height="32" Padding="0" CornerRadius="8"
+                            ToolTipService.ToolTip="Previous Track">
+                        <FontIcon Glyph="&#xE892;" FontSize="13" />
+                    </Button>
+                    <Button x:Name="BtnLyricsPlayPause" Width="36" Height="36" Padding="0" CornerRadius="10"
+                            Style="{ThemeResource AccentButtonStyle}" ToolTipService.ToolTip="Play / Pause">
+                        <FontIcon x:Name="IconLyricsPlayPause" Glyph="&#xE768;" FontSize="14" />
+                    </Button>
+                    <Button x:Name="BtnLyricsNext" Width="32" Height="32" Padding="0" CornerRadius="8"
+                            ToolTipService.ToolTip="Next Track">
+                        <FontIcon Glyph="&#xE893;" FontSize="13" />
+                    </Button>
+                </StackPanel>
+
+                <ToggleSwitch x:Name="SwitchAutoScroll" Grid.Column="2" Header="Auto-Center" IsOn="True"
                               FontSize="12" Margin="0" VerticalAlignment="Center" />
             </Grid>
         </Border>
