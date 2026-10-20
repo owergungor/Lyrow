@@ -102,8 +102,16 @@
                     </Button>
                 </StackPanel>
 
-                <ToggleSwitch x:Name="SwitchAutoScroll" Grid.Column="2" Header="Auto-Center" IsOn="True"
-                              FontSize="12" Margin="0" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                    <Button x:Name="BtnLyricsVolumeMute" Width="30" Height="30" Padding="0" CornerRadius="8"
+                            ToolTipService.ToolTip="Mute / Unmute Playback">
+                        <FontIcon x:Name="IconLyricsVolumeMute" Glyph="&#xE767;" FontSize="12" />
+                    </Button>
+                    <Slider x:Name="SliderLyricsVolume" Width="85" Minimum="0" Maximum="100" Value="78" StepFrequency="1"
+                            IsThumbToolTipEnabled="False" VerticalAlignment="Center" />
+                    <TextBlock x:Name="TxtLyricsVolumePercent" Text="78%" FontSize="11" Width="32" VerticalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

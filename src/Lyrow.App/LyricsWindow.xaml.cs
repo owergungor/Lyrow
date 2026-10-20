@@ -5,8 +5,10 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Lyrow.App.Controls;
 using Lyrow.App.Platform;
 using Lyrow.Core.Contracts;
+using Lyrow.Core.Localization;
 using Lyrow.Core.Lyrics;
 using Lyrow.Core.Models;
 using Lyrow.Core.Modules;
@@ -17,7 +19,7 @@ namespace Lyrow.App;
 /// <summary>
 /// Apple Music-inspired 60 FPS fluid lyrics experience for Windows 11.
 /// Keeps the active lyric line vertically centered at all times with smooth interpolated
-/// scrolling and hierarchical opacity/scale transitions.
+/// scrolling, hierarchical opacity/scale transitions, interactive seek-on-click, and media volume control.
 /// </summary>
 public sealed partial class LyricsWindow : Window
 {
@@ -25,7 +27,10 @@ public sealed partial class LyricsWindow : Window
     private readonly ISettingsManager _settingsManager;
     private readonly ArtworkBitmapManager? _artworkBitmapManager;
     private readonly IMediaSessionMonitor? _mediaMonitor;
+    private readonly IAudioVolumeService? _volumeService;
+    private readonly ToastNotificationManager? _toastManager;
     private readonly DispatcherTimer _uiTimer;
+    private bool _isUpdatingVolumeUi = false;
 
     private readonly List<Border> _lineContainers = new();
     private readonly List<TextBlock> _lineBlocks = new();
@@ -51,13 +56,17 @@ public sealed partial class LyricsWindow : Window
         VerciModule verciModule,
         ISettingsManager settingsManager,
         ArtworkBitmapManager? artworkBitmapManager = null,
-        IMediaSessionMonitor? mediaMonitor = null)
+        IMediaSessionMonitor? mediaMonitor = null,
+        IAudioVolumeService? volumeService = null,
+        ToastNotificationManager? toastManager = null)
     {
         InitializeComponent();
         _verciModule = verciModule;
         _settingsManager = settingsManager;
         _artworkBitmapManager = artworkBitmapManager;
         _mediaMonitor = mediaMonitor;
+        _volumeService = volumeService;
+        _toastManager = toastManager;
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(LyricsTitleBar);
@@ -67,16 +76,36 @@ public sealed partial class LyricsWindow : Window
         BtnOffsetMinus.Click += (_, _) => AdjustOffset(-250);
         BtnOffsetPlus.Click += (_, _) => AdjustOffset(250);
 
-        SwitchAutoScroll.IsOn = _settingsManager.Current.Verci.AutoScroll;
-        SwitchAutoScroll.Toggled += (_, _) =>
+        // Media Playback Volume slider & mute
+        if (_volumeService != null)
         {
-            _settingsManager.Current.Verci.AutoScroll = SwitchAutoScroll.IsOn;
-            if (SwitchAutoScroll.IsOn)
+            SyncVolumeUi();
+            SliderLyricsVolume.ValueChanged += (_, e) =>
             {
-                _userIsInteracting = false;
-                RecalculateCenterScrollTarget(immediate: false);
-            }
-        };
+                if (_isUpdatingVolumeUi) return;
+                _isUpdatingVolumeUi = true;
+                try
+                {
+                    int val = Math.Clamp((int)Math.Round(e.NewValue), 0, 100);
+                    _volumeService.SetPlaybackVolumePercent(val);
+                    TxtLyricsVolumePercent.Text = $"{val}%";
+                    IconLyricsVolumeMute.Glyph = (val == 0 || _volumeService.IsPlaybackMuted) ? "\uE74F" : "\uE767";
+                }
+                finally
+                {
+                    _isUpdatingVolumeUi = false;
+                }
+            };
+            BtnLyricsVolumeMute.Click += (_, _) =>
+            {
+                _volumeService.TogglePlaybackMute();
+                SyncVolumeUi();
+            };
+            _volumeService.VolumeChanged += (_, _) =>
+            {
+                DispatcherQueue?.TryEnqueue(SyncVolumeUi);
+            };
+        }
 
         BtnLyricsPrev.Click += async (_, _) =>
         {
@@ -354,7 +383,15 @@ public sealed partial class LyricsWindow : Window
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Opacity = target.TargetOpacity,
                 RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5),
-                RenderTransform = new ScaleTransform { ScaleX = target.TargetScale, ScaleY = target.TargetScale }
+                RenderTransform = new ScaleTransform { ScaleX = target.TargetScale, ScaleY = target.TargetScale },
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0))
+            };
+
+            // Interactive seek-to-timestamp on lyric line click
+            var lineTimestamp = line.Timestamp;
+            container.PointerPressed += async (_, _) =>
+            {
+                await SeekToLyricLineAsync(lineTimestamp);
             };
 
             _lineBlocks.Add(block);
@@ -475,7 +512,7 @@ public sealed partial class LyricsWindow : Window
             }
         }
 
-        // 2. Continuously keep active line centered in viewport with smooth 60 FPS easing
+        // 2. Continuously keep active line centered in viewport with smooth 60 FPS easing (always enabled)
         if (_userIsInteracting)
         {
             if ((DateTime.UtcNow - _lastUserInteractionUtc).TotalSeconds < 2.8)
@@ -484,8 +521,6 @@ public sealed partial class LyricsWindow : Window
             }
             _userIsInteracting = false;
         }
-
-        if (!SwitchAutoScroll.IsOn) return;
 
         RecalculateCenterScrollTarget(immediate: false);
 
@@ -504,6 +539,42 @@ public sealed partial class LyricsWindow : Window
                 snapEpsilon: 0.30);
 
             LyricsScrollViewer.ChangeView(null, _currentScrollOffsetY, null, disableAnimation: true);
+        }
+    }
+
+    private void SyncVolumeUi()
+    {
+        if (_volumeService == null || _isUpdatingVolumeUi) return;
+        _isUpdatingVolumeUi = true;
+        try
+        {
+            int vol = _volumeService.GetPlaybackVolumePercent();
+            bool muted = _volumeService.IsPlaybackMuted;
+            SliderLyricsVolume.Value = vol;
+            TxtLyricsVolumePercent.Text = muted ? "Muted" : $"{vol}%";
+            IconLyricsVolumeMute.Glyph = (muted || vol == 0) ? "\uE74F" : "\uE767";
+        }
+        finally
+        {
+            _isUpdatingVolumeUi = false;
+        }
+    }
+
+    private async Task SeekToLyricLineAsync(TimeSpan timestamp)
+    {
+        if (_mediaMonitor == null) return;
+        bool ok = await _mediaMonitor.TrySeekAsync(timestamp);
+        if (!ok)
+        {
+            _toastManager?.ShowToast(
+                LocalizationService.Instance["Lyrics_SeekFailed"],
+                title: "Seek",
+                severity: InfoBarSeverity.Warning);
+        }
+        else
+        {
+            _verciModule.Synchronizer.EvaluatePosition(timestamp);
+            RecalculateCenterScrollTarget(immediate: false);
         }
     }
 

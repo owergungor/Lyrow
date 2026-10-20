@@ -465,6 +465,31 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         }
     }
 
+    public async Task<bool> TrySeekAsync(TimeSpan position)
+    {
+        var session = await EnsureActiveSessionAsync().ConfigureAwait(false);
+        if (session == null) return false;
+
+        try
+        {
+            // Windows GSMTC takes requested playback position in 100-nanosecond units (ticks)
+            bool ok = await session.TryChangePlaybackPositionAsync(position.Ticks);
+            if (ok)
+            {
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(100).ConfigureAwait(false);
+                    await UpdatePlaybackAndTimelineAsync(session).ConfigureAwait(false);
+                });
+            }
+            return ok;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_isDisposed) return;

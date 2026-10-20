@@ -51,4 +51,7 @@ public interface IMediaSessionMonitor : IAsyncDisposable
 
     /// <summary>Skips to previous track on the active OS media session.</summary>
     Task<bool> TrySkipPreviousAsync();
+
+    /// <summary>Seeks to specific playback position in active media session.</summary>
+    Task<bool> TrySeekAsync(TimeSpan position);
 }

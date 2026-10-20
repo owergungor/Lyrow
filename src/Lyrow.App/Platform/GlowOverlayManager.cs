@@ -122,13 +122,14 @@ public sealed class GlowOverlayManager : IDisposable
             }
             else if (status == MediaPlaybackStatus.Paused && hasSession)
             {
-                // Pause freezes beat animation without instant shutdown
+                // Pause freezes beat dynamic animation and smoothly fades edge glow out to invisible
                 _shutdownCts?.Cancel();
                 _shutdownCts = null;
 
                 foreach (var overlay in _activeOverlays)
                 {
                     overlay.SetPlaybackState(MediaPlaybackStatus.Paused);
+                    overlay.SetFadeTarget(0.0f);
                 }
             }
             else

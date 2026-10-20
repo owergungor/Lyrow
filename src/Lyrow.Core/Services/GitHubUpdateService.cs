@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Lyrow.Core.Contracts;
@@ -14,7 +15,7 @@ public sealed class GitHubUpdateService : IUpdateService
 {
     public const string DefaultReleasesApiUrl = "https://api.github.com/repos/owergungor/Lyrow/releases/latest";
     public const string DefaultReleasesPageUrl = "https://github.com/owergungor/Lyrow/releases";
-    public const string AppVersion = "2.2";
+    public const string AppVersion = "2.3";
 
     public static bool IsUpdateCheckDue(UpdateCheckFrequency frequency, DateTime? lastCheckUtc, DateTime? nowUtc = null)
     {
@@ -240,6 +241,77 @@ public sealed class GitHubUpdateService : IUpdateService
             LastCheckResult = failed;
             return failed;
         }
+    }
+
+    public async Task<string> DownloadUpdatePackageAsync(
+        string downloadUrl,
+        string destinationPath,
+        IProgress<double>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(downloadUrl))
+        {
+            throw new ArgumentException("Download URL cannot be empty.", nameof(downloadUrl));
+        }
+
+        var dir = Path.GetDirectoryName(destinationPath);
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        long? totalBytes = response.Content.Headers.ContentLength;
+        await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await using var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+
+        byte[] buffer = new byte[81920];
+        long totalRead = 0;
+        int bytesRead;
+
+        while ((bytesRead = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
+            totalRead += bytesRead;
+
+            if (totalBytes.HasValue && totalBytes.Value > 0)
+            {
+                double pct = Math.Clamp((double)totalRead / totalBytes.Value * 100.0, 0.0, 100.0);
+                progress?.Report(pct);
+            }
+        }
+
+        progress?.Report(100.0);
+        return destinationPath;
+    }
+
+    public bool LaunchInstallerAndExit(string installerPath)
+    {
+        if (string.IsNullOrWhiteSpace(installerPath) || !File.Exists(installerPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = installerPath,
+                UseShellExecute = true
+            };
+            var proc = Process.Start(startInfo);
+            if (proc != null)
+            {
+                Environment.Exit(0);
+                return true;
+            }
+        }
+        catch { }
+
+        return false;
     }
 
     public static string NormalizeVersionString(string version)

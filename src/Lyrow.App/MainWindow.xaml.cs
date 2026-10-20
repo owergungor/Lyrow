@@ -11,6 +11,7 @@ using Lyrow.App.Controls;
 using Lyrow.App.Platform;
 using Lyrow.Audio.Control;
 using Lyrow.Core.Contracts;
+using Lyrow.Core.Localization;
 using Lyrow.Core.Models;
 using Lyrow.Core.Modules;
 using Lyrow.Core.Services;
@@ -45,6 +46,7 @@ public sealed partial class MainWindow : Window
     private LyricsWindow? _lyricsWindow;
     private string _lastTrackCacheKey = string.Empty;
     private string? _latestUpdateReleaseUrl;
+    private string? _latestInstallerDownloadUrl;
     private bool _isExplicitExit = false;
     private bool _isUpdatingToggles = false;
     private bool _isUpdatingVolumeUi = false;
@@ -310,9 +312,6 @@ public sealed partial class MainWindow : Window
             TxtPageLyricsOffset.Text = $"{settings.Verci.SyncOffsetMs:+0;-0;0} ms";
             TxtSettingsLyricsOffset.Text = $"{settings.Verci.SyncOffsetMs:+0;-0;0} ms";
 
-            SwitchLyricsAutoScroll.IsOn = settings.Verci.AutoScroll;
-            SwitchSettingsLyricsAutoScroll.IsOn = settings.Verci.AutoScroll;
-
             // Lyrics Font Sliders
             SliderFocusedFontSize.Value = settings.FocusedLyricFontSize;
             SliderSettingsFocusedFontSize.Value = settings.FocusedLyricFontSize;
@@ -331,6 +330,19 @@ public sealed partial class MainWindow : Window
             ComboUpdateFrequency.SelectedIndex = Math.Clamp((int)settings.UpdateFrequency, 0, 3);
             TxtCurrentVersion.Text = $"Current Version: v{_updateService.CurrentVersion}";
 
+            string langCode = settings.Language ?? "en";
+            ComboLanguage.SelectedIndex = langCode switch
+            {
+                "fr" => 1,
+                "es" => 2,
+                "de" => 3,
+                "tr" => 4,
+                _ => 0
+            };
+            LocalizationService.Instance.SetLanguage(langCode);
+            ApplyLocalization();
+            ShowSettingsCategory("All");
+
             TxtHotkeyGlow.Text = settings.Hotkeys.ToggleLumn;
             TxtHotkeyLyrics.Text = settings.Hotkeys.ToggleVerci;
 
@@ -343,6 +355,10 @@ public sealed partial class MainWindow : Window
 
             // Initialize Dual Volume UI from real Windows Audio Service (0% - 100%)
             SyncVolumeUiFromHardware();
+            _volumeService.VolumeChanged += (_, _) =>
+            {
+                DispatcherQueue?.TryEnqueue(SyncVolumeUiFromHardware);
+            };
             UpdatePaletteSwatches(GlowPalette.Default);
         }
         finally
@@ -474,8 +490,30 @@ public sealed partial class MainWindow : Window
         BtnOffsetPlus500.Click += (_, _) => SliderLyricsOffset.Value += 500;
         BtnOffsetReset.Click += (_, _) => SliderLyricsOffset.Value = 0;
 
-        SwitchLyricsAutoScroll.Toggled += (_, _) => OnLyricsAutoScrollToggled(SwitchLyricsAutoScroll.IsOn);
-        SwitchSettingsLyricsAutoScroll.Toggled += (_, _) => OnLyricsAutoScrollToggled(SwitchSettingsLyricsAutoScroll.IsOn);
+        // Language Selection
+        ComboLanguage.SelectionChanged += (_, _) =>
+        {
+            if (_isUpdatingSettingsUi || ComboLanguage == null) return;
+            string code = ComboLanguage.SelectedIndex switch
+            {
+                1 => "fr",
+                2 => "es",
+                3 => "de",
+                4 => "tr",
+                _ => "en"
+            };
+            _settingsManager.Current.Language = code;
+            LocalizationService.Instance.SetLanguage(code);
+            ApplyLocalization();
+            _ = _settingsManager.SaveAsync(_settingsManager.Current);
+        };
+
+        WireSettingsCategoryFilters();
+
+        BtnDownloadAndInstallUpdate.Click += async (_, _) =>
+        {
+            await StartSelfUpdateDownloadAsync(_latestInstallerDownloadUrl);
+        };
 
         // Lyrics Font Sliders
         SliderFocusedFontSize.ValueChanged += (_, e) => OnFocusedFontSizeChanged(e.NewValue);
@@ -867,21 +905,6 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void OnLyricsAutoScrollToggled(bool enabled)
-    {
-        if (_isUpdatingSettingsUi) return;
-        _isUpdatingSettingsUi = true;
-        try
-        {
-            SwitchLyricsAutoScroll.IsOn = enabled;
-            SwitchSettingsLyricsAutoScroll.IsOn = enabled;
-            _settingsManager.Current.Verci.AutoScroll = enabled;
-        }
-        finally
-        {
-            _isUpdatingSettingsUi = false;
-        }
-    }
 
     private async Task ExecutePlayPauseCommandAsync()
     {
@@ -960,20 +983,24 @@ public sealed partial class MainWindow : Window
             {
                 case UpdateCheckStatus.UpdateAvailable:
                     _latestUpdateReleaseUrl = result.ReleaseUrl;
-                    BtnOpenUpdateRelease.Visibility = Visibility.Visible;
-                    TxtUpdateStatusSummary.Text = $"New release available: v{result.LatestVersion} ({result.ReleaseTitle})";
+                    _latestInstallerDownloadUrl = result.InstallerDownloadUrl;
+                    BtnDownloadAndInstallUpdate.Visibility = !string.IsNullOrWhiteSpace(_latestInstallerDownloadUrl)
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+                    BtnOpenUpdateRelease.Visibility = Visibility.Collapsed;
+                    TxtUpdateStatusSummary.Text = $"{LocalizationService.Instance["Updates_Available"]}: v{result.LatestVersion} ({result.ReleaseTitle})";
                     UpdateStatusInfoBar.Severity = InfoBarSeverity.Success;
-                    UpdateStatusInfoBar.Title = $"Update Available — v{result.LatestVersion}";
-                    UpdateStatusInfoBar.Message = $"{result.ReleaseTitle} is available on GitHub Releases. Click 'View Release' when you are ready to update.";
+                    UpdateStatusInfoBar.Title = $"{LocalizationService.Instance["Updates_Available"]} — v{result.LatestVersion}";
+                    UpdateStatusInfoBar.Message = $"{result.ReleaseTitle} is available on GitHub Releases.";
                     UpdateStatusInfoBar.IsOpen = true;
                     ShowToast(
                         $"Lyrow v{result.LatestVersion} is available ({result.ReleaseTitle}).",
                         InfoBarSeverity.Success,
-                        title: "Update Available",
-                        actionLabel: "View Release",
+                        title: LocalizationService.Instance["Updates_Available"],
+                        actionLabel: LocalizationService.Instance["Updates_DownloadAndInstall"],
                         onAction: () =>
                         {
-                            try { Process.Start(new ProcessStartInfo(_latestUpdateReleaseUrl ?? GitHubUpdateService.DefaultReleasesPageUrl) { UseShellExecute = true }); } catch { }
+                            _ = StartSelfUpdateDownloadAsync(_latestInstallerDownloadUrl);
                         });
                     break;
 
@@ -1019,6 +1046,163 @@ public sealed partial class MainWindow : Window
             _settingsManager.Current.LastUpdateCheckUtc = DateTime.UtcNow;
             _ = _settingsManager.SaveAsync(_settingsManager.Current);
         });
+    }
+
+    private async Task StartSelfUpdateDownloadAsync(string? downloadUrl)
+    {
+        if (string.IsNullOrWhiteSpace(downloadUrl))
+        {
+            ShowToast("No direct installer asset available for this release.", InfoBarSeverity.Warning);
+            return;
+        }
+
+        try
+        {
+            BtnDownloadAndInstallUpdate.IsEnabled = false;
+            ProgressUpdateDownload.Visibility = Visibility.Visible;
+            ProgressUpdateDownload.Value = 0;
+            TxtUpdateDownloadProgress.Visibility = Visibility.Visible;
+            TxtUpdateDownloadProgress.Text = $"{LocalizationService.Instance["Updates_Downloading"]} 0%";
+
+            string tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Lyrow", "Updates");
+            string destFile = System.IO.Path.Combine(tempDir, "Lyrow-2.3-Setup-x64.exe");
+
+            var progress = new Progress<double>(pct =>
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    ProgressUpdateDownload.Value = pct;
+                    TxtUpdateDownloadProgress.Text = $"{LocalizationService.Instance["Updates_Downloading"]} {pct:0}%";
+                });
+            });
+
+            await _updateService.DownloadUpdatePackageAsync(downloadUrl, destFile, progress);
+
+            TxtUpdateDownloadProgress.Text = "Update ready. Applying update...";
+            ShowToast(
+                LocalizationService.Instance["Updates_InstallPrompt"],
+                severity: InfoBarSeverity.Success,
+                title: LocalizationService.Instance["Updates_Available"],
+                actionLabel: LocalizationService.Instance["Updates_InstallBtn"],
+                onAction: () =>
+                {
+                    _updateService.LaunchInstallerAndExit(destFile);
+                });
+        }
+        catch (Exception ex)
+        {
+            TxtUpdateDownloadProgress.Text = $"Download failed: {ex.Message}";
+            ShowToast($"Update download failed: {ex.Message}", InfoBarSeverity.Error);
+        }
+        finally
+        {
+            BtnDownloadAndInstallUpdate.IsEnabled = true;
+        }
+    }
+
+    private void WireSettingsCategoryFilters()
+    {
+        BtnFilterAllSettings.Click += (_, _) => ShowSettingsCategory("All");
+        BtnFilterGeneral.Click += (_, _) => ShowSettingsCategory("General");
+        BtnFilterPlayback.Click += (_, _) => ShowSettingsCategory("Playback");
+        BtnFilterLyrics.Click += (_, _) => ShowSettingsCategory("Lyrics");
+        BtnFilterGlow.Click += (_, _) => ShowSettingsCategory("Glow");
+        BtnFilterUpdates.Click += (_, _) => ShowSettingsCategory("Updates");
+        BtnFilterShortcuts.Click += (_, _) => ShowSettingsCategory("Shortcuts");
+    }
+
+    private void ShowSettingsCategory(string category)
+    {
+        var accent = (Style)Application.Current.Resources["AccentButtonStyle"];
+        var standard = (Style)Application.Current.Resources["DefaultButtonStyle"];
+
+        BtnFilterAllSettings.Style = category == "All" ? accent : standard;
+        BtnFilterGeneral.Style = category == "General" ? accent : standard;
+        BtnFilterPlayback.Style = category == "Playback" ? accent : standard;
+        BtnFilterLyrics.Style = category == "Lyrics" ? accent : standard;
+        BtnFilterGlow.Style = category == "Glow" ? accent : standard;
+        BtnFilterUpdates.Style = category == "Updates" ? accent : standard;
+        BtnFilterShortcuts.Style = category == "Shortcuts" ? accent : standard;
+
+        SectionGeneral.Visibility = (category == "All" || category == "General") ? Visibility.Visible : Visibility.Collapsed;
+        SectionPlayback.Visibility = (category == "All" || category == "Playback") ? Visibility.Visible : Visibility.Collapsed;
+        SectionLyrics.Visibility = (category == "All" || category == "Lyrics") ? Visibility.Visible : Visibility.Collapsed;
+        SectionGlow.Visibility = (category == "All" || category == "Glow") ? Visibility.Visible : Visibility.Collapsed;
+        SectionUpdates.Visibility = (category == "All" || category == "Updates") ? Visibility.Visible : Visibility.Collapsed;
+        SectionShortcuts.Visibility = (category == "All" || category == "Shortcuts") ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ApplyLocalization()
+    {
+        var loc = LocalizationService.Instance;
+
+        // Navigation
+        NavHome.Content = loc["Nav_Dashboard"];
+        NavGlow.Content = loc["Nav_Glow"];
+        NavLyrics.Content = loc["Nav_Lyrics"];
+        TxtSettingsHeader.Text = loc["Settings_Title"];
+
+        // Settings Category Filters
+        BtnFilterAllSettings.Content = "All";
+        BtnFilterGeneral.Content = loc["Tab_General"];
+        BtnFilterPlayback.Content = loc["Tab_Playback"];
+        BtnFilterLyrics.Content = loc["Tab_Lyrics"];
+        BtnFilterGlow.Content = loc["Tab_Glow"];
+        BtnFilterUpdates.Content = loc["Tab_Updates"];
+        BtnFilterShortcuts.Content = loc["Tab_Shortcuts"];
+
+        // General
+        TxtSectionGeneral.Text = loc["Tab_General"];
+        TxtAppTheme.Text = loc["General_AppTheme"];
+        TxtAppThemeDesc.Text = loc["General_AppTheme_Desc"];
+        TxtLanguageLabel.Text = loc["General_Language"];
+        TxtLanguageDesc.Text = loc["General_Language_Desc"];
+        TxtStartupLabel.Text = loc["General_Startup"];
+        TxtStartupDesc.Text = loc["General_Startup_Desc"];
+        TxtSystemTrayLabel.Text = loc["General_SystemTray"];
+        TxtSystemTrayDesc.Text = loc["General_SystemTray_Desc"];
+
+        // Playback
+        TxtSectionPlayback.Text = loc["Playback_Title"];
+        TxtPlaybackActiveLabel.Text = loc["Playback_ActiveSession"];
+        TxtPlaybackSystemLabel.Text = loc["Playback_SystemEndpoint"];
+        TxtSettingsMediaStatus.Text = loc["Playback_Transport"];
+
+        // Lyrics
+        TxtSectionLyrics.Text = loc["Lyrics_Title"];
+        TxtSyncOffsetLabel.Text = loc["Lyrics_SyncOffset"];
+        TxtSyncOffsetDesc.Text = loc["Lyrics_SyncOffset_Desc"];
+        TxtLyricsAutoCenterNotice.Text = loc["Lyrics_AutoCenter_Notice"];
+
+        // Glow
+        TxtSectionGlow.Text = loc["Glow_Title"];
+        TxtAmbientGlowLabel.Text = loc["Glow_AmbientGlow"];
+        TxtAmbientGlowDesc.Text = loc["Glow_AmbientGlow_Desc"];
+        TxtGlowIntensityLabel.Text = loc["Glow_Intensity"];
+        TxtArtworkSyncLabel.Text = loc["Glow_ArtworkSync"];
+        TxtArtworkSyncDesc.Text = loc["Glow_ArtworkSync_Desc"];
+        TxtShutdownDelayLabel.Text = loc["Glow_ShutdownDelay"];
+        TxtShutdownDelayDesc.Text = loc["Glow_ShutdownDelay_Desc"];
+
+        // Updates
+        TxtSectionUpdates.Text = loc["Updates_Title"];
+        TxtAutoUpdatesLabel.Text = loc["Updates_AutoChecks"];
+        TxtAutoUpdatesDesc.Text = loc["Updates_AutoChecks_Desc"];
+        TxtUpdateFrequencyLabel.Text = loc["Updates_Frequency"];
+        BtnCheckUpdates.Content = loc["Updates_CheckNow"];
+        BtnDownloadAndInstallUpdate.Content = loc["Updates_DownloadAndInstall"];
+
+        // Shortcuts
+        TxtSectionShortcuts.Text = loc["Shortcuts_Title"];
+        TxtShortcutsDesc.Text = loc["Shortcuts_Desc"];
+        TxtShortcutGlowLabel.Text = loc["Shortcuts_ToggleGlow"];
+        TxtShortcutLyricsLabel.Text = loc["Shortcuts_ToggleLyrics"];
+        BtnClearHotkeys.Content = loc["Shortcuts_Clear"];
+        BtnSaveHotkeys.Content = loc["Shortcuts_Apply"];
+
+        // Diagnostics
+        BtnResetSettings.Content = loc["Diag_ResetSettings"];
+        BtnOpenLogs.Content = loc["Diag_OpenLogs"];
     }
 
     private async Task SetGlowStateAsync(bool active)
@@ -1081,7 +1265,7 @@ public sealed partial class MainWindow : Window
 
                 if (_lyricsWindow == null && _verciModule != null)
                 {
-                    _lyricsWindow = new LyricsWindow(_verciModule, _settingsManager, _artworkBitmapManager, _mediaMonitor);
+                    _lyricsWindow = new LyricsWindow(_verciModule, _settingsManager, _artworkBitmapManager, _mediaMonitor, _volumeService, _toastManager);
                     _lyricsWindow.Closed += (_, _) =>
                     {
                         _lyricsWindow = null;

@@ -7,6 +7,8 @@ public sealed class LyrowSettings
 {
     public ThemeMode Theme { get; set; } = ThemeMode.SystemDefault;
 
+    public string Language { get; set; } = "en";
+
     public bool LumnEnabled { get; set; } = false;
 
     public LumnSettings Lumn { get; set; } = new();

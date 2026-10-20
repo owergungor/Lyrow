@@ -8,11 +8,6 @@ public sealed class VerciSettings
     public bool IsEnabled { get; set; } = false;
 
     /// <summary>
-    /// Whether the lyrics view automatically scrolls to follow active line.
-    /// </summary>
-    public bool AutoScroll { get; set; } = true;
-
-    /// <summary>
     /// User manual timestamp sync offset in milliseconds (+ delays lyrics, - advances lyrics).
     /// </summary>
     public int SyncOffsetMs { get; set; } = 0;

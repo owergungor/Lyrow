@@ -222,18 +222,22 @@ public sealed class ToastNotificationManager
         Grid.SetColumn(closeBtn, 2);
         rootGrid.Children.Add(closeBtn);
 
-        // Modern Mac-style rounded acrylic card with subtle translucent fill
+        // Modern Mac-style solid opaque surface (no desktop transparency/bleed-through, dark/light theme aware)
+        bool isLight = Application.Current.RequestedTheme == ApplicationTheme.Light;
+        var solidCardBg = isLight
+            ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xF2, 0xF2, 0xF7))
+            : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x1C, 0x1C, 0x1E));
+        var solidCardStroke = isLight
+            ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xD1, 0xD1, 0xD6))
+            : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x38, 0x38, 0x3A));
+
         var transform = new TranslateTransform { X = 40 };
         var cardBorder = new Border
         {
             CornerRadius = new CornerRadius(12),
             Padding = new Thickness(14, 11, 12, 11),
-            Background = Application.Current.Resources.TryGetValue("CardBackgroundFillColorDefaultBrush", out var cardBg)
-                ? (Brush)cardBg
-                : new SolidColorBrush(Windows.UI.Color.FromArgb(240, 30, 30, 30)),
-            BorderBrush = Application.Current.Resources.TryGetValue("CardStrokeColorDefaultBrush", out var stroke)
-                ? (Brush)stroke
-                : new SolidColorBrush(Windows.UI.Color.FromArgb(60, 255, 255, 255)),
+            Background = solidCardBg,
+            BorderBrush = solidCardStroke,
             BorderThickness = new Thickness(1),
             Opacity = 0.0,
             RenderTransform = transform,

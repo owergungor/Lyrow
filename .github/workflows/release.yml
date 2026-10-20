@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version tag (e.g. v2.2)'
+        description: 'Release version tag (e.g. v2.3)'
         required: true
-        default: 'v2.2'
+        default: 'v2.3'
 
 permissions:
   contents: write
@@ -51,7 +51,7 @@ jobs:
       shell: pwsh
       run: |
         if (-not (Test-Path dist)) { New-Item -ItemType Directory -Path dist -Force }
-        Compress-Archive -Path "publish/win-x64/*" -DestinationPath "dist/Lyrow-v2.2-win-x64-portable.zip" -Force
+        Compress-Archive -Path "publish/win-x64/*" -DestinationPath "dist/Lyrow-v2.3-win-x64-portable.zip" -Force
         Get-ChildItem dist/
 
     - name: Upload Build Artifacts

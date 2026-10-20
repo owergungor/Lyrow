@@ -414,16 +414,36 @@ public sealed class WindowsAudioVolumeService : IAudioVolumeService
         if (_currentDevice != null) return;
         _enumerator ??= new MMDeviceEnumerator();
         _currentDevice = _enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+        if (_currentDevice?.AudioEndpointVolume != null)
+        {
+            try
+            {
+                _currentDevice.AudioEndpointVolume.OnVolumeNotification += OnEndpointVolumeNotification;
+            }
+            catch { }
+        }
     }
 
     private void DisposeDevice()
     {
         try
         {
+            if (_currentDevice?.AudioEndpointVolume != null)
+            {
+                _currentDevice.AudioEndpointVolume.OnVolumeNotification -= OnEndpointVolumeNotification;
+            }
             _currentDevice?.Dispose();
         }
         catch { }
         _currentDevice = null;
+    }
+
+    private void OnEndpointVolumeNotification(AudioVolumeNotificationData data)
+    {
+        if (_isDisposed) return;
+        int percent = Math.Clamp((int)Math.Round(data.MasterVolume * 100.0f), 0, 100);
+        _lastKnownPercent = percent;
+        VolumeChanged?.Invoke(this, percent);
     }
 
     private static List<AudioSessionControl> FindMatchingMediaSessions(

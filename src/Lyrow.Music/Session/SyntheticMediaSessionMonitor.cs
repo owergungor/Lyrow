@@ -98,6 +98,13 @@ public sealed class SyntheticMediaSessionMonitor : IMediaSessionMonitor
         return Task.FromResult(true);
     }
 
+    public Task<bool> TrySeekAsync(TimeSpan position)
+    {
+        if (!_hasActiveSession || _isDisposed) return Task.FromResult(false);
+        SimulateSeek(position);
+        return Task.FromResult(true);
+    }
+
     public Task<bool> TrySkipPreviousAsync()
     {
         if (!_hasActiveSession || _isDisposed) return Task.FromResult(false);
