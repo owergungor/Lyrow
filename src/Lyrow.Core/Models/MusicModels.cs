@@ -55,12 +55,17 @@ public sealed record MediaTimelineInfo(
     /// </summary>
     public TimeSpan GetInterpolatedPosition()
     {
-        if (Status != MediaPlaybackStatus.Playing || Position <= TimeSpan.Zero)
+        if (Status != MediaPlaybackStatus.Playing || Position < TimeSpan.Zero)
         {
-            return Position;
+            return Position < TimeSpan.Zero ? TimeSpan.Zero : Position;
         }
 
         var elapsed = DateTime.UtcNow - LastUpdatedUtc;
+        if (elapsed < TimeSpan.Zero)
+        {
+            elapsed = TimeSpan.Zero;
+        }
+
         var estimated = Position + elapsed;
 
         if (Duration > TimeSpan.Zero && estimated > Duration)

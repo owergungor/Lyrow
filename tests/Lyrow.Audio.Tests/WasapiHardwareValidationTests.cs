@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Lyrow.Audio.Capture;
+using Lyrow.Audio.Control;
 using Xunit;
 
 namespace Lyrow.Audio.Tests;
@@ -62,5 +63,35 @@ public sealed class WasapiHardwareValidationTests
 
         // Clean disposal
         await wasapiService.DisposeAsync();
+    }
+
+    [Fact]
+    public void WindowsAudioVolumeService_HardwareValidation_ControlsRealWindowsEndpointVolume()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var volumeService = new WindowsAudioVolumeService();
+        int initialVol = volumeService.GetVolumePercent();
+        string target = volumeService.ActiveTargetName;
+
+        // Verify it can read volume in 0..100 range
+        initialVol.Should().BeInRange(0, 100);
+        target.Should().NotBeNullOrWhiteSpace();
+
+        // Nudge volume by 1% (or -1% if at 100) to verify real Windows playback volume control
+        int targetVol = initialVol >= 100 ? initialVol - 1 : initialVol + 1;
+        bool setSuccess = volumeService.SetVolumePercent(targetVol);
+        setSuccess.Should().BeTrue();
+
+        int updatedVol = volumeService.GetVolumePercent();
+        updatedVol.Should().Be(targetVol);
+
+        // Restore original volume
+        volumeService.SetVolumePercent(initialVol);
+        int restoredVol = volumeService.GetVolumePercent();
+        restoredVol.Should().Be(initialVol);
     }
 }

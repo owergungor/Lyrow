@@ -47,6 +47,12 @@ public sealed class LyrowSettings
 
     public bool SystemTrayEnabled { get; set; } = true;
 
+    public bool AutoUpdateEnabled { get; set; } = true;
+
+    public int LyricsFontScaleIndex { get; set; } = 0;
+
+    public int GlowPresetIndex { get; set; } = 0;
+
     public HotkeySettings Hotkeys { get; set; } = new();
 
     public Dictionary<string, string> ModuleCustomSettings { get; set; } = new(StringComparer.OrdinalIgnoreCase);

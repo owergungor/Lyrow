@@ -9,7 +9,8 @@ namespace Lyrow.App.Platform;
 
 /// <summary>
 /// Multi-monitor coordinator for Glow ambient edge lighting overlay windows.
-/// Manages per-monitor overlays, dynamic display resolution changes, and smooth album artwork palette syncing.
+/// Manages per-monitor overlays, PerMonitorV2 DPI scaling detection, dynamic display resolution changes,
+/// and smooth album artwork palette cross-fading.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class GlowOverlayManager : IDisposable
@@ -22,6 +23,28 @@ public sealed class GlowOverlayManager : IDisposable
     private GlowPalette _currentPalette = GlowPalette.Default;
     private bool _isRunning = false;
     private bool _isDisposed = false;
+
+    public GlowPalette CurrentPalette
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _activeOverlays.Count > 0 ? _activeOverlays[0].CurrentPalette : _currentPalette;
+            }
+        }
+    }
+
+    public bool IsRunning
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _isRunning;
+            }
+        }
+    }
 
     public IReadOnlyList<GlowOverlayWindow> ActiveOverlays
     {
@@ -65,14 +88,7 @@ public sealed class GlowOverlayManager : IDisposable
     public void UpdateArtworkPalette(byte[]? artworkBytes)
     {
         var palette = ArtworkColorExtractor.ExtractPalette(artworkBytes);
-        lock (_lock)
-        {
-            _currentPalette = palette;
-            foreach (var overlay in _activeOverlays)
-            {
-                overlay.SetPalette(_currentPalette, immediate: false);
-            }
-        }
+        SetCustomPalette(palette);
     }
 
     public void SetCustomPalette(GlowPalette palette)
@@ -103,8 +119,7 @@ public sealed class GlowOverlayManager : IDisposable
         var screens = EnumerateScreens();
         if (screens.Count == 0)
         {
-            // Fallback virtual screen
-            var overlay = new GlowOverlayWindow(_lumnModule);
+            var overlay = new GlowOverlayWindow(_lumnModule, _settingsManager);
             overlay.SetPalette(_currentPalette, immediate: true);
             overlay.Create(0, 0, 1920, 1080);
             _activeOverlays.Add(overlay);
@@ -120,7 +135,7 @@ public sealed class GlowOverlayManager : IDisposable
             if (!shouldInclude) continue;
 
             var screen = screens[i];
-            var overlay = new GlowOverlayWindow(_lumnModule);
+            var overlay = new GlowOverlayWindow(_lumnModule, _settingsManager);
             overlay.SetPalette(_currentPalette, immediate: true);
             overlay.Create(screen.Bounds.X, screen.Bounds.Y, screen.Bounds.Width, screen.Bounds.Height);
             _activeOverlays.Add(overlay);
@@ -155,6 +170,16 @@ public sealed class GlowOverlayManager : IDisposable
                 int workW = mi.rcWork.right - mi.rcWork.left;
                 int workH = mi.rcWork.bottom - mi.rcWork.top;
 
+                double scale = 1.0;
+                try
+                {
+                    if (GetDpiForMonitor(hMonitor, 0 /* MDT_EFFECTIVE_DPI */, out uint dpiX, out _) == 0 && dpiX > 0)
+                    {
+                        scale = Math.Round(dpiX / 96.0, 2);
+                    }
+                }
+                catch { }
+
                 result.Add(new DisplayScreenInfo
                 {
                     Index = index++,
@@ -162,7 +187,7 @@ public sealed class GlowOverlayManager : IDisposable
                     Bounds = new PixelRect(mi.rcMonitor.left, mi.rcMonitor.top, width, height),
                     WorkingArea = new PixelRect(mi.rcWork.left, mi.rcWork.top, workW, workH),
                     IsPrimary = (mi.dwFlags & 1) != 0,
-                    Scaling = 1.0
+                    Scaling = scale
                 });
             }
             return true;
@@ -205,4 +230,7 @@ public sealed class GlowOverlayManager : IDisposable
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern bool GetMonitorInfoW(IntPtr hMonitor, ref MONITORINFOEX lpmi);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
 }

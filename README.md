@@ -1,34 +1,33 @@
-# Lyrow v1.3 — Windows 11 Native + Lumn-Style Ambient Experience
+# Lyrow v2.0 — Windows 11 Native + Lumn-Style Ambient Experience
 
 [![CI](https://github.com/owergungor/Lyrow/actions/workflows/ci.yml/badge.svg)](https://github.com/owergungor/Lyrow/actions/workflows/ci.yml)
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20Native-0078D6?logo=windows)](https://microsoft.com/windows)
 [![.NET 10 LTS](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![UI: WinUI 3 + Windows App SDK](https://img.shields.io/badge/UI-WinUI%203%20%2F%20Windows%20App%20SDK-0078D4?logo=windows)](https://learn.microsoft.com/windows/apps/winui/winui3/)
-[![Design: Windows 11 Fluent + Apple Music](https://img.shields.io/badge/Design-Windows%2011%20Mica%20%2B%20Apple-black)](docs/WINUI_MIGRATION.md)
+[![Design: Windows 11 Fluent + Apple Music](https://img.shields.io/badge/Design-Windows%2011%20Mica%20%2B%20Apple-black)](docs/RELEASE_NOTES_v2.0.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Lyrow**, Windows 11 üzerinde müzik dinleme deneyimini görsel bir şölene dönüştüren, **WinUI 3 ve Windows App SDK** ile baştan sona yeniden yazılmış, **Lumn benzeri ortam kenar aydınlatması (ambient edge lighting)** ve **Apple Music benzeri akıcı dikey merkezlenen şarkı sözü deneyimi** sunan yeni nesil yerel Windows masaüstü müzik arkadaşıdır.
+**Lyrow**, Windows 11 üzerinde müzik dinleme deneyimini görsel bir şölene dönüştüren, **WinUI 3 ve Windows App SDK** mimarisiyle tasarlanmış, **Lumn benzeri 4 kenar ortam aydınlatması (ambient edge lighting)** ve **Apple Music benzeri 60 FPS akıcı dikey merkezlenen şarkı sözü deneyimi** sunan yerel Windows masaüstü müzik arkadaşıdır.
 
 Lyrow iki bağımsız ancak birbiriyle tam senkron çalışan ana modülden oluşur:
 
-- **Glow:** macOS'taki Lumn uygulamasından ilham alan, ekranın dört kenarında (üst, alt, sol, sağ) sistem ses çıkışının (WASAPI Loopback) ritmine, baslarına ve dinamik geçişlerine (transient beat) göre yumuşak renk enerjisi yayan, albüm kapağının dominant/vibrant renklerine yumuşak cross-fade geçişlerle bürünen ve diğer uygulamaların kullanımını **kesinlikle engellemeyen (click-through, zero-interference)** ortam aydınlatması.
-- **Lyrics:** Sistemde çalan şarkıyı (Spotify, Apple Music, YouTube vb.) Windows GSMTC üzerinden yakalayan, LRCLIB ile senkronize şarkı sözlerini milisaniye hassasiyetinde çeken, **aktif satırı daima dikey olarak merkezleyen**, donanım hızlandırmalı yumuşak kaydırma ve şeffaflık geçişleriyle Apple Music akıcılığı sunan şarkı sözü penceresi.
+- **Glow:** macOS'taki Lumn uygulamasından ilham alan, ekranın dört kenarında (Top, Bottom, Left, Right) sistem ses çıkışının (WASAPI Loopback) ritmine, baslarına, mid/treble bantlarına ve dinamik vuruşlarına (Smoothing → Attack → Hold → Decay) göre bağımsız renk enerjisi yayan, albüm kapağının dominant/vibrant RGBA piksellerinden çıkarılan paletle yumuşak cross-fade geçişler yapan ve diğer uygulamaların kullanımını **kesinlikle engellemeyen (click-through, zero-interference)** ortam aydınlatması.
+- **Lyrics:** Sistemde çalan şarkıyı (Spotify, Apple Music, YouTube vb.) Windows GSMTC üzerinden yakalayan, LRCLIB ile senkronize şarkı sözlerini milisaniye hassasiyetinde çeken, **aktif satırı daima dikey olarak merkezleyen**, 60 FPS enterpolasyonlu kaydırma ve hiyerarşik tipografi/opaklık geçişleriyle Apple Music akıcılığı sunan şarkı sözü penceresi.
 
-Ayrıntılı mimari ve Avalonia'dan WinUI 3'e geçiş detayları için [WinUI Migration Raporu](docs/WINUI_MIGRATION.md)'na göz atın.
+Ayrıntılı sürüm notları için [Lyrow v2.0 Sürüm Notları](docs/RELEASE_NOTES_v2.0.md)'na göz atın.
 
 ---
 
-## ✨ v1.3 Öne Çıkan Yenilikler
+## ✨ v2.0 Öne Çıkan Yenilikler
 
-- **🪟 Gerçek Windows 11 Native WinUI 3:** Avalonia UI tamamen kaldırıldı. Gerçek Windows 11 tasarım dili: **Mica backdrop**, modern başlık çubuğu (Custom TitleBar), `NavigationView`, yerel `ToggleSwitch`, `Slider`, `ComboBox`, `InfoBar` ve akıcı tipografi.
-- **🛡️ Sıfır Etkileşim Engeli (Zero-Interference Click-Through Overlay):** Glow penceresi diğer uygulamaların (Chrome, VS Code, oyunlar, Explorer) üzerine fiziksel bir pencere gibi oturmaz. `WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_LAYERED | WS_EX_TOOLWINDOW` ve `WM_NCHITTEST -> HTTRANSPARENT` mimarisiyle tüm fare tıklamaları ve klavye girdileri arkadaki pencerelere doğrudan geçer. Alt+Tab ve Görev Çubuğu davranışları asla bozulmaz. Glow kapatıldığında overlay tamamen kapanır.
-- **🌈 Lumn Tarzı 4 Kenar Ambient Kenar Aydınlatması:** Düz çizgiler yerine bloom, soft gradient ve müzikal enerji akışı. Bas ve ritim vurduğunda yumuşak bir parlama (pulse); müzik durduğunda ani kesilme olmaksızın pürüzsüz sakinleşme (decay).
-- **🎨 Albüm Kapağı → Glow Renk Entegrasyonu:** Albüm kapağındaki dominant ve canlı vurgu renkleri asenkron olarak çözülür. Şarkı değiştiğinde renkler aniden değişmek yerine ~800ms boyunca yumuşak cross-fade (`GlowPalette.Lerp`) ile geçiş yapar.
-- **🎵 Apple Music Hissiyatında Şarkı Sözü Akışı:** Aktif satır **her zaman görsel olarak dikey merkezde** kalır. `ScrollViewer.ChangeView` donanım hızlandırmalı pürüzsüz animasyonla kayar. Aktif satır %100 opaklık ve belirgin tipografiyle öne çıkarken inaktif satırlar %35 opaklıkta sakin durur. İleri/geri sarma (seek) anında yeni aktif satırı merkeze alır; duraklatma/sürdürmede konumunu korur.
-- **🔊 0% — 100% Yerel Ses Düzeyi:** Teknik dBFS göstergesi UI'dan tamamen kaldırıldı. Kullanıcıya Windows yerel Slider'ı ve yüzde göstergesiyle doğrudan 0%–100% lineer ses seviyesi sunulur.
-- **⏱️ Deterministik Başlangıç Durumu:** Uygulama ilk açıldığında Glow = OFF ve Lyrics = OFF olarak başlar. UI anahtarları gerçek modül durumunu eksiksiz yansıtır; yarış durumu (race condition) veya yanlış aktif göstergesi engellenmiştir.
-- **🖥️ Akıllı Çoklu Monitör & DPI Desteği:** Sistemdeki tüm monitörler (`EnumDisplayMonitors`) algılanır. Ekran çözünürlüğü, ölçekleme veya monitör ekleme/çıkarma durumunda overlay'ler otomatik olarak yeniden hesaplanır. İstenen ekranlar ayarlar üzerinden seçilebilir.
-- **⌨️ Sıfır Varsayılanlı Güvenli Kısayollar:** İlk kurulumda hiçbir küresel kısayol işgal edilmez. Kullanıcı istediği tuşları kendisi tanımlar; Win32 1408 iş parçacığı çakışma koruması devrededir.
+- **🌈 Lumn Tarzı 4 Kenar Ambient Glow Motoru (Major Overhaul):** Ayrılmış (dedicated) Win32 STA render thread'i ve 60 FPS `UpdateLayeredWindow` mimarisiyle ekranın 4 kenarında (Top, Bottom, Left, Right) bağımsız enerji hesaplaması. Keskin ON/OFF yerine `Smoothing → Attack → Hold → Decay → Rendered Intensity` zarfıyla sürekli ve akıcı ambiyans ışığı.
+- **🎨 Gerçek RGBA Albüm Kapağı → Vibrant Glow Paleti:** WIC `BitmapDecoder` ile albüm kapaklarının gerçek pikselleri örneklenir, HSV doygunluk/parlaklık güçlendirmesi (`BoostVibrancy`) ile mor, mavi, kırmızı, turuncu, yeşil ve pembe gibi canlı renkler çıkarılır ve şarkı değişiminde ~800ms `GlowPalette.Lerp` ile yumuşak cross-fade yapılır.
+- **🎵 Apple Music Tarzı 60 FPS Şarkı Sözü & Tam Dikey Merkezleme:** Aktif satır **her zaman görsel olarak tam dikey merkezde** (`viewportHeight / 2`) yer alır. Aktif satır güçlü tipografi ve %100 opaklıkla parlar; yakın satırlar (%46) ve uzak satırlar (%22) kademeli ölçek/opaklık hiyerarşisiyle 60 FPS pürüzsüz geçiş yapar. Seek (ileri/geri sarma) durumunda binary search ile anında doğru satır bulunur ve merkeze yumuşakça kayar.
+- **⏯️ Gerçek GSMTC Medya Kontrolleri:** Play, Pause, Toggle Play/Pause, Previous ve Next butonları doğrudan aktif Windows medya oturumuna (Spotify, Apple Music, Tarayıcı vb.) komut gönderir. Parça değiştiğinde metadata, albüm kapağı, şarkı sözleri, zaman çizelgesi ve Glow renk paleti anında senkronize olur.
+- **🔊 Gerçek Windows Ses Seviyesi Kontrolü (0% — 100%):** dBFS göstergesi tamamen kaldırıldı. Slider doğrudan aktif medya oturumunun (`ISimpleAudioVolume`) ve Windows ana ses çıkışının (`IAudioEndpointVolume`) gerçek ses seviyesini `0%–100%` aralığında kontrol eder; sessize alma (mute) ve oynatıcı değişimlerini otomatik algılar.
+- **🔄 Güvenli Otomatik Güncelleme (Auto Update):** Settings ekranında GitHub Releases üzerinden asenkron `v2.0` sürüm kontrolü, kullanıcı onayı olmadan dosya değiştirmeyen güvenli mimari ve çevrimdışı hata toleransı.
+- **🖱️ Kusursuz Kaydırma (Scroll) & Kompakt Kenar Çubuğu:** Fare tekerleği (mouse wheel), touchpad iki parmak kaydırma, `PageUp`/`PageDown`/`Home`/`End` klavye navigasyonu ve daraltılmış modern Windows 11 sol menü (`188px`) ile ferah çalışma alanı.
+- **🖥️ PerMonitorV2 Keskin DPI Desteği:** `%100`, `%125`, `%150`, `%175` ve `%200` ölçeklemelerde ve çoklu monitör kurulumlarında bulanıklığı önleyen tam `PerMonitorV2` DPI farkındalığı.
 
 ---
 
@@ -48,13 +47,13 @@ Ayrıntılı mimari ve Avalonia'dan WinUI 3'e geçiş detayları için [WinUI Mi
 ## 🚀 Kurulum
 
 ### Yöntem 1: Windows Kurulum Paketi (Önerilen)
-1. [GitHub Releases](https://github.com/owergungor/Lyrow/releases) sayfasından en son `Lyrow-1.3-Setup-x64.exe` dosyasını indirin.
+1. [GitHub Releases](https://github.com/owergungor/Lyrow/releases) sayfasından en son `Lyrow-2.0-Setup-x64.exe` dosyasını indirin.
 2. Kurulum sihirbazını çalıştırın. İsteğe bağlı olarak masaüstü kısayolu oluşturun.
 3. Kurulum tamamlandığında Lyrow otomatik olarak başlayacaktır.
 4. *Not:* Kurulum ve yükseltmelerde kullanıcı ayarlarınız (`%APPDATA%\Lyrow`) silinmez, korunur.
 
 ### Yöntem 2: Taşınabilir (Portable) ZIP
-1. `Lyrow-v1.3-win-x64-portable.zip` arşivini indirin.
+1. `Lyrow-v2.0-win-x64-portable.zip` arşivini indirin.
 2. Dilediğiniz bir klasöre çıkartın.
 3. `Lyrow.App.exe` dosyasını doğrudan çalıştırın.
 
@@ -71,7 +70,7 @@ cd Lyrow
 dotnet restore Lyrow.sln
 dotnet build Lyrow.sln -c Release
 
-# Tüm test paketini çalıştırın (157 test)
+# Tüm test paketini çalıştırın
 dotnet test Lyrow.sln
 
 # Bağımsız win-x64 paketi üretin

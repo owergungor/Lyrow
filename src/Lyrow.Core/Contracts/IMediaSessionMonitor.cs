@@ -19,6 +19,12 @@ public interface IMediaSessionMonitor : IAsyncDisposable
     /// <summary>Gets whether media session monitoring is currently active.</summary>
     bool IsMonitoring { get; }
 
+    /// <summary>Gets whether an active OS media session is currently attached.</summary>
+    bool HasActiveSession { get; }
+
+    /// <summary>Gets the identifier of the active media player application (e.g., Spotify.exe, chrome.exe).</summary>
+    string? SourceAppId { get; }
+
     /// <summary>Gets the most recently observed track metadata.</summary>
     MediaTrackInfo CurrentTrack { get; }
 
@@ -30,6 +36,12 @@ public interface IMediaSessionMonitor : IAsyncDisposable
 
     /// <summary>Stops listening for media events and releases OS listeners.</summary>
     Task StopAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Sends Play command to the active OS media session.</summary>
+    Task<bool> TryPlayAsync();
+
+    /// <summary>Sends Pause command to the active OS media session.</summary>
+    Task<bool> TryPauseAsync();
 
     /// <summary>Toggles play/pause on the active OS media session.</summary>
     Task<bool> TryTogglePlayPauseAsync();

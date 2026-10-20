@@ -64,7 +64,7 @@ public partial class App : Application
             }
             catch { }
 
-            LocalDiagnosticLogger.LogInfo("Initializing Lyrow WinUI 3 application and DI container...");
+            LocalDiagnosticLogger.LogInfo("Initializing Lyrow v2.0 WinUI 3 application and DI container...");
             var services = new ServiceCollection();
             ConfigureServices(services);
             Services = services.BuildServiceProvider();
@@ -76,6 +76,7 @@ public partial class App : Application
             var moduleManager = Services.GetRequiredService<IModuleManager>();
             var lumn = Services.GetRequiredService<LumnModule>();
             var verci = Services.GetRequiredService<VerciModule>();
+            verci.KeepMediaMonitorAliveWhenStopped = true;
 
             moduleManager.RegisterModule(lumn);
             moduleManager.RegisterModule(verci);
@@ -91,6 +92,8 @@ public partial class App : Application
             var glowOverlayManager = Services.GetRequiredService<GlowOverlayManager>();
             var artworkBitmapManager = Services.GetRequiredService<ArtworkBitmapManager>();
             var toastService = Services.GetRequiredService<IToastNotificationService>();
+            var volumeService = Services.GetRequiredService<IAudioVolumeService>();
+            var updateService = Services.GetRequiredService<IUpdateService>();
 
             var mainWindow = new MainWindow(
                 moduleManager,
@@ -101,7 +104,9 @@ public partial class App : Application
                 trayIconManager,
                 glowOverlayManager,
                 artworkBitmapManager,
-                toastService);
+                toastService,
+                volumeService,
+                updateService);
 
             MainWindowInstance = mainWindow;
 
@@ -148,6 +153,9 @@ public partial class App : Application
             var tray = Services?.GetService<LyrowTrayIconManager>();
             tray?.Dispose();
 
+            var volume = Services?.GetService<IAudioVolumeService>();
+            volume?.Dispose();
+
             var moduleManager = Services?.GetService<IModuleManager>();
             if (moduleManager != null)
             {
@@ -181,8 +189,9 @@ public partial class App : Application
         services.AddSingleton<IEventBus, InMemoryEventBus>();
         services.AddSingleton<ISettingsManager, SettingsManager>();
         services.AddSingleton<IModuleManager, ModuleManager>();
+        services.AddSingleton<IUpdateService>(sp => new GitHubUpdateService());
 
-        // Audio pipeline services
+        // Audio capture & real Windows volume control services
         services.AddSingleton<IAudioCaptureService>(sp =>
         {
             if (OperatingSystem.IsWindows())
@@ -191,6 +200,16 @@ public partial class App : Application
             }
             return new Lyrow.Audio.Capture.SyntheticAudioCaptureService();
         });
+
+        services.AddSingleton<IAudioVolumeService>(sp =>
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return new Lyrow.Audio.Control.WindowsAudioVolumeService();
+            }
+            return new Lyrow.Audio.Control.SyntheticAudioVolumeService();
+        });
+
         services.AddSingleton<ISpectrumAnalyzer>(sp => new Lyrow.Audio.Analysis.SpectrumAnalyzer(fftSize: 2048, barCount: 32));
 
         services.AddSingleton<LumnModule>(sp => new LumnModule(

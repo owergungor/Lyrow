@@ -55,6 +55,12 @@ public sealed class VerciModule : ILyrowModule
     public LyricsTimelineSynchronizer Synchronizer => _synchronizer;
 
     /// <summary>
+    /// When true, stopping the Lyrics overlay module detaches event handlers without shutting down the shared OS media session monitor.
+    /// Defaults to false for isolated unit tests.
+    /// </summary>
+    public bool KeepMediaMonitorAliveWhenStopped { get; set; } = false;
+
+    /// <summary>
     /// Attaches or updates the media monitor, lyrics client and cache services.
     /// </summary>
     public void AttachServices(
@@ -97,15 +103,23 @@ public sealed class VerciModule : ILyrowModule
 
             if (_mediaSessionMonitor != null)
             {
+                _mediaSessionMonitor.TrackChanged -= OnTrackChanged;
+                _mediaSessionMonitor.TimelineChanged -= OnTimelineChanged;
+                _mediaSessionMonitor.MonitorFaulted -= OnMonitorFaulted;
+
                 _mediaSessionMonitor.TrackChanged += OnTrackChanged;
                 _mediaSessionMonitor.TimelineChanged += OnTimelineChanged;
                 _mediaSessionMonitor.MonitorFaulted += OnMonitorFaulted;
 
-                await _mediaSessionMonitor.StartAsync(ct).ConfigureAwait(false);
+                if (!_mediaSessionMonitor.IsMonitoring)
+                {
+                    await _mediaSessionMonitor.StartAsync(ct).ConfigureAwait(false);
+                }
 
                 // If a track is already active on startup, query its lyrics
                 if (!_mediaSessionMonitor.CurrentTrack.IsEmpty)
                 {
+                    _currentTimeline = _mediaSessionMonitor.CurrentTimeline;
                     _ = HandleTrackChangedAsync(_mediaSessionMonitor.CurrentTrack, ct);
                 }
             }
@@ -140,14 +154,21 @@ public sealed class VerciModule : ILyrowModule
                 _mediaSessionMonitor.TrackChanged -= OnTrackChanged;
                 _mediaSessionMonitor.TimelineChanged -= OnTimelineChanged;
                 _mediaSessionMonitor.MonitorFaulted -= OnMonitorFaulted;
-                await _mediaSessionMonitor.StopAsync(cancellationToken).ConfigureAwait(false);
+
+                if (!KeepMediaMonitorAliveWhenStopped)
+                {
+                    await _mediaSessionMonitor.StopAsync(cancellationToken).ConfigureAwait(false);
+                }
             }
 
-            _synchronizer.Reset();
-            _currentLyrics = SyncedLyrics.Empty;
-            _currentTrack = MediaTrackInfo.Empty;
-            _currentTimeline = MediaTimelineInfo.Zero;
-            _activeLineIndex = -1;
+            if (!KeepMediaMonitorAliveWhenStopped)
+            {
+                _synchronizer.Reset();
+                _currentLyrics = SyncedLyrics.Empty;
+                _currentTrack = MediaTrackInfo.Empty;
+                _currentTimeline = MediaTimelineInfo.Zero;
+                _activeLineIndex = -1;
+            }
 
             _activeCts?.Dispose();
             _activeCts = null;
@@ -164,6 +185,13 @@ public sealed class VerciModule : ILyrowModule
         {
             _stateLock.Release();
         }
+    }
+
+    public void UpdateTimelineExternal(MediaTimelineInfo timeline)
+    {
+        _currentTimeline = timeline;
+        _synchronizer.SyncOffsetMs = _settingsManager?.Current.Verci.SyncOffsetMs ?? 0;
+        _synchronizer.UpdateTimeline(timeline);
     }
 
     public void SetSyncOffset(int offsetMs)

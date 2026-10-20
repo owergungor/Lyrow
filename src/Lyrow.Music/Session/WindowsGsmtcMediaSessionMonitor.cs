@@ -8,7 +8,8 @@ namespace Lyrow.Music.Session;
 
 /// <summary>
 /// Hardware Windows GSMTC (Global System Media Transport Controls) media session monitor.
-/// Listens to active OS-level media sessions (Spotify, Apple Music, YouTube, Edge, Chrome) without API keys.
+/// Listens to active OS-level media sessions (Spotify, Apple Music, YouTube, Edge, Chrome)
+/// and dispatches real Play, Pause, TogglePlayPause, Next, and Previous commands.
 /// </summary>
 [SupportedOSPlatform("windows10.0.19041.0")]
 public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
@@ -30,6 +31,8 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
     public event EventHandler<Exception>? MonitorFaulted;
 
     public bool IsMonitoring => _isMonitoring;
+    public bool HasActiveSession => _currentSession != null;
+    public string? SourceAppId => _currentSession?.SourceAppUserModelId;
     public MediaTrackInfo CurrentTrack { get; private set; }
     public MediaTimelineInfo CurrentTimeline { get; private set; }
 
@@ -49,7 +52,9 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             if (_sessionManager != null)
             {
                 _sessionManager.CurrentSessionChanged += OnCurrentSessionChanged;
-                AttachCurrentSession(_sessionManager.GetCurrentSession());
+                _sessionManager.SessionsChanged += OnSessionsChanged;
+                var session = ResolveBestSession(_sessionManager);
+                await AttachSessionInternalAsync(session).ConfigureAwait(false);
             }
 
             _isMonitoring = true;
@@ -78,6 +83,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             if (_sessionManager != null)
             {
                 _sessionManager.CurrentSessionChanged -= OnCurrentSessionChanged;
+                _sessionManager.SessionsChanged -= OnSessionsChanged;
                 _sessionManager = null;
             }
 
@@ -90,27 +96,79 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         }
     }
 
+    private GlobalSystemMediaTransportControlsSession? ResolveBestSession(GlobalSystemMediaTransportControlsSessionManager manager)
+    {
+        try
+        {
+            var current = manager.GetCurrentSession();
+            if (current != null) return current;
+
+            var all = manager.GetSessions();
+            if (all == null || all.Count == 0) return null;
+
+            foreach (var s in all)
+            {
+                try
+                {
+                    var info = s.GetPlaybackInfo();
+                    if (info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                    {
+                        return s;
+                    }
+                }
+                catch { }
+            }
+
+            foreach (var s in all)
+            {
+                try
+                {
+                    var info = s.GetPlaybackInfo();
+                    if (info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused)
+                    {
+                        return s;
+                    }
+                }
+                catch { }
+            }
+
+            return all[0];
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private void OnCurrentSessionChanged(GlobalSystemMediaTransportControlsSessionManager sender, CurrentSessionChangedEventArgs args)
     {
         if (!_isMonitoring) return;
-
-        _ = Task.Run(async () =>
-        {
-            await _lock.WaitAsync().ConfigureAwait(false);
-            try
-            {
-                if (!_isMonitoring) return;
-                DetachCurrentSession();
-                AttachCurrentSession(sender.GetCurrentSession());
-            }
-            finally
-            {
-                _lock.Release();
-            }
-        });
+        _ = RefreshSessionBindingAsync(sender);
     }
 
-    private void AttachCurrentSession(GlobalSystemMediaTransportControlsSession? session)
+    private void OnSessionsChanged(GlobalSystemMediaTransportControlsSessionManager sender, SessionsChangedEventArgs args)
+    {
+        if (!_isMonitoring) return;
+        _ = RefreshSessionBindingAsync(sender);
+    }
+
+    private async Task RefreshSessionBindingAsync(GlobalSystemMediaTransportControlsSessionManager sender)
+    {
+        await _lock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (!_isMonitoring) return;
+            var best = ResolveBestSession(sender);
+            DetachCurrentSession();
+            await AttachSessionInternalAsync(best).ConfigureAwait(false);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    private async Task AttachSessionInternalAsync(GlobalSystemMediaTransportControlsSession? session)
     {
         _currentSession = session;
         if (_currentSession == null)
@@ -126,7 +184,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         _currentSession.PlaybackInfoChanged += OnPlaybackInfoChanged;
         _currentSession.TimelinePropertiesChanged += OnTimelinePropertiesChanged;
 
-        _ = UpdateAllPropertiesAsync(_currentSession);
+        await UpdateAllPropertiesAsync(_currentSession).ConfigureAwait(false);
     }
 
     private void DetachCurrentSession()
@@ -244,8 +302,23 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 
             var pos = timelineProps?.Position ?? TimeSpan.Zero;
             var dur = timelineProps?.EndTime ?? CurrentTrack.Duration;
+            if (dur <= TimeSpan.Zero && CurrentTrack.Duration > TimeSpan.Zero)
+            {
+                dur = CurrentTrack.Duration;
+            }
 
-            var timeline = new MediaTimelineInfo(pos, dur, status, DateTime.UtcNow);
+            var lastUpdatedUtc = DateTime.UtcNow;
+            if (timelineProps != null && timelineProps.LastUpdatedTime.Year > 2020)
+            {
+                var reportedUtc = timelineProps.LastUpdatedTime.UtcDateTime;
+                var age = DateTime.UtcNow - reportedUtc;
+                if (age >= TimeSpan.Zero && age < TimeSpan.FromHours(2))
+                {
+                    lastUpdatedUtc = reportedUtc;
+                }
+            }
+
+            var timeline = new MediaTimelineInfo(pos, dur, status, lastUpdatedUtc);
             CurrentTimeline = timeline;
             TimelineChanged?.Invoke(this, timeline);
         }
@@ -257,31 +330,139 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         return Task.CompletedTask;
     }
 
+    private async Task<GlobalSystemMediaTransportControlsSession?> EnsureActiveSessionAsync()
+    {
+        if (_currentSession != null) return _currentSession;
+
+        if (_sessionManager == null)
+        {
+            try
+            {
+                _sessionManager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
+            }
+            catch { }
+        }
+
+        if (_sessionManager != null)
+        {
+            var best = ResolveBestSession(_sessionManager);
+            if (best != null)
+            {
+                await AttachSessionInternalAsync(best).ConfigureAwait(false);
+            }
+        }
+
+        return _currentSession;
+    }
+
+    public async Task<bool> TryPlayAsync()
+    {
+        var session = await EnsureActiveSessionAsync().ConfigureAwait(false);
+        if (session == null) return false;
+
+        try
+        {
+            bool ok = await session.TryPlayAsync();
+            await UpdatePlaybackAndTimelineAsync(session).ConfigureAwait(false);
+            return ok;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> TryPauseAsync()
+    {
+        var session = await EnsureActiveSessionAsync().ConfigureAwait(false);
+        if (session == null) return false;
+
+        try
+        {
+            bool ok = await session.TryPauseAsync();
+            await UpdatePlaybackAndTimelineAsync(session).ConfigureAwait(false);
+            return ok;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<bool> TryTogglePlayPauseAsync()
     {
-        if (_currentSession != null)
+        var session = await EnsureActiveSessionAsync().ConfigureAwait(false);
+        if (session == null) return false;
+
+        try
         {
-            try { return await _currentSession.TryTogglePlayPauseAsync(); } catch { }
+            var status = session.GetPlaybackInfo()?.PlaybackStatus;
+            bool ok = false;
+            if (status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+            {
+                ok = await session.TryPauseAsync();
+                if (!ok) ok = await session.TryTogglePlayPauseAsync();
+            }
+            else if (status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused ||
+                     status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Stopped)
+            {
+                ok = await session.TryPlayAsync();
+                if (!ok) ok = await session.TryTogglePlayPauseAsync();
+            }
+            else
+            {
+                ok = await session.TryTogglePlayPauseAsync();
+            }
+
+            await UpdatePlaybackAndTimelineAsync(session).ConfigureAwait(false);
+            return ok;
         }
-        return false;
+        catch
+        {
+            return false;
+        }
     }
 
     public async Task<bool> TrySkipNextAsync()
     {
-        if (_currentSession != null)
+        var session = await EnsureActiveSessionAsync().ConfigureAwait(false);
+        if (session == null) return false;
+
+        try
         {
-            try { return await _currentSession.TrySkipNextAsync(); } catch { }
+            bool ok = await session.TrySkipNextAsync();
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(200).ConfigureAwait(false);
+                await UpdateAllPropertiesAsync(session).ConfigureAwait(false);
+            });
+            return ok;
         }
-        return false;
+        catch
+        {
+            return false;
+        }
     }
 
     public async Task<bool> TrySkipPreviousAsync()
     {
-        if (_currentSession != null)
+        var session = await EnsureActiveSessionAsync().ConfigureAwait(false);
+        if (session == null) return false;
+
+        try
         {
-            try { return await _currentSession.TrySkipPreviousAsync(); } catch { }
+            bool ok = await session.TrySkipPreviousAsync();
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(200).ConfigureAwait(false);
+                await UpdateAllPropertiesAsync(session).ConfigureAwait(false);
+            });
+            return ok;
         }
-        return false;
+        catch
+        {
+            return false;
+        }
     }
 
     public async ValueTask DisposeAsync()
