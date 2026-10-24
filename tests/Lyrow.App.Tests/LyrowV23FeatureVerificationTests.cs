@@ -15,13 +15,13 @@ public sealed class LyrowV23FeatureVerificationTests
     [Fact]
     public void Versioning_IsStrictlyTwoPart_V23()
     {
-        Assert.Equal("2.4", GitHubUpdateService.AppVersion);
-        Assert.True(GitHubUpdateService.IsValidTwoPartVersionTag("v2.4"));
-        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.4.0"));
-        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("2.4.0"));
-        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.4.1"));
-        Assert.True(GitHubUpdateService.IsNewerVersion("2.3", "2.4"));
-        Assert.False(GitHubUpdateService.IsNewerVersion("2.4", "2.4"));
+        Assert.Equal("2.5", GitHubUpdateService.AppVersion);
+        Assert.True(GitHubUpdateService.IsValidTwoPartVersionTag("v2.5"));
+        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.5.0"));
+        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("2.5.0"));
+        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.5.1"));
+        Assert.True(GitHubUpdateService.IsNewerVersion("2.4", "2.5"));
+        Assert.False(GitHubUpdateService.IsNewerVersion("2.5", "2.5"));
     }
 
     [Fact]

@@ -263,13 +263,27 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 }
             }
 
+            string newTitle = props.Title ?? string.Empty;
+            string newArtist = props.Artist ?? string.Empty;
+            string newAlbum = props.AlbumTitle ?? string.Empty;
+
+            bool isTrackSwitch = !string.Equals(CurrentTrack.Title, newTitle, StringComparison.OrdinalIgnoreCase) ||
+                                 !string.Equals(CurrentTrack.Artist, newArtist, StringComparison.OrdinalIgnoreCase);
+
             var timelineProps = session.GetTimelineProperties();
             var duration = timelineProps?.EndTime ?? TimeSpan.Zero;
 
+            if (isTrackSwitch)
+            {
+                // Reset timeline immediately on track switch so old track's position/duration is never extrapolated
+                CurrentTimeline = new MediaTimelineInfo(TimeSpan.Zero, duration, MediaPlaybackStatus.Changing, DateTime.UtcNow);
+                TimelineChanged?.Invoke(this, CurrentTimeline);
+            }
+
             var track = new MediaTrackInfo(
-                Title: props.Title ?? string.Empty,
-                Artist: props.Artist ?? string.Empty,
-                Album: props.AlbumTitle ?? string.Empty,
+                Title: newTitle,
+                Artist: newArtist,
+                Album: newAlbum,
                 Duration: duration,
                 ThumbnailData: thumbnailBytes);
 
@@ -301,10 +315,18 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             };
 
             var pos = timelineProps?.Position ?? TimeSpan.Zero;
-            var dur = timelineProps?.EndTime ?? CurrentTrack.Duration;
+            var dur = timelineProps?.EndTime ?? TimeSpan.Zero;
             if (dur <= TimeSpan.Zero && CurrentTrack.Duration > TimeSpan.Zero)
             {
                 dur = CurrentTrack.Duration;
+            }
+            if (dur > TimeSpan.Zero && CurrentTrack.Duration != dur)
+            {
+                CurrentTrack = CurrentTrack with { Duration = dur };
+            }
+            if (dur > TimeSpan.Zero && pos > dur)
+            {
+                pos = dur;
             }
 
             var lastUpdatedUtc = DateTime.UtcNow;

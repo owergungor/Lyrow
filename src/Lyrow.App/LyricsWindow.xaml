@@ -12,107 +12,171 @@
         <MicaBackdrop Kind="BaseAlt" />
     </Window.SystemBackdrop>
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <!-- Custom WinUI 3 TitleBar -->
-        <TitleBar x:Name="LyricsTitleBar" Grid.Row="0" Title="Lyrow — Synchronized Lyrics">
-            <TitleBar.IconSource>
-                <ImageIconSource ImageSource="Assets/lyrow.ico" />
-            </TitleBar.IconSource>
-        </TitleBar>
-
-        <!-- Track Header Card -->
-        <Border Grid.Row="1" Margin="16,4,16,10" Padding="14" CornerRadius="12"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-            <Grid ColumnDefinitions="56,*,Auto" RowDefinitions="Auto,Auto">
-                <!-- Album Artwork -->
-                <Border Grid.RowSpan="2" Grid.Column="0" Width="48" Height="48" CornerRadius="8"
-                        Background="{ThemeResource LayerFillColorDefaultBrush}" VerticalAlignment="Center" HorizontalAlignment="Left">
-                    <Grid>
-                        <Image x:Name="ImgTrackArtwork" Stretch="UniformToFill" />
-                        <FontIcon x:Name="IconArtworkPlaceholder" Glyph="&#xE8D6;" FontSize="20"
-                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Grid>
-                </Border>
-
-                <!-- Track Info -->
-                <StackPanel Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="8,0,8,0">
-                    <TextBlock x:Name="TxtSongTitle" Text="Waiting for playback..." FontWeight="SemiBold"
-                               FontSize="15" TextTrimming="CharacterEllipsis" />
-                    <TextBlock x:Name="TxtArtistName" Text="No active media session" FontSize="13"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-
-                <!-- Sync Offset Controls -->
-                <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
-                    <Button x:Name="BtnOffsetMinus" Content="−" Width="28" Height="28" Padding="0" ToolTipService.ToolTip="−250ms Delay" />
-                    <TextBlock x:Name="TxtOffsetMs" Text="0 ms" FontSize="11" VerticalAlignment="Center"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="4,0" />
-                    <Button x:Name="BtnOffsetPlus" Content="+" Width="28" Height="28" Padding="0" ToolTipService.ToolTip="+250ms Advance" />
-                </StackPanel>
-
-                <!-- Progress Bar -->
-                <ProgressBar x:Name="ProgressTimeline" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
-                             Margin="8,8,0,0" Minimum="0" Maximum="100" Value="0" Height="3" />
-            </Grid>
-        </Border>
-
-        <!-- Centered Animated Lyrics Viewport -->
-        <Grid Grid.Row="2" Background="Transparent">
-            <ScrollViewer x:Name="LyricsScrollViewer"
-                          VerticalScrollMode="Enabled"
-                          VerticalScrollBarVisibility="Hidden"
-                          HorizontalScrollMode="Disabled"
-                          HorizontalScrollBarVisibility="Disabled"
-                          IsTabStop="True"
-                          Background="Transparent">
-                <StackPanel x:Name="LyricsPanel" Spacing="20" HorizontalAlignment="Stretch" Background="Transparent" />
-            </ScrollViewer>
-
-            <!-- Empty State Message -->
-            <StackPanel x:Name="PanelEmptyState" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Spacing="12" Visibility="Visible" IsHitTestVisible="False">
-                <FontIcon Glyph="&#xEC4F;" FontSize="38" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                <TextBlock x:Name="TxtEmptyState" Text="Play a song in Spotify, Apple Music, or your browser"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" HorizontalAlignment="Center" />
-            </StackPanel>
+    <Grid x:Name="RootLayout">
+        <!-- Ambient Dynamic Artwork Gradient Background -->
+        <Grid x:Name="AmbientBackgroundLayer" IsHitTestVisible="False">
+            <Grid.Background>
+                <LinearGradientBrush x:Name="AmbientBrush" StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop x:Name="StopTopLeft" Color="#121218" Offset="0.0" />
+                    <GradientStop x:Name="StopCenter" Color="#0C0E14" Offset="0.5" />
+                    <GradientStop x:Name="StopBottomRight" Color="#08080C" Offset="1.0" />
+                </LinearGradientBrush>
+            </Grid.Background>
+            <Rectangle Fill="#8A000000" />
         </Grid>
 
-        <!-- Bottom Controls Bar -->
-        <Border Grid.Row="3" Padding="16,8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
-            <Grid ColumnDefinitions="Auto,*,Auto">
-                <TextBlock x:Name="TxtTimestamp" Grid.Column="0" Text="00:00 / 00:00" FontSize="12" VerticalAlignment="Center"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        <!-- Main Window Container -->
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+            <!-- Custom WinUI 3 TitleBar -->
+            <TitleBar x:Name="LyricsTitleBar" Grid.Row="0" Title="Lyrow — Synchronized Lyrics">
+                <TitleBar.IconSource>
+                    <ImageIconSource ImageSource="Assets/lyrow.ico" />
+                </TitleBar.IconSource>
+            </TitleBar>
 
-                <!-- Apple Music-Style Minimal Media Transport Controls -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
-                    <Button x:Name="BtnLyricsPrev" Width="32" Height="32" Padding="0" CornerRadius="8"
-                            ToolTipService.ToolTip="Previous Track">
-                        <FontIcon Glyph="&#xE892;" FontSize="13" />
-                    </Button>
-                    <Button x:Name="BtnLyricsPlayPause" Width="36" Height="36" Padding="0" CornerRadius="10"
-                            Style="{ThemeResource AccentButtonStyle}" ToolTipService.ToolTip="Play / Pause">
-                        <FontIcon x:Name="IconLyricsPlayPause" Glyph="&#xE768;" FontSize="14" />
-                    </Button>
-                    <Button x:Name="BtnLyricsNext" Width="32" Height="32" Padding="0" CornerRadius="8"
-                            ToolTipService.ToolTip="Next Track">
-                        <FontIcon Glyph="&#xE893;" FontSize="13" />
-                    </Button>
-                </StackPanel>
+            <!-- Compact Header Card (Visible in compact windowed mode) -->
+            <Border x:Name="CompactHeaderCard" Grid.Row="1" Margin="16,4,16,10" Padding="14" CornerRadius="12"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <Grid ColumnDefinitions="56,*,Auto" RowDefinitions="Auto,Auto">
+                    <!-- Album Artwork -->
+                    <Border Grid.RowSpan="2" Grid.Column="0" Width="48" Height="48" CornerRadius="8"
+                            Background="{ThemeResource LayerFillColorDefaultBrush}" VerticalAlignment="Center" HorizontalAlignment="Left">
+                        <Grid>
+                            <Image x:Name="ImgTrackArtwork" Stretch="UniformToFill" />
+                            <FontIcon x:Name="IconArtworkPlaceholder" Glyph="&#xE8D6;" FontSize="20"
+                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
-                    <Button x:Name="BtnLyricsVolumeMute" Width="30" Height="30" Padding="0" CornerRadius="8"
-                            ToolTipService.ToolTip="Mute / Unmute Playback">
-                        <FontIcon x:Name="IconLyricsVolumeMute" Glyph="&#xE767;" FontSize="12" />
-                    </Button>
-                    <Slider x:Name="SliderLyricsVolume" Width="85" Minimum="0" Maximum="100" Value="78" StepFrequency="1"
-                            IsThumbToolTipEnabled="False" VerticalAlignment="Center" />
-                    <TextBlock x:Name="TxtLyricsVolumePercent" Text="78%" FontSize="11" Width="32" VerticalAlignment="Center"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                </StackPanel>
+                    <!-- Track Info -->
+                    <StackPanel Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="8,0,8,0">
+                        <TextBlock x:Name="TxtSongTitle" Text="Waiting for playback..." FontWeight="SemiBold"
+                                   FontSize="15" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="TxtArtistName" Text="No active media session" FontSize="13"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <!-- Sync Offset & Fullscreen Controls -->
+                    <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+                        <Button x:Name="BtnOffsetMinus" Content="−" Width="28" Height="28" Padding="0" ToolTipService.ToolTip="−250ms Delay" />
+                        <TextBlock x:Name="TxtOffsetMs" Text="0 ms" FontSize="11" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="4,0" />
+                        <Button x:Name="BtnOffsetPlus" Content="+" Width="28" Height="28" Padding="0" ToolTipService.ToolTip="+250ms Advance" />
+                        <Button x:Name="BtnToggleFullscreen" Width="28" Height="28" Padding="0" Margin="4,0,0,0"
+                                ToolTipService.ToolTip="Fullscreen (F11)">
+                            <FontIcon x:Name="IconFullscreen" Glyph="&#xE740;" FontSize="11" />
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Progress Bar -->
+                    <ProgressBar x:Name="ProgressTimeline" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                 Margin="8,8,0,0" Minimum="0" Maximum="100" Value="0" Height="3" />
+                </Grid>
+            </Border>
+
+            <!-- Main Lyrics Viewport (Adaptive 1-column or 2-column) -->
+            <Grid Grid.Row="2" Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="ColImmersiveSidebar" Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Left Column: Immersive Apple Music Artwork & Info Panel (Width >= 820 or Fullscreen) -->
+                <Border x:Name="PanelImmersiveSidebar" Grid.Column="0" Width="380" Padding="36,24,24,24"
+                        Visibility="Collapsed" VerticalAlignment="Center">
+                    <StackPanel Spacing="24" HorizontalAlignment="Center">
+                        <!-- Large Rounded Artwork -->
+                        <Border Width="260" Height="260" CornerRadius="16"
+                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <Grid>
+                                <Image x:Name="ImgTrackArtworkImmersive" Stretch="UniformToFill" />
+                                <FontIcon x:Name="IconArtworkPlaceholderImmersive" Glyph="&#xE8D6;" FontSize="64"
+                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Typography Info -->
+                        <StackPanel Spacing="6" HorizontalAlignment="Center">
+                            <TextBlock x:Name="TxtSongTitleImmersive" Text="Waiting for playback..." FontWeight="Bold"
+                                       FontSize="22" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="320" />
+                            <TextBlock x:Name="TxtArtistNameImmersive" Text="No active media session" FontSize="15"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       TextAlignment="Center" TextWrapping="Wrap" MaxWidth="320" />
+                        </StackPanel>
+
+                        <!-- Quick Fullscreen Exit Button -->
+                        <Button x:Name="BtnExitFullscreen" HorizontalAlignment="Center" CornerRadius="8"
+                                Padding="12,6" ToolTipService.ToolTip="Exit Fullscreen (F11)">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE73F;" FontSize="12" />
+                                <TextBlock Text="Exit Fullscreen" FontSize="12" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- Right Column (or Center in compact): Fluid Centered Lyrics -->
+                <Grid Grid.Column="1" Background="Transparent">
+                    <ScrollViewer x:Name="LyricsScrollViewer"
+                                  VerticalScrollMode="Enabled"
+                                  VerticalScrollBarVisibility="Hidden"
+                                  HorizontalScrollMode="Disabled"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  IsTabStop="True"
+                                  Background="Transparent">
+                        <StackPanel x:Name="LyricsPanel" Spacing="20" HorizontalAlignment="Stretch" Background="Transparent" />
+                    </ScrollViewer>
+
+                    <!-- Empty State Message -->
+                    <StackPanel x:Name="PanelEmptyState" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Spacing="12" Visibility="Visible" IsHitTestVisible="False">
+                        <FontIcon Glyph="&#xEC4F;" FontSize="38" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="TxtEmptyState" Text="Play a song in Spotify, Apple Music, or your browser"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
             </Grid>
-        </Border>
+
+            <!-- Bottom Controls Bar -->
+            <Border Grid.Row="3" Padding="16,8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock x:Name="TxtTimestamp" Grid.Column="0" Text="00:00 / 00:00" FontSize="12" VerticalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                    <!-- Apple Music-Style Minimal Media Transport Controls (Icon-Only) -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                        <Button x:Name="BtnLyricsPrev" Width="34" Height="34" Padding="0" CornerRadius="8"
+                                ToolTipService.ToolTip="Previous Track" AutomationProperties.Name="Previous Track">
+                            <FontIcon Glyph="&#xE892;" FontSize="13" />
+                        </Button>
+                        <Button x:Name="BtnLyricsPlayPause" Width="38" Height="38" Padding="0" CornerRadius="10"
+                                Style="{ThemeResource AccentButtonStyle}" ToolTipService.ToolTip="Play / Pause"
+                                AutomationProperties.Name="Play or Pause">
+                            <FontIcon x:Name="IconLyricsPlayPause" Glyph="&#xE768;" FontSize="14" />
+                        </Button>
+                        <Button x:Name="BtnLyricsNext" Width="34" Height="34" Padding="0" CornerRadius="8"
+                                ToolTipService.ToolTip="Next Track" AutomationProperties.Name="Next Track">
+                            <FontIcon Glyph="&#xE893;" FontSize="13" />
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                        <Button x:Name="BtnLyricsVolumeMute" Width="30" Height="30" Padding="0" CornerRadius="8"
+                                ToolTipService.ToolTip="Mute / Unmute Playback" AutomationProperties.Name="Mute or Unmute">
+                            <FontIcon x:Name="IconLyricsVolumeMute" Glyph="&#xE767;" FontSize="12" />
+                        </Button>
+                        <Slider x:Name="SliderLyricsVolume" Width="85" Minimum="0" Maximum="100" Value="78" StepFrequency="1"
+                                IsThumbToolTipEnabled="False" VerticalAlignment="Center" AutomationProperties.Name="Volume Slider" />
+                        <TextBlock x:Name="TxtLyricsVolumePercent" Text="78%" FontSize="11" Width="32" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

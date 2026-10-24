@@ -6,7 +6,8 @@ namespace Lyrow.App.Platform;
 /// <summary>
 /// Hardware Windows System Tray / Notification Area manager using native Shell_NotifyIcon.
 /// Creates a lightweight hidden Win32 message window to receive tray click messages (WM_TRAYICON)
-/// and displays a native Win32 context menu on right click.
+/// and displays a polished Win32 context menu grouped with Now Playing, Playback controls,
+/// Windows navigation, Glow, and Application lifecycle commands.
 /// Operates completely safely in headless test environments with zero UI thread contention.
 /// </summary>
 public sealed class LyrowTrayIconManager : IDisposable
@@ -26,14 +27,25 @@ public sealed class LyrowTrayIconManager : IDisposable
 
     private const uint TPM_RIGHTBUTTON = 0x0002;
     private const uint MF_STRING = 0x00000000;
+    private const uint MF_GRAYED = 0x00000001;
+    private const uint MF_DISABLED = 0x00000002;
     private const uint MF_SEPARATOR = 0x00000800;
 
-    private const int CMD_SHOW = 1001;
-    private const int CMD_TOGGLE_GLOW = 1002;
-    private const int CMD_TOGGLE_LYRICS = 1003;
-    private const int CMD_TOGGLE_CLICKTHROUGH = 1004;
-    private const int CMD_SETTINGS = 1005;
-    private const int CMD_EXIT = 1006;
+    public const int CMD_TRACK_INFO = 1000;
+    public const int CMD_SHOW = 1001;
+    public const int CMD_TOGGLE_GLOW = 1002;
+    public const int CMD_TOGGLE_LYRICS = 1003;
+    public const int CMD_TOGGLE_CLICKTHROUGH = 1004;
+    public const int CMD_SETTINGS = 1005;
+    public const int CMD_EXIT = 1006;
+    public const int CMD_PLAY_PAUSE = 1007;
+    public const int CMD_PREV = 1008;
+    public const int CMD_NEXT = 1009;
+    public const int CMD_MUTE_UNMUTE = 1010;
+    public const int CMD_OPEN_PLAYBACK = 1011;
+    public const int CMD_OPEN_GLOW = 1012;
+    public const int CMD_CHECK_UPDATES = 1013;
+    public const int CMD_LYRICS_FULLSCREEN = 1014;
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct NOTIFYICONDATA
@@ -141,11 +153,29 @@ public sealed class LyrowTrayIconManager : IDisposable
     private Action? _onOpenSettings;
     private Action? _onExit;
 
+    private Action? _onPlayPause;
+    private Action? _onPrev;
+    private Action? _onNext;
+    private Action? _onToggleMute;
+    private Action? _onOpenPlayback;
+    private Action? _onOpenGlow;
+    private Action? _onCheckUpdates;
+    private Action? _onToggleLyricsFullscreen;
+
     private bool _glowOpen;
     private bool _lyricsOpen;
     private bool _clickThroughActive = true;
+    private string _nowPlayingText = "Lyrow — Windows 11 Native";
+    private bool _isPlaying = false;
+    private bool _isMuted = false;
 
     public bool IsVisible => _isVisible;
+    public string NowPlayingText => _nowPlayingText;
+    public bool IsPlaying => _isPlaying;
+    public bool IsMuted => _isMuted;
+    public bool IsGlowOpen => _glowOpen;
+    public bool IsLyricsOpen => _lyricsOpen;
+    public bool IsClickThroughActive => _clickThroughActive;
 
     public void TriggerShowMainWindow() => _onShowMainWindow?.Invoke();
     public void TriggerToggleGlow() => _onToggleGlow?.Invoke();
@@ -153,6 +183,15 @@ public sealed class LyrowTrayIconManager : IDisposable
     public void TriggerToggleClickThrough() => _onToggleClickThrough?.Invoke();
     public void TriggerOpenSettings() => _onOpenSettings?.Invoke();
     public void TriggerExit() => _onExit?.Invoke();
+
+    public void TriggerPlayPause() => _onPlayPause?.Invoke();
+    public void TriggerPrev() => _onPrev?.Invoke();
+    public void TriggerNext() => _onNext?.Invoke();
+    public void TriggerToggleMute() => _onToggleMute?.Invoke();
+    public void TriggerOpenPlayback() => _onOpenPlayback?.Invoke();
+    public void TriggerOpenGlow() => _onOpenGlow?.Invoke();
+    public void TriggerCheckUpdates() => _onCheckUpdates?.Invoke();
+    public void TriggerToggleLyricsFullscreen() => _onToggleLyricsFullscreen?.Invoke();
 
     public void Initialize(
         Action onShowMainWindow,
@@ -187,6 +226,66 @@ public sealed class LyrowTrayIconManager : IDisposable
         }
     }
 
+    public void AttachExtendedHandlers(
+        Action? onPlayPause = null,
+        Action? onPrev = null,
+        Action? onNext = null,
+        Action? onToggleMute = null,
+        Action? onOpenPlayback = null,
+        Action? onOpenGlow = null,
+        Action? onCheckUpdates = null,
+        Action? onToggleLyricsFullscreen = null)
+    {
+        _onPlayPause = onPlayPause;
+        _onPrev = onPrev;
+        _onNext = onNext;
+        _onToggleMute = onToggleMute;
+        _onOpenPlayback = onOpenPlayback;
+        _onOpenGlow = onOpenGlow;
+        _onCheckUpdates = onCheckUpdates;
+        _onToggleLyricsFullscreen = onToggleLyricsFullscreen;
+    }
+
+    public void UpdateNowPlaying(string? title, string? artist, string? album, bool isPlaying, bool isMuted)
+    {
+        _isPlaying = isPlaying;
+        _isMuted = isMuted;
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            _nowPlayingText = "No Media Playing";
+        }
+        else
+        {
+            string shortArtist = string.IsNullOrWhiteSpace(artist) ? "Unknown Artist" : artist;
+            _nowPlayingText = $"Now Playing: {title} — {shortArtist}";
+        }
+
+        if (_hwnd != IntPtr.Zero)
+        {
+            try
+            {
+                var nid = new NOTIFYICONDATA
+                {
+                    cbSize = (uint)Marshal.SizeOf<NOTIFYICONDATA>(),
+                    hWnd = _hwnd,
+                    uID = 101,
+                    uFlags = NIF_TIP,
+                    szTip = _nowPlayingText.Length > 120 ? _nowPlayingText.Substring(0, 120) : _nowPlayingText
+                };
+                Shell_NotifyIcon(NIM_MODIFY, ref nid);
+            }
+            catch { }
+        }
+    }
+
+    public void UpdateStates(bool glowOpen, bool lyricsOpen, bool clickThroughActive)
+    {
+        _glowOpen = glowOpen;
+        _lyricsOpen = lyricsOpen;
+        _clickThroughActive = clickThroughActive;
+    }
+
     private void RegisterHiddenMessageWindow()
     {
         if (_hwnd != IntPtr.Zero) return;
@@ -210,7 +309,6 @@ public sealed class LyrowTrayIconManager : IDisposable
     {
         if (_hwnd == IntPtr.Zero) return;
 
-        // Try load official icon from Assets or working directory
         string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "lyrow.ico");
         if (File.Exists(iconPath))
         {
@@ -229,13 +327,6 @@ public sealed class LyrowTrayIconManager : IDisposable
         };
 
         Shell_NotifyIcon(NIM_ADD, ref nid);
-    }
-
-    public void UpdateStates(bool glowOpen, bool lyricsOpen, bool clickThroughActive)
-    {
-        _glowOpen = glowOpen;
-        _lyricsOpen = lyricsOpen;
-        _clickThroughActive = clickThroughActive;
     }
 
     private IntPtr TrayWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
@@ -277,6 +368,30 @@ public sealed class LyrowTrayIconManager : IDisposable
                 case CMD_EXIT:
                     TriggerExit();
                     break;
+                case CMD_PLAY_PAUSE:
+                    TriggerPlayPause();
+                    break;
+                case CMD_PREV:
+                    TriggerPrev();
+                    break;
+                case CMD_NEXT:
+                    TriggerNext();
+                    break;
+                case CMD_MUTE_UNMUTE:
+                    TriggerToggleMute();
+                    break;
+                case CMD_OPEN_PLAYBACK:
+                    TriggerOpenPlayback();
+                    break;
+                case CMD_OPEN_GLOW:
+                    TriggerOpenGlow();
+                    break;
+                case CMD_CHECK_UPDATES:
+                    TriggerCheckUpdates();
+                    break;
+                case CMD_LYRICS_FULLSCREEN:
+                    TriggerToggleLyricsFullscreen();
+                    break;
             }
             return IntPtr.Zero;
         }
@@ -293,14 +408,33 @@ public sealed class LyrowTrayIconManager : IDisposable
 
         try
         {
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_SHOW), "Open Lyrow");
+            // 1. Now Playing Header (Display-only)
+            AppendMenu(hMenu, MF_STRING | MF_GRAYED | MF_DISABLED, new IntPtr(CMD_TRACK_INFO), _nowPlayingText);
             AppendMenu(hMenu, MF_SEPARATOR, IntPtr.Zero, string.Empty);
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_TOGGLE_GLOW), _glowOpen ? "Hide Glow (Ambient Lighting)" : "Show Glow (Ambient Lighting)");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_TOGGLE_LYRICS), _lyricsOpen ? "Hide Lyrics Window" : "Show Lyrics Window");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_TOGGLE_CLICKTHROUGH), _clickThroughActive ? "Disable Click-Through" : "Enable Click-Through");
+
+            // 2. Playback Controls
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_PLAY_PAUSE), _isPlaying ? "Pause" : "Play");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_PREV), "Previous Track");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_NEXT), "Next Track");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_MUTE_UNMUTE), _isMuted ? "Unmute Volume" : "Mute Volume");
             AppendMenu(hMenu, MF_SEPARATOR, IntPtr.Zero, string.Empty);
+
+            // 3. Windows & Pages
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_SHOW), "Open Home");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_TOGGLE_LYRICS), _lyricsOpen ? "Hide Lyrics" : "Open Lyrics");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_LYRICS_FULLSCREEN), "Lyrics Fullscreen");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_OPEN_PLAYBACK), "Open Playback");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_OPEN_GLOW), "Open Glow");
             AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_SETTINGS), "Settings");
             AppendMenu(hMenu, MF_SEPARATOR, IntPtr.Zero, string.Empty);
+
+            // 4. Glow Quick Actions
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_TOGGLE_GLOW), _glowOpen ? "Turn Off Ambient Glow" : "Turn On Ambient Glow");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_TOGGLE_CLICKTHROUGH), _clickThroughActive ? "Disable Glow Click-Through" : "Enable Glow Click-Through");
+            AppendMenu(hMenu, MF_SEPARATOR, IntPtr.Zero, string.Empty);
+
+            // 5. Application Lifecycle
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_CHECK_UPDATES), "Check for Updates...");
             AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_EXIT), "Exit Lyrow");
 
             GetCursorPos(out POINT pt);

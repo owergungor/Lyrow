@@ -15,7 +15,8 @@ public sealed class GitHubUpdateService : IUpdateService
 {
     public const string DefaultReleasesApiUrl = "https://api.github.com/repos/owergungor/Lyrow/releases/latest";
     public const string DefaultReleasesPageUrl = "https://github.com/owergungor/Lyrow/releases";
-    public const string AppVersion = "2.4";
+    public const string AppVersion = "2.5";
+    public const string SilentInstallerArguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-";
 
     public static bool IsUpdateCheckDue(UpdateCheckFrequency frequency, DateTime? lastCheckUtc, DateTime? nowUtc = null)
     {
@@ -290,6 +291,11 @@ public sealed class GitHubUpdateService : IUpdateService
 
     public bool LaunchInstallerAndExit(string installerPath)
     {
+        return LaunchSilentUpdateAndRestart(installerPath);
+    }
+
+    public bool LaunchSilentUpdateAndRestart(string installerPath, string? appExecutablePath = null)
+    {
         if (string.IsNullOrWhiteSpace(installerPath) || !File.Exists(installerPath))
         {
             return false;
@@ -297,12 +303,42 @@ public sealed class GitHubUpdateService : IUpdateService
 
         try
         {
+            string appExe = appExecutablePath ?? Process.GetCurrentProcess().MainModule?.FileName ?? "Lyrow.App.exe";
+            int currentPid = Environment.ProcessId;
+
+            // Script that waits for current process to exit, runs silent installer without wizard dialogs, and restarts app
+            string script = $"Start-Sleep -Milliseconds 600; Wait-Process -Id {currentPid} -Timeout 10 -ErrorAction SilentlyContinue; " +
+                            $"Start-Process -FilePath '{installerPath}' -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait; " +
+                            $"Start-Process -FilePath '{appExe}';";
+
             var startInfo = new ProcessStartInfo
             {
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script}\"",
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+                UseShellExecute = false
+            };
+
+            var proc = Process.Start(startInfo);
+            if (proc != null)
+            {
+                Environment.Exit(0);
+                return true;
+            }
+        }
+        catch { }
+
+        // Fallback: standard launch
+        try
+        {
+            var fallback = new ProcessStartInfo
+            {
                 FileName = installerPath,
+                Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-",
                 UseShellExecute = true
             };
-            var proc = Process.Start(startInfo);
+            var proc = Process.Start(fallback);
             if (proc != null)
             {
                 Environment.Exit(0);

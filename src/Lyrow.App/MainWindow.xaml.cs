@@ -124,13 +124,25 @@ public sealed partial class MainWindow : Window
             }
         };
 
+        WireHomeCardsNavigation();
+
         _trayIconManager?.Initialize(
-            onShowMainWindow: () => DispatcherQueue.TryEnqueue(() => { AppWindow.Show(); }),
+            onShowMainWindow: () => DispatcherQueue.TryEnqueue(() => { AppWindow.Show(); NavigateTo("Home"); }),
             onToggleGlow: () => ToggleGlowFromExternal(),
             onToggleLyrics: () => ToggleLyricsFromExternal(),
             onToggleClickThrough: () => { },
-            onOpenSettings: () => DispatcherQueue.TryEnqueue(() => { AppWindow.Show(); NavView.SelectedItem = NavView.SettingsItem; ShowPage(PageSettings); }),
+            onOpenSettings: () => DispatcherQueue.TryEnqueue(() => { AppWindow.Show(); NavigateTo("Settings"); }),
             onExit: () => DispatcherQueue.TryEnqueue(RequestExit));
+
+        _trayIconManager?.AttachExtendedHandlers(
+            onPlayPause: () => DispatcherQueue.TryEnqueue(async () => await ExecutePlayPauseCommandAsync()),
+            onPrev: () => DispatcherQueue.TryEnqueue(async () => await ExecutePrevTrackCommandAsync()),
+            onNext: () => DispatcherQueue.TryEnqueue(async () => await ExecuteNextTrackCommandAsync()),
+            onToggleMute: () => DispatcherQueue.TryEnqueue(() => { _volumeService.TogglePlaybackMute(); SyncVolumeUiFromHardware(); }),
+            onOpenPlayback: () => DispatcherQueue.TryEnqueue(() => { AppWindow.Show(); NavigateTo("Playback"); }),
+            onOpenGlow: () => DispatcherQueue.TryEnqueue(() => { AppWindow.Show(); NavigateTo("Glow"); }),
+            onCheckUpdates: () => DispatcherQueue.TryEnqueue(async () => { AppWindow.Show(); NavigateTo("Settings"); ShowSettingsCategory("Updates"); await CheckForUpdatesInternalAsync(userInitiated: true); }),
+            onToggleLyricsFullscreen: () => DispatcherQueue.TryEnqueue(async () => { await SetLyricsStateAsync(true); }));
 
         Closed += OnWindowClosed;
     }
@@ -272,7 +284,6 @@ public sealed partial class MainWindow : Window
             // Startup State: Always ensure Glow and Lyrics start in OFF state
             SwitchHomeGlow.IsOn = false;
             SwitchGlowMaster.IsOn = false;
-            SwitchSettingsGlowEnabled.IsOn = false;
             TxtGlowStatus.Text = "Stopped";
             TxtGlowStatus.Foreground = (Brush)Application.Current.Resources["LyrowStoppedBrush"];
             TxtGlowVisualState.Text = "Standby — 4-edge ambient lighting ready";
@@ -284,9 +295,7 @@ public sealed partial class MainWindow : Window
 
             // Glow controls
             SliderGlowIntensity.Value = settings.GlowIntensity;
-            SliderSettingsGlowIntensity.Value = settings.GlowIntensity;
             TxtGlowIntensityVal.Text = $"{settings.GlowIntensity}%";
-            TxtSettingsGlowIntensity.Text = $"{settings.GlowIntensity}%";
 
             SliderGlowThickness.Value = settings.GlowThickness;
             TxtGlowThicknessVal.Text = $"{settings.GlowThickness} px";
@@ -296,32 +305,24 @@ public sealed partial class MainWindow : Window
             TxtGlowSensitivityVal.Text = $"{Math.Clamp(sensPct, 40, 250)}%";
 
             SwitchAlbumArtSync.IsOn = settings.SyncWithAlbumArt;
-            SwitchSettingsAlbumArtSync.IsOn = settings.SyncWithAlbumArt;
             ChkMultiMonitor.IsChecked = settings.MultiMonitorGlow;
 
             // Rich Fallback Palette Presets (6 presets with 4-dot colored circle items)
             PopulatePalettePresetCombo(ComboPalettePreset, settings.FallbackPalettePresetIndex);
 
-            // Shutdown Delay ComboBoxes
+            // Shutdown Delay ComboBox
             SelectShutdownDelayCombo(ComboGlowShutdownDelay, settings.GlowShutdownDelaySeconds);
-            SelectShutdownDelayCombo(ComboSettingsGlowShutdownDelay, settings.GlowShutdownDelaySeconds);
 
             // Lyrics controls
             SliderLyricsOffset.Value = settings.Lyrics.SyncOffsetMs;
-            SliderSettingsLyricsOffset.Value = settings.Lyrics.SyncOffsetMs;
             TxtPageLyricsOffset.Text = $"{settings.Lyrics.SyncOffsetMs:+0;-0;0} ms";
-            TxtSettingsLyricsOffset.Text = $"{settings.Lyrics.SyncOffsetMs:+0;-0;0} ms";
 
             // Lyrics Font Sliders
             SliderFocusedFontSize.Value = settings.FocusedLyricFontSize;
-            SliderSettingsFocusedFontSize.Value = settings.FocusedLyricFontSize;
             TxtFocusedFontSize.Text = $"{settings.FocusedLyricFontSize:0} px";
-            TxtSettingsFocusedFontSize.Text = $"{settings.FocusedLyricFontSize:0} px";
 
             SliderUnfocusedFontSize.Value = settings.UnfocusedLyricFontSize;
-            SliderSettingsUnfocusedFontSize.Value = settings.UnfocusedLyricFontSize;
             TxtUnfocusedFontSize.Text = $"{settings.UnfocusedLyricFontSize:0} px";
-            TxtSettingsUnfocusedFontSize.Text = $"{settings.UnfocusedLyricFontSize:0} px";
 
             // General & Updates
             SwitchStartWithWindows.IsOn = settings.StartWithWindows;
@@ -377,10 +378,8 @@ public sealed partial class MainWindow : Window
             int currentPlayback = _volumeService.GetPlaybackVolumePercent();
             bool playbackMuted = _volumeService.IsPlaybackMuted;
             SliderPlaybackVolume.Value = currentPlayback;
-            SliderSettingsPlaybackVolume.Value = currentPlayback;
             if (SliderPagePlaybackVolume != null) SliderPagePlaybackVolume.Value = currentPlayback;
             TxtPlaybackVolumePercent.Text = playbackMuted ? $"Muted ({currentPlayback}%)" : $"{currentPlayback}%";
-            TxtSettingsPlaybackVolumePercent.Text = playbackMuted ? $"Muted ({currentPlayback}%)" : $"{currentPlayback}%";
             if (TxtPagePlaybackVolumePercent != null) TxtPagePlaybackVolumePercent.Text = playbackMuted ? $"Muted ({currentPlayback}%)" : $"{currentPlayback}%";
             TxtPlaybackTarget.Text = _volumeService.PlaybackTargetName;
             IconPlaybackMute.Glyph = (playbackMuted || currentPlayback == 0) ? "\uE74F" : "\uE767";
@@ -389,10 +388,8 @@ public sealed partial class MainWindow : Window
             int currentSystem = _volumeService.GetSystemVolumePercent();
             bool systemMuted = _volumeService.IsSystemMuted;
             SliderSystemVolume.Value = currentSystem;
-            SliderSettingsSystemVolume.Value = currentSystem;
             if (SliderPageSystemVolume != null) SliderPageSystemVolume.Value = currentSystem;
             TxtSystemVolumePercent.Text = systemMuted ? $"Muted ({currentSystem}%)" : $"{currentSystem}%";
-            TxtSettingsSystemVolumePercent.Text = systemMuted ? $"Muted ({currentSystem}%)" : $"{currentSystem}%";
             if (TxtPageSystemVolumePercent != null) TxtPageSystemVolumePercent.Text = systemMuted ? $"Muted ({currentSystem}%)" : $"{currentSystem}%";
             TxtSystemTarget.Text = _volumeService.SystemTargetName;
             IconSystemMute.Glyph = (systemMuted || currentSystem == 0) ? "\uE74F" : "\uE767";
@@ -405,10 +402,9 @@ public sealed partial class MainWindow : Window
 
     private void BindModuleToggles()
     {
-        // Glow Toggles (Home, Glow Page, Settings Page)
+        // Glow Toggles (Home, Glow Page)
         SwitchHomeGlow.Toggled += async (_, _) => await SetGlowStateAsync(SwitchHomeGlow.IsOn);
         SwitchGlowMaster.Toggled += async (_, _) => await SetGlowStateAsync(SwitchGlowMaster.IsOn);
-        SwitchSettingsGlowEnabled.Toggled += async (_, _) => await SetGlowStateAsync(SwitchSettingsGlowEnabled.IsOn);
 
         // Lyrics Toggles (Home, Lyrics Page)
         SwitchHomeLyrics.Toggled += async (_, _) => await SetLyricsStateAsync(SwitchHomeLyrics.IsOn);
@@ -416,7 +412,6 @@ public sealed partial class MainWindow : Window
 
         // Real Windows Dual Volume Sliders (0% - 100% linear percentage)
         SliderPlaybackVolume.ValueChanged += (_, e) => OnPlaybackVolumeSliderChanged(e.NewValue);
-        SliderSettingsPlaybackVolume.ValueChanged += (_, e) => OnPlaybackVolumeSliderChanged(e.NewValue);
         if (SliderPagePlaybackVolume != null) SliderPagePlaybackVolume.ValueChanged += (_, e) => OnPlaybackVolumeSliderChanged(e.NewValue);
 
         BtnMutePlayback.Click += (_, _) =>
@@ -426,7 +421,6 @@ public sealed partial class MainWindow : Window
         };
 
         SliderSystemVolume.ValueChanged += (_, e) => OnSystemVolumeSliderChanged(e.NewValue);
-        SliderSettingsSystemVolume.ValueChanged += (_, e) => OnSystemVolumeSliderChanged(e.NewValue);
         if (SliderPageSystemVolume != null) SliderPageSystemVolume.ValueChanged += (_, e) => OnSystemVolumeSliderChanged(e.NewValue);
 
         BtnMuteSystem.Click += (_, _) =>
@@ -437,7 +431,6 @@ public sealed partial class MainWindow : Window
 
         // Glow Intensity Sliders
         SliderGlowIntensity.ValueChanged += (_, e) => OnGlowIntensityChanged(e.NewValue);
-        SliderSettingsGlowIntensity.ValueChanged += (_, e) => OnGlowIntensityChanged(e.NewValue);
 
         SliderGlowThickness.ValueChanged += (_, e) =>
         {
@@ -459,7 +452,6 @@ public sealed partial class MainWindow : Window
         };
 
         SwitchAlbumArtSync.Toggled += (_, _) => OnAlbumArtSyncToggled(SwitchAlbumArtSync.IsOn);
-        SwitchSettingsAlbumArtSync.Toggled += (_, _) => OnAlbumArtSyncToggled(SwitchSettingsAlbumArtSync.IsOn);
 
         ComboPalettePreset.SelectionChanged += (_, _) =>
         {
@@ -473,7 +465,6 @@ public sealed partial class MainWindow : Window
         };
 
         ComboGlowShutdownDelay.SelectionChanged += (_, _) => OnGlowShutdownDelayChanged(ComboGlowShutdownDelay);
-        ComboSettingsGlowShutdownDelay.SelectionChanged += (_, _) => OnGlowShutdownDelayChanged(ComboSettingsGlowShutdownDelay);
 
         ChkMultiMonitor.Checked += (_, _) =>
         {
@@ -490,7 +481,6 @@ public sealed partial class MainWindow : Window
 
         // Lyrics offset sliders
         SliderLyricsOffset.ValueChanged += (_, e) => OnLyricsOffsetChanged(e.NewValue);
-        SliderSettingsLyricsOffset.ValueChanged += (_, e) => OnLyricsOffsetChanged(e.NewValue);
 
         BtnOffsetMinus500.Click += (_, _) => SliderLyricsOffset.Value -= 500;
         BtnOffsetPlus500.Click += (_, _) => SliderLyricsOffset.Value += 500;
@@ -523,10 +513,7 @@ public sealed partial class MainWindow : Window
 
         // Lyrics Font Sliders
         SliderFocusedFontSize.ValueChanged += (_, e) => OnFocusedFontSizeChanged(e.NewValue);
-        SliderSettingsFocusedFontSize.ValueChanged += (_, e) => OnFocusedFontSizeChanged(e.NewValue);
-
         SliderUnfocusedFontSize.ValueChanged += (_, e) => OnUnfocusedFontSizeChanged(e.NewValue);
-        SliderSettingsUnfocusedFontSize.ValueChanged += (_, e) => OnUnfocusedFontSizeChanged(e.NewValue);
 
         ComboUpdateFrequency.SelectionChanged += (_, _) =>
         {
@@ -629,10 +616,6 @@ public sealed partial class MainWindow : Window
         BtnNextTrack.Click += async (_, _) => await ExecuteNextTrackCommandAsync();
         BtnPrevTrack.Click += async (_, _) => await ExecutePrevTrackCommandAsync();
 
-        BtnSettingsPlayPause.Click += async (_, _) => await ExecutePlayPauseCommandAsync();
-        BtnSettingsNext.Click += async (_, _) => await ExecuteNextTrackCommandAsync();
-        BtnSettingsPrev.Click += async (_, _) => await ExecutePrevTrackCommandAsync();
-
         if (BtnPagePlayPause != null) BtnPagePlayPause.Click += async (_, _) => await ExecutePlayPauseCommandAsync();
         if (BtnPageNext != null) BtnPageNext.Click += async (_, _) => await ExecuteNextTrackCommandAsync();
         if (BtnPagePrev != null) BtnPagePrev.Click += async (_, _) => await ExecutePrevTrackCommandAsync();
@@ -652,11 +635,9 @@ public sealed partial class MainWindow : Window
             _volumeService.SetPlaybackVolumePercent(percent);
 
             SliderPlaybackVolume.Value = percent;
-            SliderSettingsPlaybackVolume.Value = percent;
 
             string formatted = $"{percent}%";
             TxtPlaybackVolumePercent.Text = formatted;
-            TxtSettingsPlaybackVolumePercent.Text = formatted;
             TxtPlaybackTarget.Text = _volumeService.PlaybackTargetName;
             IconPlaybackMute.Glyph = percent == 0 ? "\uE74F" : "\uE767";
         }
@@ -676,11 +657,9 @@ public sealed partial class MainWindow : Window
             _volumeService.SetSystemVolumePercent(percent);
 
             SliderSystemVolume.Value = percent;
-            SliderSettingsSystemVolume.Value = percent;
 
             string formatted = $"{percent}%";
             TxtSystemVolumePercent.Text = formatted;
-            TxtSettingsSystemVolumePercent.Text = formatted;
             TxtSystemTarget.Text = _volumeService.SystemTargetName;
             IconSystemMute.Glyph = percent == 0 ? "\uE74F" : "\uE767";
         }
@@ -698,9 +677,7 @@ public sealed partial class MainWindow : Window
         {
             int val = Math.Clamp((int)Math.Round(newValue), 10, 100);
             SliderGlowIntensity.Value = val;
-            SliderSettingsGlowIntensity.Value = val;
             TxtGlowIntensityVal.Text = $"{val}%";
-            TxtSettingsGlowIntensity.Text = $"{val}%";
             _settingsManager.Current.GlowIntensity = val;
         }
         finally
@@ -716,7 +693,6 @@ public sealed partial class MainWindow : Window
         try
         {
             SwitchAlbumArtSync.IsOn = enabled;
-            SwitchSettingsAlbumArtSync.IsOn = enabled;
             _settingsManager.Current.SyncWithAlbumArt = enabled;
 
             if (!enabled)
@@ -742,9 +718,7 @@ public sealed partial class MainWindow : Window
         {
             double val = Math.Clamp(Math.Round(newValue), 20.0, 48.0);
             SliderFocusedFontSize.Value = val;
-            SliderSettingsFocusedFontSize.Value = val;
             TxtFocusedFontSize.Text = $"{val:0} px";
-            TxtSettingsFocusedFontSize.Text = $"{val:0} px";
             _settingsManager.Current.FocusedLyricFontSize = val;
         }
         finally
@@ -761,9 +735,7 @@ public sealed partial class MainWindow : Window
         {
             double val = Math.Clamp(Math.Round(newValue), 14.0, 36.0);
             SliderUnfocusedFontSize.Value = val;
-            SliderSettingsUnfocusedFontSize.Value = val;
             TxtUnfocusedFontSize.Text = $"{val:0} px";
-            TxtSettingsUnfocusedFontSize.Text = $"{val:0} px";
             _settingsManager.Current.UnfocusedLyricFontSize = val;
         }
         finally
@@ -778,14 +750,6 @@ public sealed partial class MainWindow : Window
         if (int.TryParse(item.Tag?.ToString(), out int delaySec))
         {
             _settingsManager.Current.GlowShutdownDelaySeconds = delaySec;
-            if (source == ComboGlowShutdownDelay && ComboSettingsGlowShutdownDelay != null)
-            {
-                SelectShutdownDelayCombo(ComboSettingsGlowShutdownDelay, delaySec);
-            }
-            else if (source == ComboSettingsGlowShutdownDelay && ComboGlowShutdownDelay != null)
-            {
-                SelectShutdownDelayCombo(ComboGlowShutdownDelay, delaySec);
-            }
         }
     }
 
@@ -903,9 +867,7 @@ public sealed partial class MainWindow : Window
         {
             int val = (int)Math.Round(newValue);
             SliderLyricsOffset.Value = val;
-            SliderSettingsLyricsOffset.Value = val;
             TxtPageLyricsOffset.Text = $"{val:+0;-0;0} ms";
-            TxtSettingsLyricsOffset.Text = $"{val:+0;-0;0} ms";
             _settingsManager.Current.Lyrics.SyncOffsetMs = val;
             _lyricsModule?.SetSyncOffset(val);
         }
@@ -963,15 +925,20 @@ public sealed partial class MainWindow : Window
         BtnPlayPause.IsEnabled = hasSession;
         BtnNextTrack.IsEnabled = hasSession;
 
-        BtnSettingsPrev.IsEnabled = hasSession;
-        BtnSettingsPlayPause.IsEnabled = hasSession;
-        BtnSettingsNext.IsEnabled = hasSession;
+        if (BtnPagePrev != null) BtnPagePrev.IsEnabled = hasSession;
+        if (BtnPagePlayPause != null) BtnPagePlayPause.IsEnabled = hasSession;
+        if (BtnPageNext != null) BtnPageNext.IsEnabled = hasSession;
 
         bool isPlaying = status == MediaPlaybackStatus.Playing;
-        IconPlayPause.Glyph = isPlaying ? "\uE769" : "\uE768"; // Pause vs Play glyph
-        TxtSettingsMediaStatus.Text = hasSession
-            ? $"Connected ({(isPlaying ? "Playing" : status.ToString())})"
-            : "No active media session detected";
+        IconPlayPause.Glyph = isPlaying ? "\uE769" : "\uE768";
+        if (IconPagePlayPause != null) IconPagePlayPause.Glyph = isPlaying ? "\uE769" : "\uE768";
+
+        if (TxtPageMediaStatus != null)
+        {
+            TxtPageMediaStatus.Text = hasSession
+                ? $"Connected ({(isPlaying ? "Playing" : status.ToString())})"
+                : "No active media session detected";
+        }
     }
 
     private async Task CheckForUpdatesInternalAsync(bool userInitiated)
@@ -1075,7 +1042,18 @@ public sealed partial class MainWindow : Window
             TxtUpdateDownloadProgress.Text = $"{LocalizationService.Instance["Updates_Downloading"]} 0%";
 
             string tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Lyrow", "Updates");
-            string destFile = System.IO.Path.Combine(tempDir, "Lyrow-2.4-Setup-x64.exe");
+            string fileName = "Lyrow-2.5-Setup-x64.exe";
+            try
+            {
+                var uri = new Uri(downloadUrl);
+                var seg = System.IO.Path.GetFileName(uri.LocalPath);
+                if (!string.IsNullOrWhiteSpace(seg) && seg.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    fileName = seg;
+                }
+            }
+            catch { }
+            string destFile = System.IO.Path.Combine(tempDir, fileName);
 
             var progress = new Progress<double>(pct =>
             {
@@ -1114,30 +1092,21 @@ public sealed partial class MainWindow : Window
     {
         BtnFilterAllSettings.Click += (_, _) => ShowSettingsCategory("All");
         BtnFilterGeneral.Click += (_, _) => ShowSettingsCategory("General");
-        BtnFilterPlayback.Click += (_, _) => ShowSettingsCategory("Playback");
-        BtnFilterLyrics.Click += (_, _) => ShowSettingsCategory("Lyrics");
-        BtnFilterGlow.Click += (_, _) => ShowSettingsCategory("Glow");
         BtnFilterUpdates.Click += (_, _) => ShowSettingsCategory("Updates");
         BtnFilterShortcuts.Click += (_, _) => ShowSettingsCategory("Shortcuts");
     }
 
-    private void ShowSettingsCategory(string category)
+    public void ShowSettingsCategory(string category)
     {
         var accent = (Style)Application.Current.Resources["AccentButtonStyle"];
         var standard = (Style)Application.Current.Resources["DefaultButtonStyle"];
 
         BtnFilterAllSettings.Style = category == "All" ? accent : standard;
         BtnFilterGeneral.Style = category == "General" ? accent : standard;
-        BtnFilterPlayback.Style = category == "Playback" ? accent : standard;
-        BtnFilterLyrics.Style = category == "Lyrics" ? accent : standard;
-        BtnFilterGlow.Style = category == "Glow" ? accent : standard;
         BtnFilterUpdates.Style = category == "Updates" ? accent : standard;
         BtnFilterShortcuts.Style = category == "Shortcuts" ? accent : standard;
 
         SectionGeneral.Visibility = (category == "All" || category == "General") ? Visibility.Visible : Visibility.Collapsed;
-        SectionPlayback.Visibility = (category == "All" || category == "Playback") ? Visibility.Visible : Visibility.Collapsed;
-        SectionLyrics.Visibility = (category == "All" || category == "Lyrics") ? Visibility.Visible : Visibility.Collapsed;
-        SectionGlow.Visibility = (category == "All" || category == "Glow") ? Visibility.Visible : Visibility.Collapsed;
         SectionUpdates.Visibility = (category == "All" || category == "Updates") ? Visibility.Visible : Visibility.Collapsed;
         SectionShortcuts.Visibility = (category == "All" || category == "Shortcuts") ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -1156,9 +1125,6 @@ public sealed partial class MainWindow : Window
         // Settings Category Filters
         BtnFilterAllSettings.Content = "All";
         BtnFilterGeneral.Content = loc["Tab_General"];
-        BtnFilterPlayback.Content = loc["Tab_Playback"];
-        BtnFilterLyrics.Content = loc["Tab_Lyrics"];
-        BtnFilterGlow.Content = loc["Tab_Glow"];
         BtnFilterUpdates.Content = loc["Tab_Updates"];
         BtnFilterShortcuts.Content = loc["Tab_Shortcuts"];
 
@@ -1172,28 +1138,6 @@ public sealed partial class MainWindow : Window
         TxtStartupDesc.Text = loc["General_Startup_Desc"];
         TxtSystemTrayLabel.Text = loc["General_SystemTray"];
         TxtSystemTrayDesc.Text = loc["General_SystemTray_Desc"];
-
-        // Playback
-        TxtSectionPlayback.Text = loc["Playback_Title"];
-        TxtPlaybackActiveLabel.Text = loc["Playback_ActiveSession"];
-        TxtPlaybackSystemLabel.Text = loc["Playback_SystemEndpoint"];
-        TxtSettingsMediaStatus.Text = loc["Playback_Transport"];
-
-        // Lyrics
-        TxtSectionLyrics.Text = loc["Lyrics_Title"];
-        TxtSyncOffsetLabel.Text = loc["Lyrics_SyncOffset"];
-        TxtSyncOffsetDesc.Text = loc["Lyrics_SyncOffset_Desc"];
-        TxtLyricsAutoCenterNotice.Text = loc["Lyrics_AutoCenter_Notice"];
-
-        // Glow
-        TxtSectionGlow.Text = loc["Glow_Title"];
-        TxtAmbientGlowLabel.Text = loc["Glow_AmbientGlow"];
-        TxtAmbientGlowDesc.Text = loc["Glow_AmbientGlow_Desc"];
-        TxtGlowIntensityLabel.Text = loc["Glow_Intensity"];
-        TxtArtworkSyncLabel.Text = loc["Glow_ArtworkSync"];
-        TxtArtworkSyncDesc.Text = loc["Glow_ArtworkSync_Desc"];
-        TxtShutdownDelayLabel.Text = loc["Glow_ShutdownDelay"];
-        TxtShutdownDelayDesc.Text = loc["Glow_ShutdownDelay_Desc"];
 
         // Updates
         TxtSectionUpdates.Text = loc["Updates_Title"];
@@ -1224,7 +1168,6 @@ public sealed partial class MainWindow : Window
         {
             SwitchHomeGlow.IsOn = active;
             SwitchGlowMaster.IsOn = active;
-            SwitchSettingsGlowEnabled.IsOn = active;
 
             await _moduleManager.SetModuleActiveAsync("glow", active);
 
@@ -1368,6 +1311,12 @@ public sealed partial class MainWindow : Window
                 TxtHomeCurrentLyricLine.Text = "♪ Play a song to see live synchronized lyrics";
                 return;
             }
+
+            // Atomically reset progress and placeholder for seamless track transition
+            HomeProgressTimeline.Value = 0;
+            HomeTxtTimestamp.Text = track.Duration > TimeSpan.Zero ? $"00:00 / {track.Duration:mm\\:ss}" : "00:00 / --:--";
+            HomeTrackArtwork.Source = null;
+            HomeArtworkPlaceholder.Visibility = Visibility.Visible;
 
             HomeTxtTitle.Text = track.Title;
             HomeTxtArtist.Text = track.Artist;
@@ -1654,7 +1603,90 @@ public sealed partial class MainWindow : Window
         App.ShutdownApp();
     }
 
-    [DllImport("user32.dll")]
+
+    public void NavigateTo(string pageName)
+    {
+        switch (pageName)
+        {
+            case "Home":
+                NavView.SelectedItem = NavHome;
+                ShowPage(PageHome);
+                break;
+            case "Lyrics":
+                NavView.SelectedItem = NavLyrics;
+                ShowPage(PageLyrics);
+                break;
+            case "Glow":
+                NavView.SelectedItem = NavGlow;
+                ShowPage(PageGlow);
+                break;
+            case "Playback":
+                NavView.SelectedItem = NavPlayback;
+                ShowPage(PagePlayback);
+                break;
+            case "Settings":
+                NavView.SelectedItem = NavView.SettingsItem;
+                ShowPage(PageSettings);
+                break;
+            default:
+                NavView.SelectedItem = NavHome;
+                ShowPage(PageHome);
+                break;
+        }
+    }
+
+    private void WireHomeCardsNavigation()
+    {
+        if (CardCurrentTrack != null)
+        {
+            CardCurrentTrack.Tapped += (s, e) =>
+            {
+                if (e.OriginalSource is DependencyObject dep && IsInteractiveControl(dep)) return;
+                NavigateTo("Playback");
+            };
+        }
+
+        if (CardVolume != null)
+        {
+            CardVolume.Tapped += (s, e) =>
+            {
+                if (e.OriginalSource is DependencyObject dep && IsInteractiveControl(dep)) return;
+                NavigateTo("Playback");
+            };
+        }
+
+        if (CardGlow != null)
+        {
+            CardGlow.Tapped += (s, e) =>
+            {
+                if (e.OriginalSource is DependencyObject dep && IsInteractiveControl(dep)) return;
+                NavigateTo("Glow");
+            };
+        }
+
+        if (CardLyrics != null)
+        {
+            CardLyrics.Tapped += (s, e) =>
+            {
+                if (e.OriginalSource is DependencyObject dep && IsInteractiveControl(dep)) return;
+                NavigateTo("Lyrics");
+            };
+        }
+    }
+
+    private static bool IsInteractiveControl(DependencyObject dep)
+    {
+        DependencyObject? current = dep;
+        while (current != null)
+        {
+            if (current is Button || current is Slider || current is ToggleSwitch || current is TextBox || current is ComboBox)
+                return true;
+            current = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(current);
+        }
+        return false;
+    }
+
+        [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);
 }
 

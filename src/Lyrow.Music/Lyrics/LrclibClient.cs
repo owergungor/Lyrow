@@ -53,6 +53,33 @@ public sealed class LrclibClient : ILyricsClient
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
+                // Fallback: If duration was included in query and failed with 404, retry without duration filter
+                // in case streaming service/GSMTC duration differs slightly from LRCLIB database entry.
+                if (duration.HasValue && duration.Value.TotalSeconds > 1.0)
+                {
+                    var fallbackQuery = $"?track_name={Uri.EscapeDataString(trackName)}&artist_name={Uri.EscapeDataString(artistName)}";
+                    using var fallbackResp = await _httpClient.GetAsync(new Uri(BaseApiUrl + fallbackQuery), HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    if (fallbackResp.IsSuccessStatusCode)
+                    {
+                        var fallbackStream = await fallbackResp.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                        var fallbackModel = await JsonSerializer.DeserializeAsync<LrclibResponse>(fallbackStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+                        if (fallbackModel != null && !string.IsNullOrWhiteSpace(fallbackModel.SyncedLyrics))
+                        {
+                            var parsed = LrcParser.Parse(fallbackModel.SyncedLyrics, fallbackModel.TrackName ?? trackName, fallbackModel.ArtistName ?? artistName);
+                            return new LyricsSearchResult(true, parsed, "LRCLIB");
+                        }
+                        if (fallbackModel != null && !string.IsNullOrWhiteSpace(fallbackModel.PlainLyrics))
+                        {
+                            var plain = new SyncedLyrics(
+                                title: fallbackModel.TrackName ?? trackName,
+                                artist: fallbackModel.ArtistName ?? artistName,
+                                isSynced: false,
+                                lines: Array.Empty<LyricLine>(),
+                                plainLyrics: fallbackModel.PlainLyrics);
+                            return new LyricsSearchResult(true, plain, "LRCLIB");
+                        }
+                    }
+                }
                 return new LyricsSearchResult(false, null, "LRCLIB", "Lyrics not found for track.");
             }
 

@@ -1,4 +1,4 @@
-﻿using Lyrow.Core.Contracts;
+using Lyrow.Core.Contracts;
 using Lyrow.Core.Lyrics;
 using Lyrow.Core.Models;
 
@@ -19,6 +19,8 @@ public sealed class LyricsModule : ILyrowModule
     private readonly ISettingsManager? _settingsManager;
 
     private CancellationTokenSource? _activeCts;
+    private CancellationTokenSource? _currentTrackCts;
+    private long _trackSequence = 0;
     private SyncedLyrics _currentLyrics = SyncedLyrics.Empty;
     private MediaTrackInfo _currentTrack = MediaTrackInfo.Empty;
     private MediaTimelineInfo _currentTimeline = MediaTimelineInfo.Zero;
@@ -148,6 +150,9 @@ public sealed class LyricsModule : ILyrowModule
             State = ModuleState.Stopping;
 
             _activeCts?.Cancel();
+            _currentTrackCts?.Cancel();
+            _currentTrackCts?.Dispose();
+            _currentTrackCts = null;
 
             if (_mediaSessionMonitor != null)
             {
@@ -231,13 +236,30 @@ public sealed class LyricsModule : ILyrowModule
 
     public async Task HandleTrackChangedAsync(MediaTrackInfo track, CancellationToken ct = default)
     {
+        long currentSeq;
+        CancellationTokenSource trackCts;
+
+        _currentTrackCts?.Cancel();
+        _currentTrackCts?.Dispose();
+
+        currentSeq = Interlocked.Increment(ref _trackSequence);
+
         _currentTrack = track;
         _activeLineIndex = -1;
+        _currentTimeline = new MediaTimelineInfo(TimeSpan.Zero, track.Duration, MediaPlaybackStatus.Changing, DateTime.UtcNow);
         _synchronizer.Reset();
+        _currentLyrics = SyncedLyrics.Empty;
+
+        trackCts = _activeCts != null
+            ? CancellationTokenSource.CreateLinkedTokenSource(ct, _activeCts.Token)
+            : CancellationTokenSource.CreateLinkedTokenSource(ct);
+        _currentTrackCts = trackCts;
+
+        var token = trackCts.Token;
 
         if (_eventBus != null)
         {
-            await _eventBus.PublishAsync(new MediaTrackChangedEvent(track), ct).ConfigureAwait(false);
+            await _eventBus.PublishAsync(new MediaTrackChangedEvent(track), token).ConfigureAwait(false);
         }
 
         if (track.IsEmpty)
@@ -250,7 +272,12 @@ public sealed class LyricsModule : ILyrowModule
         // 1. Try local cache first
         if (_lyricsCache != null)
         {
-            var cached = await _lyricsCache.GetAsync(track.Title, track.Artist, ct).ConfigureAwait(false);
+            var cached = await _lyricsCache.GetAsync(track.Title, track.Artist, token).ConfigureAwait(false);
+            if (token.IsCancellationRequested || Interlocked.Read(ref _trackSequence) != currentSeq)
+            {
+                return;
+            }
+
             if (cached != null)
             {
                 _currentLyrics = cached;
@@ -259,7 +286,7 @@ public sealed class LyricsModule : ILyrowModule
 
                 if (_eventBus != null)
                 {
-                    await _eventBus.PublishAsync(new LyricsLoadedEvent(cached, "Cache"), ct).ConfigureAwait(false);
+                    await _eventBus.PublishAsync(new LyricsLoadedEvent(cached, "Cache"), token).ConfigureAwait(false);
                 }
                 return;
             }
@@ -276,14 +303,19 @@ public sealed class LyricsModule : ILyrowModule
                     await _eventBus.PublishAsync(new LyricsFetchFailedEvent(
                         $"İstek limiti aşıldı. Lütfen {remaining} saniye bekleyin.",
                         IsRateLimited: true,
-                        RetryAfterSeconds: remaining), ct).ConfigureAwait(false);
+                        RetryAfterSeconds: remaining), token).ConfigureAwait(false);
                 }
                 _currentLyrics = SyncedLyrics.Empty;
                 _synchronizer.SetLyrics(SyncedLyrics.Empty);
                 return;
             }
 
-            var result = await _lyricsClient.FetchLyricsAsync(track.Title, track.Artist, track.Duration, ct).ConfigureAwait(false);
+            var result = await _lyricsClient.FetchLyricsAsync(track.Title, track.Artist, track.Duration, token).ConfigureAwait(false);
+            if (token.IsCancellationRequested || Interlocked.Read(ref _trackSequence) != currentSeq)
+            {
+                return;
+            }
+
             if (result.Found && result.Lyrics != null)
             {
                 _currentLyrics = result.Lyrics;
@@ -292,12 +324,12 @@ public sealed class LyricsModule : ILyrowModule
 
                 if (_lyricsCache != null && (_settingsManager?.Current.Lyrics.CacheLyricsLocally ?? true))
                 {
-                    await _lyricsCache.SaveAsync(track.Title, track.Artist, result.Lyrics, ct).ConfigureAwait(false);
+                    await _lyricsCache.SaveAsync(track.Title, track.Artist, result.Lyrics, token).ConfigureAwait(false);
                 }
 
                 if (_eventBus != null)
                 {
-                    await _eventBus.PublishAsync(new LyricsLoadedEvent(result.Lyrics, result.Source), ct).ConfigureAwait(false);
+                    await _eventBus.PublishAsync(new LyricsLoadedEvent(result.Lyrics, result.Source), token).ConfigureAwait(false);
                 }
                 return;
             }
@@ -312,13 +344,16 @@ public sealed class LyricsModule : ILyrowModule
                 await _eventBus.PublishAsync(new LyricsFetchFailedEvent(
                     result.Error ?? "Lyrics not found.",
                     result.IsRateLimited,
-                    result.RetryAfterSeconds), ct).ConfigureAwait(false);
+                    result.RetryAfterSeconds), token).ConfigureAwait(false);
             }
         }
 
         // If not found or client missing
-        _currentLyrics = SyncedLyrics.Empty;
-        _synchronizer.SetLyrics(SyncedLyrics.Empty);
+        if (Interlocked.Read(ref _trackSequence) == currentSeq)
+        {
+            _currentLyrics = SyncedLyrics.Empty;
+            _synchronizer.SetLyrics(SyncedLyrics.Empty);
+        }
     }
 
     public async ValueTask DisposeAsync()

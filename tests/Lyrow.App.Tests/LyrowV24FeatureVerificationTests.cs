@@ -17,13 +17,12 @@ public class LyrowV24FeatureVerificationTests
     [Fact]
     public void Versioning_IsStrictlyTwoPart_V24()
     {
-        Assert.Equal("2.4", GitHubUpdateService.AppVersion);
         Assert.True(GitHubUpdateService.IsValidTwoPartVersionTag("v2.4"));
         Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.4.0"));
         Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("2.4.0"));
         Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.4.1"));
         Assert.True(GitHubUpdateService.IsNewerVersion("2.3", "2.4"));
-        Assert.False(GitHubUpdateService.IsNewerVersion("2.4", "2.4"));
+        Assert.True(GitHubUpdateService.IsNewerVersion("2.4", "2.5"));
     }
 
     [Fact]

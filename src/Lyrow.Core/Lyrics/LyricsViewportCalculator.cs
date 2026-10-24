@@ -102,10 +102,12 @@ public static class LyricsViewportCalculator
                 TargetScale: 1.0,
                 FontSize: farSize,
                 IsActive: false,
-                Distance: lineIndex + 1);
+                Distance: lineIndex + 1,
+                State: LyricLineMotionState.Idle);
         }
 
         int distance = Math.Abs(lineIndex - activeIndex);
+        var motionState = ResolveLineMotionState(lineIndex, activeIndex);
 
         if (distance == 0)
         {
@@ -114,7 +116,8 @@ public static class LyricsViewportCalculator
                 TargetScale: 1.04,
                 FontSize: activeSize,
                 IsActive: true,
-                Distance: 0);
+                Distance: 0,
+                State: motionState);
         }
 
         if (distance == 1)
@@ -124,7 +127,8 @@ public static class LyricsViewportCalculator
                 TargetScale: 1.0,
                 FontSize: nearSize,
                 IsActive: false,
-                Distance: 1);
+                Distance: 1,
+                State: motionState);
         }
 
         if (distance == 2)
@@ -134,7 +138,8 @@ public static class LyricsViewportCalculator
                 TargetScale: 0.98,
                 FontSize: farSize,
                 IsActive: false,
-                Distance: 2);
+                Distance: 2,
+                State: motionState);
         }
 
         return new LyricLineVisualTarget(
@@ -142,7 +147,20 @@ public static class LyricsViewportCalculator
             TargetScale: 0.96,
             FontSize: farSize,
             IsActive: false,
-            Distance: distance);
+            Distance: distance,
+            State: motionState);
+    }
+
+    /// <summary>
+    /// Resolves the animation state of a lyric line relative to the current active line.
+    /// </summary>
+    public static LyricLineMotionState ResolveLineMotionState(int lineIndex, int activeIndex)
+    {
+        if (activeIndex < 0) return LyricLineMotionState.Idle;
+        if (lineIndex == activeIndex) return LyricLineMotionState.Active;
+        if (lineIndex == activeIndex + 1) return LyricLineMotionState.ApproachingActive;
+        if (lineIndex < activeIndex) return LyricLineMotionState.Passed;
+        return LyricLineMotionState.Idle;
     }
 
     /// <summary>
@@ -157,6 +175,17 @@ public static class LyricsViewportCalculator
 }
 
 /// <summary>
+/// Motion states in the Apple Music / VoxelVerse lyric line animation state machine.
+/// </summary>
+public enum LyricLineMotionState
+{
+    Idle,
+    ApproachingActive,
+    Active,
+    Passed
+}
+
+/// <summary>
 /// Target visual parameters for a single lyric line in the Apple Music-style hierarchy.
 /// </summary>
 public readonly record struct LyricLineVisualTarget(
@@ -164,4 +193,5 @@ public readonly record struct LyricLineVisualTarget(
     double TargetScale,
     double FontSize,
     bool IsActive,
-    int Distance);
+    int Distance,
+    LyricLineMotionState State = LyricLineMotionState.Idle);

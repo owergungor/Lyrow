@@ -51,6 +51,8 @@ public sealed partial class LyricsWindow : Window
     private bool _userIsInteracting = false;
     private DateTime _lastUserInteractionUtc = DateTime.MinValue;
     private bool _isShuttingDown = false;
+    private AmbientBackgroundPalette _currentAmbientPalette = AmbientBackgroundPalette.Default;
+    private AmbientBackgroundPalette _targetAmbientPalette = AmbientBackgroundPalette.Default;
 
     public LyricsWindow(
         LyricsModule lyricsModule,
@@ -118,6 +120,18 @@ public sealed partial class LyricsWindow : Window
         BtnLyricsNext.Click += async (_, _) =>
         {
             if (_mediaMonitor != null) await _mediaMonitor.TrySkipNextAsync();
+        };
+
+        BtnToggleFullscreen.Click += (_, _) => ToggleFullscreen();
+        BtnExitFullscreen.Click += (_, _) => ToggleFullscreen();
+        RootLayout.SizeChanged += (_, _) => UpdateLayoutForCurrentSize();
+        RootLayout.KeyDown += (_, e) =>
+        {
+            if (e.Key == Windows.System.VirtualKey.F11)
+            {
+                ToggleFullscreen();
+                e.Handled = true;
+            }
         };
 
         LyricsScrollViewer.SizeChanged += (_, _) =>
@@ -217,6 +231,8 @@ public sealed partial class LyricsWindow : Window
         {
             TxtSongTitle.Text = "No active media session";
             TxtArtistName.Text = "Play music in Spotify, Apple Music, or your browser";
+            TxtSongTitleImmersive.Text = "No active media session";
+            TxtArtistNameImmersive.Text = "Play music in Spotify, Apple Music, or your browser";
             ProgressTimeline.Value = 0;
             TxtTimestamp.Text = "00:00 / 00:00";
             TxtEmptyState.Text = "Play a song in Spotify, Apple Music, or your browser";
@@ -224,13 +240,19 @@ public sealed partial class LyricsWindow : Window
             LyricsScrollViewer.Visibility = Visibility.Collapsed;
             IconArtworkPlaceholder.Visibility = Visibility.Visible;
             ImgTrackArtwork.Source = null;
+            IconArtworkPlaceholderImmersive.Visibility = Visibility.Visible;
+            ImgTrackArtworkImmersive.Source = null;
+            _targetAmbientPalette = AmbientBackgroundPalette.Default;
             return;
         }
 
         TxtSongTitle.Text = track.Title;
-        TxtArtistName.Text = string.IsNullOrWhiteSpace(track.Album)
+        string artistAlbum = string.IsNullOrWhiteSpace(track.Album)
             ? track.Artist
             : $"{track.Artist} — {track.Album}";
+        TxtArtistName.Text = artistAlbum;
+        TxtSongTitleImmersive.Text = track.Title;
+        TxtArtistNameImmersive.Text = artistAlbum;
 
         var pos = timeline.GetInterpolatedPosition();
         var dur = timeline.Duration > TimeSpan.Zero ? timeline.Duration : track.Duration;
@@ -271,6 +293,14 @@ public sealed partial class LyricsWindow : Window
 
             if (trackChanged)
             {
+                _currentScrollOffsetY = 0;
+                _targetScrollOffsetY = 0;
+                LyricsScrollViewer.ChangeView(null, 0, null, disableAnimation: true);
+                _currentActiveIndex = -99;
+                ImgTrackArtwork.Source = null;
+                IconArtworkPlaceholder.Visibility = Visibility.Visible;
+                ImgTrackArtworkImmersive.Source = null;
+                IconArtworkPlaceholderImmersive.Visibility = Visibility.Visible;
                 await UpdateArtworkAsync(track);
             }
         }
@@ -296,17 +326,27 @@ public sealed partial class LyricsWindow : Window
             {
                 ImgTrackArtwork.Source = bitmap;
                 IconArtworkPlaceholder.Visibility = Visibility.Collapsed;
+                ImgTrackArtworkImmersive.Source = bitmap;
+                IconArtworkPlaceholderImmersive.Visibility = Visibility.Collapsed;
             }
             else
             {
                 ImgTrackArtwork.Source = null;
                 IconArtworkPlaceholder.Visibility = Visibility.Visible;
+                ImgTrackArtworkImmersive.Source = null;
+                IconArtworkPlaceholderImmersive.Visibility = Visibility.Visible;
             }
+
+            var palette = await _artworkBitmapManager.ExtractArtworkPaletteAsync(track);
+            _targetAmbientPalette = ArtworkPaletteExtractor.ExtractAmbientPalette(palette);
         }
         catch
         {
             ImgTrackArtwork.Source = null;
             IconArtworkPlaceholder.Visibility = Visibility.Visible;
+            ImgTrackArtworkImmersive.Source = null;
+            IconArtworkPlaceholderImmersive.Visibility = Visibility.Visible;
+            _targetAmbientPalette = AmbientBackgroundPalette.Default;
         }
     }
 
@@ -540,6 +580,40 @@ public sealed partial class LyricsWindow : Window
 
             LyricsScrollViewer.ChangeView(null, _currentScrollOffsetY, null, disableAnimation: true);
         }
+
+        // 3. Ambient dynamic artwork background 60 FPS cross-fade
+        _currentAmbientPalette = AmbientBackgroundPalette.Lerp(_currentAmbientPalette, _targetAmbientPalette, 0.08f);
+        StopTopLeft.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Dominant.R, _currentAmbientPalette.Dominant.G, _currentAmbientPalette.Dominant.B);
+        StopCenter.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Secondary.R, _currentAmbientPalette.Secondary.G, _currentAmbientPalette.Secondary.B);
+        StopBottomRight.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Tertiary.R, _currentAmbientPalette.Tertiary.G, _currentAmbientPalette.Tertiary.B);
+    }
+
+    private void UpdateLayoutForCurrentSize()
+    {
+        double w = RootLayout.ActualWidth;
+        bool isImmersive = w >= 820 || (AppWindow?.Presenter?.Kind == Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen);
+
+        PanelImmersiveSidebar.Visibility = isImmersive ? Visibility.Visible : Visibility.Collapsed;
+        CompactHeaderCard.Visibility = isImmersive ? Visibility.Collapsed : Visibility.Visible;
+        IconFullscreen.Glyph = isImmersive ? "\uE73F" : "\uE740";
+        UpdateViewportPadding();
+    }
+
+    private void ToggleFullscreen()
+    {
+        try
+        {
+            if (AppWindow.Presenter.Kind == Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen)
+            {
+                AppWindow.SetPresenter(Microsoft.UI.Windowing.AppWindowPresenterKind.Default);
+            }
+            else
+            {
+                AppWindow.SetPresenter(Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen);
+            }
+            UpdateLayoutForCurrentSize();
+        }
+        catch { }
     }
 
     private void SyncVolumeUi()

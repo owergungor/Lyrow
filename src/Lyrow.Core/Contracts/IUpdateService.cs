@@ -22,4 +22,7 @@ public interface IUpdateService
 
     /// <summary>Launches the downloaded installer and terminates the application cleanly.</summary>
     bool LaunchInstallerAndExit(string installerPath);
+
+    /// <summary>Applies update silently in-app without wizard prompts, replaces binaries, and restarts the application.</summary>
+    bool LaunchSilentUpdateAndRestart(string installerPath, string? appExecutablePath = null);
 }

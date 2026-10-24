@@ -54,7 +54,7 @@ Ayrıca kod tabanındaki tüm eski modül ve proje referansları temizlenerek ta
 - 0 px seçildiğinde CPU/GPU döngüleri sıfır yüke indirgenir; yüksek piksel değerlerinde ekranın derinliklerine kadar yumuşak gradyan yayılır.
 
 ### 7. 🧹 Eski Modül İsimlerinin Temizliği
-- Kod tabanındaki, testlerdeki, modellerdeki ve dökümantasyondaki tüm eski proje ve modül adları (`Lumn`, `Verci`) Lyrow standartlarına (`GlowModule`, `LyricsModule`, `GlowSettings`, `LyricsSettings`) dönüştürüldü.
+- Kod tabanındaki, testlerdeki, modellerdeki ve dökümantasyondaki tüm eski proje ve modül adları Lyrow standartlarına (`GlowModule`, `LyricsModule`, `GlowSettings`, `LyricsSettings`) dönüştürüldü.
 - Aktif depoda 0 eşleşme garanti altına alındı.
 
 ---
