@@ -17,6 +17,7 @@ public partial class App : Application
 {
     public static IServiceProvider Services { get; private set; } = null!;
     public static MainWindow? MainWindowInstance { get; private set; }
+    public static bool IsSmokeTestMode { get; set; }
 
     private const string AppGuid = "Lyrow_SingleInstance_f84b12c9-94b1-4c4f-9e63-47a61d15c89f";
     private const string WakeEventName = "Lyrow_WakeEvent_f84b12c9-94b1-4c4f-9e63-47a61d15c89f";
@@ -32,6 +33,9 @@ public partial class App : Application
     {
         try
         {
+            IsSmokeTestMode = (!string.IsNullOrEmpty(args.Arguments) && args.Arguments.Contains("--smoke-test", StringComparison.OrdinalIgnoreCase))
+                || Environment.GetCommandLineArgs().Any(a => a.Equals("--smoke-test", StringComparison.OrdinalIgnoreCase))
+                || Environment.GetEnvironmentVariable("LYROW_SMOKE_TEST") == "1";
             bool isFirstInstance;
             try
             {
@@ -64,6 +68,7 @@ public partial class App : Application
             }
             catch { }
 
+            LocalDiagnosticLogger.LogInfo($"OnLaunched called. args.Arguments='{args.Arguments}', CmdLine='{string.Join(' ', Environment.GetCommandLineArgs())}', IsSmokeTestMode={IsSmokeTestMode}");
             LocalDiagnosticLogger.LogInfo("Initializing Lyrow v2.0 WinUI 3 application and DI container...");
             var services = new ServiceCollection();
             ConfigureServices(services);
@@ -156,26 +161,34 @@ public partial class App : Application
             var volume = Services?.GetService<IAudioVolumeService>();
             volume?.Dispose();
 
-            var moduleManager = Services?.GetService<IModuleManager>();
-            if (moduleManager != null)
+            try
             {
-                moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.BothDisabled).GetAwaiter().GetResult();
+                Task.Run(async () =>
+                {
+                    var moduleManager = Services?.GetService<IModuleManager>();
+                    if (moduleManager != null)
+                    {
+                        await moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.BothDisabled).ConfigureAwait(false);
+                    }
+
+                    var glow = Services?.GetService<GlowModule>();
+                    if (glow != null) await glow.DisposeAsync().ConfigureAwait(false);
+
+                    var lyrics = Services?.GetService<LyricsModule>();
+                    if (lyrics != null) await lyrics.DisposeAsync().ConfigureAwait(false);
+
+                    var wasapi = Services?.GetService<IAudioCaptureService>();
+                    if (wasapi != null) await wasapi.DisposeAsync().ConfigureAwait(false);
+
+                    var gsmtc = Services?.GetService<IMediaSessionMonitor>();
+                    if (gsmtc != null) await gsmtc.DisposeAsync().ConfigureAwait(false);
+                }).Wait(TimeSpan.FromSeconds(2));
             }
-
-            var glow = Services?.GetService<GlowModule>();
-            glow?.DisposeAsync().AsTask().GetAwaiter().GetResult();
-
-            var lyrics = Services?.GetService<LyricsModule>();
-            lyrics?.DisposeAsync().AsTask().GetAwaiter().GetResult();
-
-            var wasapi = Services?.GetService<IAudioCaptureService>();
-            wasapi?.DisposeAsync().AsTask().GetAwaiter().GetResult();
-
-            var gsmtc = Services?.GetService<IMediaSessionMonitor>();
-            gsmtc?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            catch { }
 
             (Services as IDisposable)?.Dispose();
             LocalDiagnosticLogger.LogInfo("Application cleanup complete.");
+            Environment.Exit(0);
         }
         catch (Exception ex)
         {

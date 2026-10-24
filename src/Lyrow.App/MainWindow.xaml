@@ -561,7 +561,7 @@
 
                                 <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                                     <StackPanel Spacing="2">
-                                        <TextBlock x:Name="TxtCurrentVersion" Text="Current Version: v2.7" FontWeight="SemiBold" FontSize="14" />
+                                        <TextBlock x:Name="TxtCurrentVersion" Text="Current Version: v2.8" FontWeight="SemiBold" FontSize="14" />
                                         <TextBlock x:Name="TxtUpdateStatusSummary" Text="Release channel: GitHub Releases (Stable)"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
@@ -604,7 +604,7 @@
                         <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <StackPanel Spacing="10">
-                                <TextBlock Text="Lyrow v2.4" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="Lyrow v2.8" FontWeight="SemiBold" FontSize="14" />
                                 <TextBlock Text="Windows 11 Native Ambient Edge Lighting &amp; Apple Music-Style Synchronized Lyrics"
                                            FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">

@@ -13,7 +13,7 @@
     </Window.SystemBackdrop>
 
     <Grid x:Name="RootLayout">
-        <!-- Ambient Dynamic Artwork Gradient Background -->
+        <!-- Ambient Dynamic Artwork Gradient Background with Cinematic Vignette -->
         <Grid x:Name="AmbientBackgroundLayer" IsHitTestVisible="False">
             <Grid.Background>
                 <LinearGradientBrush x:Name="AmbientBrush" StartPoint="0,0" EndPoint="1,1">
@@ -22,7 +22,16 @@
                     <GradientStop x:Name="StopBottomRight" Color="#08080C" Offset="1.0" />
                 </LinearGradientBrush>
             </Grid.Background>
-            <Rectangle Fill="#8A000000" />
+            <Rectangle Fill="#7A000000" />
+            <Rectangle>
+                <Rectangle.Fill>
+                    <RadialGradientBrush Center="0.5,0.5" RadiusX="0.75" RadiusY="0.75">
+                        <GradientStop Color="#00000000" Offset="0.0" />
+                        <GradientStop Color="#45000000" Offset="0.6" />
+                        <GradientStop Color="#90000000" Offset="1.0" />
+                    </RadialGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
         </Grid>
 
         <!-- Main Window Container -->
@@ -83,12 +92,12 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Left Column: Immersive Apple Music Artwork & Info Panel (Width >= 820 or Fullscreen) -->
-                <Border x:Name="PanelImmersiveSidebar" Grid.Column="0" Width="380" Padding="36,24,24,24"
-                        Visibility="Collapsed" VerticalAlignment="Center">
-                    <StackPanel Spacing="24" HorizontalAlignment="Center">
-                        <!-- Large Rounded Artwork -->
-                        <Border Width="260" Height="260" CornerRadius="16"
+                <!-- Left Column: Immersive Apple Music Artwork & Info Panel (~40% of landscape viewport) -->
+                <Border x:Name="PanelImmersiveSidebar" Grid.Column="0" Padding="40,24,28,24"
+                        Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Stretch">
+                    <StackPanel Spacing="20" HorizontalAlignment="Center" MaxWidth="380">
+                        <!-- Large Rounded Artwork (1:1, 12px corners) -->
+                        <Border Width="280" Height="280" CornerRadius="12"
                                 Background="{ThemeResource LayerFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <Grid>
@@ -102,24 +111,47 @@
                         <!-- Typography Info -->
                         <StackPanel Spacing="6" HorizontalAlignment="Center">
                             <TextBlock x:Name="TxtSongTitleImmersive" Text="Waiting for playback..." FontWeight="Bold"
-                                       FontSize="22" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="320" />
-                            <TextBlock x:Name="TxtArtistNameImmersive" Text="No active media session" FontSize="15"
+                                       FontSize="24" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="340" />
+                            <TextBlock x:Name="TxtArtistNameImmersive" Text="No active media session" FontSize="16"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       TextAlignment="Center" TextWrapping="Wrap" MaxWidth="320" />
+                                       TextAlignment="Center" TextWrapping="Wrap" MaxWidth="340" />
                         </StackPanel>
 
-                        <!-- Quick Fullscreen Exit Button -->
-                        <Button x:Name="BtnExitFullscreen" HorizontalAlignment="Center" CornerRadius="8"
-                                Padding="12,6" ToolTipService.ToolTip="Exit Fullscreen (F11)">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE73F;" FontSize="12" />
-                                <TextBlock Text="Exit Fullscreen" FontSize="12" />
-                            </StackPanel>
-                        </Button>
+                        <!-- Immersive Timeline & Timestamps -->
+                        <Grid Margin="4,4,4,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <ProgressBar x:Name="ProgressTimelineImmersive" Minimum="0" Maximum="100" Value="0" Height="3" CornerRadius="1.5" />
+                            <Grid Grid.Row="1" Margin="0,4,0,0">
+                                <TextBlock x:Name="TxtImmersiveElapsed" Text="00:00" FontSize="11"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Left" />
+                                <TextBlock x:Name="TxtImmersiveRemaining" Text="-00:00" FontSize="11"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Right" />
+                            </Grid>
+                        </Grid>
+
+                        <!-- Immersive Media Transport Controls -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16" Margin="0,4,0,0">
+                            <Button x:Name="BtnImmersivePrev" Width="38" Height="38" Padding="0" CornerRadius="19"
+                                    ToolTipService.ToolTip="Previous Track" AutomationProperties.Name="Previous Track">
+                                <FontIcon Glyph="&#xE892;" FontSize="14" />
+                            </Button>
+                            <Button x:Name="BtnImmersivePlayPause" Width="48" Height="48" Padding="0" CornerRadius="24"
+                                    Style="{ThemeResource AccentButtonStyle}" ToolTipService.ToolTip="Play / Pause"
+                                    AutomationProperties.Name="Play or Pause">
+                                <FontIcon x:Name="IconImmersivePlayPause" Glyph="&#xE768;" FontSize="18" />
+                            </Button>
+                            <Button x:Name="BtnImmersiveNext" Width="38" Height="38" Padding="0" CornerRadius="19"
+                                    ToolTipService.ToolTip="Next Track" AutomationProperties.Name="Next Track">
+                                <FontIcon Glyph="&#xE893;" FontSize="14" />
+                            </Button>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
-                <!-- Right Column (or Center in compact): Fluid Centered Lyrics -->
+                <!-- Right Column (or Center in compact): Fluid Centered Lyrics (~60% in landscape) -->
                 <Grid Grid.Column="1" Background="Transparent">
                     <ScrollViewer x:Name="LyricsScrollViewer"
                                   VerticalScrollMode="Enabled"
@@ -141,8 +173,8 @@
                 </Grid>
             </Grid>
 
-            <!-- Bottom Controls Bar -->
-            <Border Grid.Row="3" Padding="16,8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            <!-- Bottom Controls Bar (Visible in compact windowed mode) -->
+            <Border x:Name="BottomControlsBar" Grid.Row="3" Padding="16,8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
                 <Grid ColumnDefinitions="Auto,*,Auto">
                     <TextBlock x:Name="TxtTimestamp" Grid.Column="0" Text="00:00 / 00:00" FontSize="12" VerticalAlignment="Center"
@@ -178,5 +210,44 @@
                 </Grid>
             </Border>
         </Grid>
+
+        <!-- Floating Top Overlays (Fullscreen / Immersive Mode) -->
+        <Grid x:Name="ImmersiveTopOverlay" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="24,18" IsHitTestVisible="True" Visibility="Collapsed">
+            <!-- Top-Left Translucent Pill: Exit Fullscreen / Close -->
+            <Button x:Name="BtnTopLeftExitFullscreen" HorizontalAlignment="Left" CornerRadius="20" Padding="14,6"
+                    Background="#38000000" BorderBrush="#22FFFFFF" BorderThickness="1" ToolTipService.ToolTip="Exit Fullscreen (F11)">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE73F;" FontSize="12" />
+                    <TextBlock Text="Exit Fullscreen" FontSize="12" FontWeight="Medium" />
+                </StackPanel>
+            </Button>
+
+            <!-- Top-Right Translucent Pill: Volume -->
+            <Border x:Name="PillTopRightVolume" HorizontalAlignment="Right" CornerRadius="20" Padding="12,6"
+                    Background="#38000000" BorderBrush="#22FFFFFF" BorderThickness="1">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="BtnImmersiveVolumeMute" Width="26" Height="26" Padding="0" CornerRadius="13"
+                            Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Mute / Unmute">
+                        <FontIcon x:Name="IconImmersiveVolumeMute" Glyph="&#xE767;" FontSize="12" />
+                    </Button>
+                    <Slider x:Name="SliderImmersiveVolume" Width="90" Minimum="0" Maximum="100" Value="78" StepFrequency="1"
+                            IsThumbToolTipEnabled="False" VerticalAlignment="Center" />
+                    <TextBlock x:Name="TxtImmersiveVolumePercent" Text="78%" FontSize="11" Width="32" VerticalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Floating Bottom-Right Utility Indicator Pill (Fullscreen / Immersive Mode) -->
+        <Border x:Name="PillBottomRightUtility" VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                Margin="24,18" CornerRadius="16" Padding="10,5"
+                Background="#30000000" BorderBrush="#18FFFFFF" BorderThickness="1"
+                Visibility="Collapsed" IsHitTestVisible="False">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <FontIcon Glyph="&#xEC4F;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="TxtImmersiveLyricsStatus" Text="Synchronized" FontSize="11"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

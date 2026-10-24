@@ -107,6 +107,29 @@ public sealed partial class LyricsWindow : Window
                 _volumeService.TogglePlaybackMute();
                 SyncVolumeUi();
             };
+            BtnImmersiveVolumeMute.Click += (_, _) =>
+            {
+                _volumeService.TogglePlaybackMute();
+                SyncVolumeUi();
+            };
+            SliderImmersiveVolume.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingVolumeUi) return;
+                _isUpdatingVolumeUi = true;
+                try
+                {
+                    int val = Math.Clamp((int)Math.Round(e.NewValue), 0, 100);
+                    _volumeService.SetPlaybackVolumePercent(val);
+                    TxtImmersiveVolumePercent.Text = $"{val}%";
+                    IconImmersiveVolumeMute.Glyph = (val == 0 || _volumeService.IsPlaybackMuted) ? "\uE74F" : "\uE767";
+                    SliderLyricsVolume.Value = val;
+                    TxtLyricsVolumePercent.Text = $"{val}%";
+                }
+                finally
+                {
+                    _isUpdatingVolumeUi = false;
+                }
+            };
             _volumeService.VolumeChanged += (_, _) =>
             {
                 DispatcherQueue?.TryEnqueue(SyncVolumeUi);
@@ -126,8 +149,21 @@ public sealed partial class LyricsWindow : Window
             if (_mediaMonitor != null) await _mediaMonitor.TrySkipNextAsync();
         };
 
+        BtnImmersivePrev.Click += async (_, _) =>
+        {
+            if (_mediaMonitor != null) await _mediaMonitor.TrySkipPreviousAsync();
+        };
+        BtnImmersivePlayPause.Click += async (_, _) =>
+        {
+            if (_mediaMonitor != null) await _mediaMonitor.TryTogglePlayPauseAsync();
+        };
+        BtnImmersiveNext.Click += async (_, _) =>
+        {
+            if (_mediaMonitor != null) await _mediaMonitor.TrySkipNextAsync();
+        };
+
         BtnToggleFullscreen.Click += (_, _) => ToggleFullscreen();
-        BtnExitFullscreen.Click += (_, _) => ToggleFullscreen();
+        BtnTopLeftExitFullscreen.Click += (_, _) => ToggleFullscreen();
         RootLayout.SizeChanged += (_, _) => UpdateLayoutForCurrentSize();
         RootLayout.KeyDown += (_, e) =>
         {
@@ -264,18 +300,29 @@ public sealed partial class LyricsWindow : Window
 
         if (dur.TotalSeconds > 0)
         {
-            ProgressTimeline.Value = Math.Clamp((pos.TotalSeconds / dur.TotalSeconds) * 100.0, 0, 100);
+            double progressPct = Math.Clamp((pos.TotalSeconds / dur.TotalSeconds) * 100.0, 0, 100);
+            ProgressTimeline.Value = progressPct;
+            ProgressTimelineImmersive.Value = progressPct;
         }
         else
         {
             ProgressTimeline.Value = 0;
+            ProgressTimelineImmersive.Value = 0;
         }
+
+        TxtImmersiveElapsed.Text = $"{pos:mm\\:ss}";
+        TxtImmersiveRemaining.Text = dur > pos ? $"-{(dur - pos):mm\\:ss}" : "-00:00";
 
         bool hasTrack = !track.IsEmpty;
         BtnLyricsPrev.IsEnabled = hasTrack;
         BtnLyricsPlayPause.IsEnabled = hasTrack;
         BtnLyricsNext.IsEnabled = hasTrack;
-        IconLyricsPlayPause.Glyph = (timeline.Status == MediaPlaybackStatus.Playing) ? "\uE769" : "\uE768";
+        BtnImmersivePrev.IsEnabled = hasTrack;
+        BtnImmersivePlayPause.IsEnabled = hasTrack;
+        BtnImmersiveNext.IsEnabled = hasTrack;
+        var playGlyph = (timeline.Status == MediaPlaybackStatus.Playing) ? "\uE769" : "\uE768";
+        IconLyricsPlayPause.Glyph = playGlyph;
+        IconImmersivePlayPause.Glyph = playGlyph;
 
         // Ensure synchronizer evaluates latest interpolated position
         _lyricsModule.Synchronizer.EvaluatePosition(pos);
@@ -686,6 +733,10 @@ public sealed partial class LyricsWindow : Window
 
         PanelImmersiveSidebar.Visibility = isImmersive ? Visibility.Visible : Visibility.Collapsed;
         CompactHeaderCard.Visibility = isImmersive ? Visibility.Collapsed : Visibility.Visible;
+        BottomControlsBar.Visibility = isImmersive ? Visibility.Collapsed : Visibility.Visible;
+        ImmersiveTopOverlay.Visibility = isImmersive ? Visibility.Visible : Visibility.Collapsed;
+        PillBottomRightUtility.Visibility = isImmersive ? Visibility.Visible : Visibility.Collapsed;
+        ColImmersiveSidebar.Width = isImmersive ? new GridLength(4, GridUnitType.Star) : new GridLength(0);
         IconFullscreen.Glyph = isImmersive ? "\uE73F" : "\uE740";
         UpdateViewportPadding();
     }
@@ -718,6 +769,9 @@ public sealed partial class LyricsWindow : Window
             SliderLyricsVolume.Value = vol;
             TxtLyricsVolumePercent.Text = muted ? "Muted" : $"{vol}%";
             IconLyricsVolumeMute.Glyph = (muted || vol == 0) ? "\uE74F" : "\uE767";
+            SliderImmersiveVolume.Value = vol;
+            TxtImmersiveVolumePercent.Text = muted ? "Muted" : $"{vol}%";
+            IconImmersiveVolumeMute.Glyph = (muted || vol == 0) ? "\uE74F" : "\uE767";
         }
         finally
         {

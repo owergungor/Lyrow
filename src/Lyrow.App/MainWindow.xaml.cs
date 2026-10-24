@@ -117,12 +117,24 @@ public sealed partial class MainWindow : Window
 
         AppWindow.Closing += (sender, args) =>
         {
-            if (_settingsManager.Current.MinimizeToTray && !_isExplicitExit)
+            bool isSmokeTest = App.IsSmokeTestMode
+                || Environment.GetCommandLineArgs().Any(a => a.Equals("--smoke-test", StringComparison.OrdinalIgnoreCase))
+                || Environment.GetEnvironmentVariable("LYROW_SMOKE_TEST") == "1";
+            LocalDiagnosticLogger.LogInfo($"AppWindow.Closing triggered! isSmokeTest={isSmokeTest}, MinimizeToTray={_settingsManager.Current.MinimizeToTray}, isExplicitExit={_isExplicitExit}");
+            if (_settingsManager.Current.MinimizeToTray && !_isExplicitExit && !isSmokeTest)
             {
                 args.Cancel = true;
                 AppWindow.Hide();
             }
         };
+
+        try
+        {
+            var mainHwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            _subclassProc = MainWindowSubclass;
+            SetWindowSubclass(mainHwnd, _subclassProc, UIntPtr.Zero, UIntPtr.Zero);
+        }
+        catch { }
 
         WireHomeCardsNavigation();
 
@@ -1743,7 +1755,39 @@ public sealed partial class MainWindow : Window
         return false;
     }
 
-        [DllImport("user32.dll")]
+        [DllImport("comctl32.dll", SetLastError = true)]
+    private static extern bool SetWindowSubclass(IntPtr hWnd, SubclassProc pfnSubclass, UIntPtr uIdSubclass, UIntPtr dwRefData);
+
+    [DllImport("comctl32.dll", SetLastError = true)]
+    private static extern IntPtr DefSubclassProc(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam);
+
+    private delegate IntPtr SubclassProc(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam, UIntPtr uIdSubclass, UIntPtr dwRefData);
+    private SubclassProc? _subclassProc;
+
+    private IntPtr MainWindowSubclass(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam, UIntPtr uIdSubclass, UIntPtr dwRefData)
+    {
+        const uint WM_CLOSE = 0x0010;
+        if (uMsg == WM_CLOSE)
+        {
+            LocalDiagnosticLogger.LogInfo("WM_CLOSE message received on MainWindow HWND.");
+            bool isSmokeTest = App.IsSmokeTestMode
+                || Environment.GetCommandLineArgs().Any(a => a.Equals("--smoke-test", StringComparison.OrdinalIgnoreCase))
+                || Environment.GetEnvironmentVariable("LYROW_SMOKE_TEST") == "1";
+
+            if (_settingsManager.Current.MinimizeToTray && !_isExplicitExit && !isSmokeTest)
+            {
+                DispatcherQueue.TryEnqueue(() => AppWindow.Hide());
+            }
+            else
+            {
+                DispatcherQueue.TryEnqueue(RequestExit);
+            }
+            return IntPtr.Zero;
+        }
+        return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);
 }
 

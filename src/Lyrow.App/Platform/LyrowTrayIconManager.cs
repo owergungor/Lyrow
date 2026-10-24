@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using Lyrow.Core.Services;
 
 namespace Lyrow.App.Platform;
 
@@ -383,6 +384,14 @@ public sealed class LyrowTrayIconManager : IDisposable
 
     private IntPtr TrayWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
+        const uint WM_CLOSE = 0x0010;
+        if (msg == WM_CLOSE)
+        {
+            LocalDiagnosticLogger.LogInfo("WM_CLOSE received on LyrowTrayMsgWindow. Triggering exit.");
+            TriggerExit();
+            return IntPtr.Zero;
+        }
+
         if (msg == WM_TRAYICON)
         {
             int eventId = lParam.ToInt32();

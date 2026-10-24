@@ -55,6 +55,7 @@ public sealed class LyricsModule : ILyrowModule
     public MediaTimelineInfo CurrentTimeline => _currentTimeline;
     public int ActiveLineIndex => _synchronizer.CurrentActiveIndex;
     public LyricsTimelineSynchronizer Synchronizer => _synchronizer;
+    public long TrackSequence => Interlocked.Read(ref _trackSequence);
 
     /// <summary>
     /// When true, stopping the Lyrics overlay module detaches event handlers without shutting down the shared OS media session monitor.
