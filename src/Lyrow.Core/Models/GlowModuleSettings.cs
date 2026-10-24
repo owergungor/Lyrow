@@ -20,7 +20,7 @@ public sealed class GlowModuleSettings
     /// <summary>
     /// Sensitivity multiplier applied to audio amplitudes [0.1, 5.0].
     /// </summary>
-    public float Sensitivity { get; set; } = 1.0f;
+    public float Sensitivity { get; set; } = 2.5f;
 
     /// <summary>
     /// Falloff smoothing multiplier applied between frames [0.0, 0.95].

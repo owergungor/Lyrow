@@ -1545,6 +1545,8 @@ public sealed partial class MainWindow : Window
                 _ => ElementTheme.Default
             };
         }
+
+        _trayIconManager?.SetTheme(mode.ToString());
     }
 
     public void ShowToast(string message, InfoBarSeverity severity = InfoBarSeverity.Informational, string? title = null, string? actionLabel = null, Action? onAction = null)
@@ -1637,41 +1639,85 @@ public sealed partial class MainWindow : Window
 
     private void WireHomeCardsNavigation()
     {
-        if (CardCurrentTrack != null)
+        AttachCardInteraction(CardCurrentTrack, () => NavigateTo("Playback"));
+        AttachCardInteraction(CardVolume, () => NavigateTo("Playback"));
+        AttachCardInteraction(CardGlow, () => NavigateTo("Glow"));
+        AttachCardInteraction(CardLyrics, () => NavigateTo("Lyrics"));
+    }
+
+    private void AttachCardInteraction(Border? card, Action onAction)
+    {
+        if (card == null) return;
+
+        card.IsTabStop = true;
+        var scale = new Microsoft.UI.Xaml.Media.ScaleTransform { ScaleX = 1.0, ScaleY = 1.0 };
+        card.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5);
+        card.RenderTransform = scale;
+
+        void AnimateScale(double targetScale, int durationMs = 90)
         {
-            CardCurrentTrack.Tapped += (s, e) =>
+            try
             {
-                if (e.OriginalSource is DependencyObject dep && IsInteractiveControl(dep)) return;
-                NavigateTo("Playback");
-            };
+                var sb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+                var animX = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                {
+                    To = targetScale,
+                    Duration = TimeSpan.FromMilliseconds(durationMs),
+                    EasingFunction = new Microsoft.UI.Xaml.Media.Animation.QuadraticEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut }
+                };
+                var animY = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                {
+                    To = targetScale,
+                    Duration = TimeSpan.FromMilliseconds(durationMs),
+                    EasingFunction = new Microsoft.UI.Xaml.Media.Animation.QuadraticEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut }
+                };
+
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animX, scale);
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animX, "ScaleX");
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animY, scale);
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animY, "ScaleY");
+
+                sb.Children.Add(animX);
+                sb.Children.Add(animY);
+                sb.Begin();
+            }
+            catch
+            {
+                scale.ScaleX = targetScale;
+                scale.ScaleY = targetScale;
+            }
         }
 
-        if (CardVolume != null)
+        card.PointerPressed += (s, e) =>
         {
-            CardVolume.Tapped += (s, e) =>
-            {
-                if (e.OriginalSource is DependencyObject dep && IsInteractiveControl(dep)) return;
-                NavigateTo("Playback");
-            };
-        }
+            if (e.OriginalSource is DependencyObject dep && IsInteractiveControl(dep)) return;
+            AnimateScale(0.97, 70);
+        };
 
-        if (CardGlow != null)
+        card.PointerReleased += (s, e) =>
         {
-            CardGlow.Tapped += (s, e) =>
+            if (e.OriginalSource is DependencyObject dep && IsInteractiveControl(dep))
             {
-                if (e.OriginalSource is DependencyObject dep && IsInteractiveControl(dep)) return;
-                NavigateTo("Glow");
-            };
-        }
+                AnimateScale(1.0, 110);
+                return;
+            }
+            AnimateScale(1.0, 120);
+            onAction();
+        };
 
-        if (CardLyrics != null)
+        card.PointerCanceled += (s, e) => AnimateScale(1.0, 100);
+        card.PointerCaptureLost += (s, e) => AnimateScale(1.0, 100);
+
+        card.KeyDown += (s, e) =>
         {
-            CardLyrics.Tapped += (s, e) =>
+            if (e.Key == Windows.System.VirtualKey.Enter || e.Key == Windows.System.VirtualKey.Space)
             {
-                if (e.OriginalSource is DependencyObject dep && IsInteractiveControl(dep)) return;
-                NavigateTo("Lyrics");
-            };
-        }
+                AnimateScale(0.97, 60);
+                AnimateScale(1.0, 120);
+                onAction();
+                e.Handled = true;
+            }
+        };
     }
 
     private static bool IsInteractiveControl(DependencyObject dep)

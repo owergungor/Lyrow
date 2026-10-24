@@ -23,7 +23,7 @@ public sealed class LyrowSettings
 
     public int GlowIntensity { get; set; } = 80;
 
-    public int GlowThickness { get; set; } = 60;
+    public int GlowThickness { get; set; } = 48;
 
     public string GlowPaletteMode { get; set; } = "AlbumArt";
 

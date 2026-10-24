@@ -3,10 +3,19 @@ using System.Runtime.Versioning;
 
 namespace Lyrow.App.Platform;
 
+public enum PreferredAppMode
+{
+    Default = 0,
+    AllowDark = 1,
+    ForceDark = 2,
+    ForceLight = 3,
+    Max = 4
+}
+
 /// <summary>
 /// Hardware Windows System Tray / Notification Area manager using native Shell_NotifyIcon.
 /// Creates a lightweight hidden Win32 message window to receive tray click messages (WM_TRAYICON)
-/// and displays a polished Win32 context menu grouped with Now Playing, Playback controls,
+/// and displays a modern, theme-matched Win32 context menu grouped with Now Playing, Playback controls,
 /// Windows navigation, Glow, and Application lifecycle commands.
 /// Operates completely safely in headless test environments with zero UI thread contention.
 /// </summary>
@@ -29,6 +38,8 @@ public sealed class LyrowTrayIconManager : IDisposable
     private const uint MF_STRING = 0x00000000;
     private const uint MF_GRAYED = 0x00000001;
     private const uint MF_DISABLED = 0x00000002;
+    private const uint MF_CHECKED = 0x00000008;
+    private const uint MF_UNCHECKED = 0x00000000;
     private const uint MF_SEPARATOR = 0x00000800;
 
     public const int CMD_TRACK_INFO = 1000;
@@ -140,6 +151,12 @@ public sealed class LyrowTrayIconManager : IDisposable
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr GetModuleHandle(string? lpModuleName);
 
+    [DllImport("uxtheme.dll", EntryPoint = "#135", SetLastError = true)]
+    private static extern int SetPreferredAppMode(int appMode);
+
+    [DllImport("uxtheme.dll", EntryPoint = "#136", SetLastError = true)]
+    private static extern void FlushMenuThemes();
+
     private bool _isDisposed;
     private bool _isVisible;
     private IntPtr _hwnd = IntPtr.Zero;
@@ -168,6 +185,7 @@ public sealed class LyrowTrayIconManager : IDisposable
     private string _nowPlayingText = "Lyrow — Windows 11 Native";
     private bool _isPlaying = false;
     private bool _isMuted = false;
+    private PreferredAppMode _currentAppMode = PreferredAppMode.AllowDark;
 
     public bool IsVisible => _isVisible;
     public string NowPlayingText => _nowPlayingText;
@@ -176,6 +194,7 @@ public sealed class LyrowTrayIconManager : IDisposable
     public bool IsGlowOpen => _glowOpen;
     public bool IsLyricsOpen => _lyricsOpen;
     public bool IsClickThroughActive => _clickThroughActive;
+    public PreferredAppMode CurrentAppMode => _currentAppMode;
 
     public void TriggerShowMainWindow() => _onShowMainWindow?.Invoke();
     public void TriggerToggleGlow() => _onToggleGlow?.Invoke();
@@ -192,6 +211,38 @@ public sealed class LyrowTrayIconManager : IDisposable
     public void TriggerOpenGlow() => _onOpenGlow?.Invoke();
     public void TriggerCheckUpdates() => _onCheckUpdates?.Invoke();
     public void TriggerToggleLyricsFullscreen() => _onToggleLyricsFullscreen?.Invoke();
+
+    public void SetTheme(string? themeName)
+    {
+        if (string.Equals(themeName, "Dark", StringComparison.OrdinalIgnoreCase))
+        {
+            ApplyPreferredAppMode(PreferredAppMode.ForceDark);
+        }
+        else if (string.Equals(themeName, "Light", StringComparison.OrdinalIgnoreCase))
+        {
+            ApplyPreferredAppMode(PreferredAppMode.ForceLight);
+        }
+        else
+        {
+            ApplyPreferredAppMode(PreferredAppMode.AllowDark);
+        }
+    }
+
+    public void ApplyPreferredAppMode(PreferredAppMode mode)
+    {
+        _currentAppMode = mode;
+        if (!OperatingSystem.IsWindows()) return;
+
+        try
+        {
+            SetPreferredAppMode((int)mode);
+            FlushMenuThemes();
+        }
+        catch
+        {
+            // Fallback gracefully on older Windows or constrained runtime
+        }
+    }
 
     public void Initialize(
         Action onShowMainWindow,
@@ -216,6 +267,7 @@ public sealed class LyrowTrayIconManager : IDisposable
 
         try
         {
+            ApplyPreferredAppMode(PreferredAppMode.AllowDark);
             RegisterHiddenMessageWindow();
             CreateTrayIcon();
             _isVisible = true;
@@ -258,7 +310,7 @@ public sealed class LyrowTrayIconManager : IDisposable
         else
         {
             string shortArtist = string.IsNullOrWhiteSpace(artist) ? "Unknown Artist" : artist;
-            _nowPlayingText = $"Now Playing: {title} — {shortArtist}";
+            _nowPlayingText = $"{title} — {shortArtist}";
         }
 
         if (_hwnd != IntPtr.Zero)
@@ -408,34 +460,38 @@ public sealed class LyrowTrayIconManager : IDisposable
 
         try
         {
-            // 1. Now Playing Header (Display-only)
-            AppendMenu(hMenu, MF_STRING | MF_GRAYED | MF_DISABLED, new IntPtr(CMD_TRACK_INFO), _nowPlayingText);
+            // 1. Now Playing Section (Header)
+            AppendMenu(hMenu, MF_STRING | MF_GRAYED | MF_DISABLED, new IntPtr(CMD_TRACK_INFO), $"♫  {_nowPlayingText}");
             AppendMenu(hMenu, MF_SEPARATOR, IntPtr.Zero, string.Empty);
 
-            // 2. Playback Controls
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_PLAY_PAUSE), _isPlaying ? "Pause" : "Play");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_PREV), "Previous Track");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_NEXT), "Next Track");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_MUTE_UNMUTE), _isMuted ? "Unmute Volume" : "Mute Volume");
+            // 2. Playback Transport Section
+            string playPauseText = _isPlaying ? "⏸  Pause" : "▶  Play";
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_PLAY_PAUSE), playPauseText);
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_PREV), "⏮  Previous Track");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_NEXT), "⏭  Next Track");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_MUTE_UNMUTE), _isMuted ? "🔊  Unmute Volume" : "🔇  Mute Volume");
             AppendMenu(hMenu, MF_SEPARATOR, IntPtr.Zero, string.Empty);
 
-            // 3. Windows & Pages
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_SHOW), "Open Home");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_TOGGLE_LYRICS), _lyricsOpen ? "Hide Lyrics" : "Open Lyrics");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_LYRICS_FULLSCREEN), "Lyrics Fullscreen");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_OPEN_PLAYBACK), "Open Playback");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_OPEN_GLOW), "Open Glow");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_SETTINGS), "Settings");
+            // 3. Ambient Glow & Lyrics Features (with active state checks)
+            uint glowFlags = MF_STRING | (_glowOpen ? MF_CHECKED : MF_UNCHECKED);
+            AppendMenu(hMenu, glowFlags, new IntPtr(CMD_TOGGLE_GLOW), "💡  Ambient Glow");
+
+            uint lyricsFlags = MF_STRING | (_lyricsOpen ? MF_CHECKED : MF_UNCHECKED);
+            AppendMenu(hMenu, lyricsFlags, new IntPtr(CMD_TOGGLE_LYRICS), "🎤  Synchronized Lyrics");
+
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_LYRICS_FULLSCREEN), "⛶  Lyrics Fullscreen");
             AppendMenu(hMenu, MF_SEPARATOR, IntPtr.Zero, string.Empty);
 
-            // 4. Glow Quick Actions
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_TOGGLE_GLOW), _glowOpen ? "Turn Off Ambient Glow" : "Turn On Ambient Glow");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_TOGGLE_CLICKTHROUGH), _clickThroughActive ? "Disable Glow Click-Through" : "Enable Glow Click-Through");
+            // 4. Windows & Navigation Section
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_SHOW), "🏠  Open Home");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_OPEN_PLAYBACK), "🎵  Open Playback");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_OPEN_GLOW), "✨  Open Glow Settings");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_SETTINGS), "⚙  Settings");
             AppendMenu(hMenu, MF_SEPARATOR, IntPtr.Zero, string.Empty);
 
-            // 5. Application Lifecycle
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_CHECK_UPDATES), "Check for Updates...");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_EXIT), "Exit Lyrow");
+            // 5. System & Updates Section
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_CHECK_UPDATES), "🔄  Check for Updates...");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_EXIT), "✕  Exit Lyrow");
 
             GetCursorPos(out POINT pt);
             SetForegroundWindow(_hwnd);

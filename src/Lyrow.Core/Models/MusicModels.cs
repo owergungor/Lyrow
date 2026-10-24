@@ -78,12 +78,21 @@ public sealed record MediaTimelineInfo(
 }
 
 /// <summary>
+/// A single word timing within a synchronized lyric line.
+/// </summary>
+public sealed record LyricWordTiming(
+    string Word,
+    TimeSpan Start,
+    TimeSpan End);
+
+/// <summary>
 /// A single synchronized lyric line with timestamp and text.
 /// </summary>
 public sealed record LyricLine(
     TimeSpan Timestamp,
     string Text,
-    int LineIndex)
+    int LineIndex,
+    IReadOnlyList<LyricWordTiming>? Words = null)
 {
     public override string ToString() => $"[{Timestamp:mm\\:ss\\.ff}] {Text}";
 }

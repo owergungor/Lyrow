@@ -15,7 +15,7 @@ public sealed class GitHubUpdateService : IUpdateService
 {
     public const string DefaultReleasesApiUrl = "https://api.github.com/repos/owergungor/Lyrow/releases/latest";
     public const string DefaultReleasesPageUrl = "https://github.com/owergungor/Lyrow/releases";
-    public const string AppVersion = "2.5";
+    public const string AppVersion = "2.6";
     public const string SilentInstallerArguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-";
 
     public static bool IsUpdateCheckDue(UpdateCheckFrequency frequency, DateTime? lastCheckUtc, DateTime? nowUtc = null)

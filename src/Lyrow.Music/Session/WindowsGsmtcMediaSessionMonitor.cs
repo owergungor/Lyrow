@@ -19,6 +19,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
     private GlobalSystemMediaTransportControlsSession? _currentSession;
     private bool _isMonitoring;
     private bool _isDisposed;
+    private long _trackSequence = 0;
 
     public WindowsGsmtcMediaSessionMonitor()
     {
@@ -225,10 +226,11 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 
     private async Task UpdateMediaPropertiesAsync(GlobalSystemMediaTransportControlsSession session)
     {
+        long currentSeq = Interlocked.Increment(ref _trackSequence);
         try
         {
             var props = await session.TryGetMediaPropertiesAsync();
-            if (props == null) return;
+            if (props == null || Interlocked.Read(ref _trackSequence) != currentSeq) return;
 
             byte[]? thumbnailBytes = null;
             if (props.Thumbnail != null)
@@ -286,6 +288,8 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 Album: newAlbum,
                 Duration: duration,
                 ThumbnailData: thumbnailBytes);
+
+            if (Interlocked.Read(ref _trackSequence) != currentSeq) return;
 
             CurrentTrack = track;
             TrackChanged?.Invoke(this, track);

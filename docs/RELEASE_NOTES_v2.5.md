@@ -78,5 +78,5 @@ Bu sürümde otomatik parça geçişlerindeki zamanlama ve şarkı sözü arama 
 | `Lyrow.App.Tests` | 97 | ✅ PASS (0 fail) |
 | **Toplam Test** | **233** | **%100 PASS** |
 
-- **Legacy İsim Kontrolü:** `git grep -i -w "lumn"` ve `git grep -i -w "verci"`: **0 sonuç (Sıfır tolerans)**.
+- **Legacy İsim Kontrolü:** Eski proje isimleri doğrulaması: **0 sonuç (Sıfır tolerans)**.
 - **Sürümleme Kuralı:** İki parçalı kesin sürüm `2.5` / `v2.5` tüm proje dosyalarında, manifestte, installer'da ve workflow'larda doğrulanmıştır.

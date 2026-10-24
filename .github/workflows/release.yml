@@ -52,7 +52,7 @@ jobs:
       run: |
         if (-not (Test-Path dist)) { New-Item -ItemType Directory -Path dist -Force }
         $ver = "${{ github.ref_name }}"
-        if (-not $ver -or -not $ver.StartsWith("v")) { $ver = "v2.5" }
+        if (-not $ver -or -not $ver.StartsWith("v")) { $ver = "v2.6" }
         Compress-Archive -Path "publish/win-x64/*" -DestinationPath "dist/Lyrow-$ver-win-x64-portable.zip" -Force
         Get-ChildItem dist/
 

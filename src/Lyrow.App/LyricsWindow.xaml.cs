@@ -34,6 +34,8 @@ public sealed partial class LyricsWindow : Window
 
     private readonly List<Border> _lineContainers = new();
     private readonly List<TextBlock> _lineBlocks = new();
+    private readonly List<TextBlock> _overlayBlocks = new();
+    private readonly List<RectangleGeometry> _lineClips = new();
     private readonly List<double> _currentOpacities = new();
     private readonly List<double> _targetOpacities = new();
     private readonly List<double> _currentScales = new();
@@ -548,6 +550,40 @@ public sealed partial class LyricsWindow : Window
                 {
                     st.ScaleX = nextSc;
                     st.ScaleY = nextSc;
+                }
+            }
+        }
+
+        // 1b. Real-time Apple Music-style karaoke fill clipping on active lyric line
+        if (_currentActiveIndex >= 0 && _currentActiveIndex < _overlayBlocks.Count && _currentActiveIndex < _lineClips.Count)
+        {
+            var activeOverlay = _overlayBlocks[_currentActiveIndex];
+            var activeClip = _lineClips[_currentActiveIndex];
+            double actualW = activeOverlay.ActualWidth;
+            double actualH = activeOverlay.ActualHeight > 0 ? activeOverlay.ActualHeight : 200.0;
+
+            if (actualW > 0)
+            {
+                var lyrics = _lyricsModule.CurrentLyrics;
+                if (lyrics != null && _currentActiveIndex < lyrics.Lines.Count)
+                {
+                    var currentLine = lyrics.Lines[_currentActiveIndex];
+                    TimeSpan? nextTimestamp = (_currentActiveIndex + 1 < lyrics.Lines.Count)
+                        ? lyrics.Lines[_currentActiveIndex + 1].Timestamp
+                        : null;
+
+                    var timeline = _lyricsModule.CurrentTimeline.Duration > TimeSpan.Zero || _lyricsModule.CurrentTimeline.Status != MediaPlaybackStatus.Stopped
+                        ? _lyricsModule.CurrentTimeline
+                        : (_mediaMonitor?.CurrentTimeline ?? MediaTimelineInfo.Zero);
+
+                    var currentPos = timeline.GetInterpolatedPosition();
+                    double progress = LyricsFillProgressCalculator.CalculateLineProgress(
+                        currentPos,
+                        currentLine.Timestamp,
+                        nextTimestamp,
+                        timeline.Duration > TimeSpan.Zero ? timeline.Duration : null);
+
+                    activeClip.Rect = new Windows.Foundation.Rect(0, 0, progress * actualW, actualH);
                 }
             }
         }
