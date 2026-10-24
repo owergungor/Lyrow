@@ -9,7 +9,7 @@ on:
       version:
         description: 'Release version tag (e.g. v2.3)'
         required: true
-        default: 'v2.8'
+        default: 'v3.0'
 
 permissions:
   contents: write
@@ -52,7 +52,7 @@ jobs:
       run: |
         if (-not (Test-Path dist)) { New-Item -ItemType Directory -Path dist -Force }
         $ver = "${{ github.ref_name }}"
-        if (-not $ver -or -not $ver.StartsWith("v")) { $ver = "v2.8" }
+        if (-not $ver -or -not $ver.StartsWith("v")) { $ver = "v3.0" }
         Compress-Archive -Path "publish/win-x64/*" -DestinationPath "dist/Lyrow-$ver-win-x64-portable.zip" -Force
         Get-ChildItem dist/
 

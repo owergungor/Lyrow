@@ -483,7 +483,7 @@ public sealed class LyrowTrayIconManager : IDisposable
 
             // 3. Ambient Glow & Lyrics Features (with active state checks)
             uint glowFlags = MF_STRING | (_glowOpen ? MF_CHECKED : MF_UNCHECKED);
-            AppendMenu(hMenu, glowFlags, new IntPtr(CMD_TOGGLE_GLOW), "💡  Ambient Glow");
+            AppendMenu(hMenu, glowFlags, new IntPtr(CMD_TOGGLE_GLOW), "Ambient Glow");
 
             uint lyricsFlags = MF_STRING | (_lyricsOpen ? MF_CHECKED : MF_UNCHECKED);
             AppendMenu(hMenu, lyricsFlags, new IntPtr(CMD_TOGGLE_LYRICS), "🎤  Synchronized Lyrics");
@@ -494,7 +494,7 @@ public sealed class LyrowTrayIconManager : IDisposable
             // 4. Windows & Navigation Section
             AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_SHOW), "🏠  Open Home");
             AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_OPEN_PLAYBACK), "🎵  Open Playback");
-            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_OPEN_GLOW), "✨  Open Glow Settings");
+            AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_OPEN_GLOW), "Open Glow Settings");
             AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_SETTINGS), "⚙  Settings");
             AppendMenu(hMenu, MF_SEPARATOR, IntPtr.Zero, string.Empty);
 

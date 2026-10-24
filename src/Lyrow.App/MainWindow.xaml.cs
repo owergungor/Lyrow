@@ -982,14 +982,13 @@ public sealed partial class MainWindow : Window
                     UpdateStatusInfoBar.Title = $"{LocalizationService.Instance["Updates_Available"]} — v{result.LatestVersion}";
                     UpdateStatusInfoBar.Message = $"{result.ReleaseTitle} is available on GitHub Releases.";
                     UpdateStatusInfoBar.IsOpen = true;
-                    ShowToast(
-                        $"Lyrow v{result.LatestVersion} is available ({result.ReleaseTitle}).",
-                        InfoBarSeverity.Success,
+                    _toastManager?.ShowUpdateAvailableToast(
                         title: LocalizationService.Instance["Updates_Available"],
+                        versionMessage: $"Lyrow v{result.LatestVersion} ({result.ReleaseTitle})",
                         actionLabel: LocalizationService.Instance["Updates_DownloadAndInstall"],
-                        onAction: () =>
+                        onStartDownload: async (toastHandle) =>
                         {
-                            _ = StartSelfUpdateDownloadAsync(_latestInstallerDownloadUrl);
+                            await StartSelfUpdateDownloadAsync(_latestInstallerDownloadUrl, toastHandle);
                         });
                     break;
 
@@ -1037,7 +1036,7 @@ public sealed partial class MainWindow : Window
         });
     }
 
-    private async Task StartSelfUpdateDownloadAsync(string? downloadUrl)
+    private async Task StartSelfUpdateDownloadAsync(string? downloadUrl, ProgressToastHandle? existingHandle = null)
     {
         if (string.IsNullOrWhiteSpace(downloadUrl))
         {
@@ -1045,7 +1044,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        ProgressToastHandle? toastHandle = null;
+        ProgressToastHandle? toastHandle = existingHandle;
 
         try
         {
@@ -1056,7 +1055,7 @@ public sealed partial class MainWindow : Window
             TxtUpdateDownloadProgress.Text = $"{LocalizationService.Instance["Updates_Downloading"]} 0%";
 
             string tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Lyrow", "Updates");
-            string fileName = "Lyrow-2.7-Setup-x64.exe";
+            string fileName = $"Lyrow-{GitHubUpdateService.AppVersion}-Setup-x64.exe";
             try
             {
                 var uri = new Uri(downloadUrl);
@@ -1069,11 +1068,13 @@ public sealed partial class MainWindow : Window
             catch { }
             string destFile = System.IO.Path.Combine(tempDir, fileName);
 
-            // Display persistent progress toast card that stays pinned on screen throughout download
-            toastHandle = _toastManager?.ShowUpdateDownloadToast(
-                title: LocalizationService.Instance["Updates_Available"],
-                initialMessage: $"{LocalizationService.Instance["Updates_Downloading"]} 0%",
-                onStartDownload: () => { });
+            if (toastHandle == null)
+            {
+                toastHandle = _toastManager?.ShowUpdateDownloadToast(
+                    title: LocalizationService.Instance["Updates_Available"],
+                    initialMessage: $"{LocalizationService.Instance["Updates_Downloading"]} 0%",
+                    onStartDownload: () => { });
+            }
 
             var progress = new Progress<double>(pct =>
             {
@@ -1088,21 +1089,26 @@ public sealed partial class MainWindow : Window
 
             await _updateService.DownloadUpdatePackageAsync(downloadUrl, destFile, progress);
 
-            TxtUpdateDownloadProgress.Text = "Update ready. Applying update...";
-            toastHandle?.SetState(UpdateToastState.Downloaded, "Update downloaded. Applying update...");
+            string prepText = LocalizationService.Instance["Updates_Preparing"];
+            TxtUpdateDownloadProgress.Text = prepText;
+            toastHandle?.SetState(UpdateToastState.Downloaded, prepText);
+
+            string installText = LocalizationService.Instance["Updates_Installing"];
+            toastHandle?.SetState(UpdateToastState.Installing, installText);
 
             // Trigger silent installer execution and graceful restart
             _updateService.LaunchInstallerAndExit(destFile);
         }
         catch (Exception ex)
         {
-            TxtUpdateDownloadProgress.Text = $"Download failed: {ex.Message}";
+            string failText = $"{LocalizationService.Instance["Updates_Failed"]}: {ex.Message}";
+            TxtUpdateDownloadProgress.Text = failText;
             toastHandle?.SetState(
                 UpdateToastState.DownloadFailed,
-                $"Download failed: {ex.Message}",
+                failText,
                 retryAction: () =>
                 {
-                    _ = StartSelfUpdateDownloadAsync(downloadUrl);
+                    _ = StartSelfUpdateDownloadAsync(downloadUrl, toastHandle);
                 });
         }
         finally
@@ -1436,7 +1442,7 @@ public sealed partial class MainWindow : Window
     private void UpdateDashboardTimelineDisplay(MediaTimelineInfo timeline, MediaTrackInfo track)
     {
         var pos = timeline.GetInterpolatedPosition();
-        var dur = timeline.Duration > TimeSpan.Zero ? timeline.Duration : track.Duration;
+        var dur = track.Duration > TimeSpan.Zero ? track.Duration : timeline.Duration;
 
         HomeTxtTimestamp.Text = $"{pos:mm\\:ss} / {dur:mm\\:ss}";
         if (dur.TotalSeconds > 0)

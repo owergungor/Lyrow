@@ -2,7 +2,7 @@
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
   <!-- This manifest is used on Windows only.
        Configures PerMonitorV2 DPI awareness for crisp rendering across 100%, 125%, 150%, 175%, and 200% scaling. -->
-  <assemblyIdentity version="2.8.0.0" name="Lyrow.App.Desktop"/>
+  <assemblyIdentity version="3.0.0.0" name="Lyrow.App.Desktop"/>
 
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>

@@ -26,37 +26,38 @@ public class LyrowV27PostReleaseHardeningTests
 
         // 1. Directory.Build.props
         string props = File.ReadAllText(Path.Combine(root, "Directory.Build.props"));
-        props.Should().Contain("<Version>2.8</Version>");
-        props.Should().Contain("<PackageVersion>2.8</PackageVersion>");
-        props.Should().Contain("<InformationalVersion>2.8</InformationalVersion>");
-        props.Should().Contain("<AssemblyVersion>2.8.0.0</AssemblyVersion>");
-        props.Should().Contain("<FileVersion>2.8.0.0</FileVersion>");
-        props.Should().NotContain("<Version>2.8.0</Version>");
-        props.Should().NotContain("<PackageVersion>2.8.0</PackageVersion>");
+        props.Should().Contain("<Version>3.0</Version>");
+        props.Should().Contain("<PackageVersion>3.0</PackageVersion>");
+        props.Should().Contain("<InformationalVersion>3.0</InformationalVersion>");
+        props.Should().Contain("<AssemblyVersion>3.0.0.0</AssemblyVersion>");
+        props.Should().Contain("<FileVersion>3.0.0.0</FileVersion>");
+        props.Should().NotContain("<Version>3.0.0</Version>");
+        props.Should().NotContain("<PackageVersion>3.0.0</PackageVersion>");
 
         // 2. Lyrow.App.csproj
         string csproj = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "Lyrow.App.csproj"));
-        csproj.Should().Contain("<Version>2.8</Version>");
-        csproj.Should().Contain("<PackageVersion>2.8</PackageVersion>");
-        csproj.Should().Contain("<InformationalVersion>2.8</InformationalVersion>");
-        csproj.Should().NotContain("<Version>2.8.0</Version>");
+        csproj.Should().Contain("<Version>3.0</Version>");
+        csproj.Should().Contain("<PackageVersion>3.0</PackageVersion>");
+        csproj.Should().Contain("<InformationalVersion>3.0</InformationalVersion>");
+        csproj.Should().NotContain("<Version>3.0.0</Version>");
 
         // 3. setup.iss
         string iss = File.ReadAllText(Path.Combine(root, "installer", "setup.iss"));
-        iss.Should().Contain("#define MyAppVersion \"2.8\"");
-        iss.Should().NotContain("#define MyAppVersion \"2.8.0\"");
+        iss.Should().Contain("#define MyAppVersion \"3.0\"");
+        iss.Should().NotContain("#define MyAppVersion \"3.0.0\"");
 
         // 4. app.manifest
         string manifest = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "app.manifest"));
-        manifest.Should().Contain("version=\"2.8.0.0\"");
+        manifest.Should().Contain("version=\"3.0.0.0\"");
 
         // 5. MainWindow.xaml
         string mainXaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "MainWindow.xaml"));
-        mainXaml.Should().Contain("Current Version: v2.8");
-        mainXaml.Should().Contain("Lyrow v2.8");
+        mainXaml.Should().Contain("Current Version: v3.0");
+        mainXaml.Should().Contain("Lyrow v3.0");
         mainXaml.Should().NotContain("Lyrow v2.4");
         mainXaml.Should().NotContain("Lyrow v2.6");
         mainXaml.Should().NotContain("Lyrow v2.7");
+        mainXaml.Should().NotContain("Lyrow v2.8");
     }
 
     [Fact]

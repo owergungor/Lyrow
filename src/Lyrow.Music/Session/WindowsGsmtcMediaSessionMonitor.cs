@@ -273,7 +273,9 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                                  !string.Equals(CurrentTrack.Artist, newArtist, StringComparison.OrdinalIgnoreCase);
 
             var timelineProps = session.GetTimelineProperties();
-            var duration = timelineProps?.EndTime ?? TimeSpan.Zero;
+            var startTime = timelineProps?.StartTime ?? TimeSpan.Zero;
+            var endTime = timelineProps?.EndTime ?? TimeSpan.Zero;
+            var duration = endTime > startTime ? (endTime - startTime) : endTime;
 
             if (isTrackSwitch)
             {
@@ -318,8 +320,11 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 _ => MediaPlaybackStatus.Unknown
             };
 
-            var pos = timelineProps?.Position ?? TimeSpan.Zero;
-            var dur = timelineProps?.EndTime ?? TimeSpan.Zero;
+            var startTime = timelineProps?.StartTime ?? TimeSpan.Zero;
+            var endTime = timelineProps?.EndTime ?? TimeSpan.Zero;
+            var rawPos = timelineProps?.Position ?? TimeSpan.Zero;
+            var dur = endTime > startTime ? (endTime - startTime) : endTime;
+            var pos = rawPos >= startTime ? (rawPos - startTime) : rawPos;
             if (dur <= TimeSpan.Zero && CurrentTrack.Duration > TimeSpan.Zero)
             {
                 dur = CurrentTrack.Duration;

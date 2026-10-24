@@ -86,14 +86,50 @@ public sealed record LyricWordTiming(
     TimeSpan End);
 
 /// <summary>
-/// A single synchronized lyric line with timestamp and text.
+/// A single token or word within a synchronized lyric line with discrete start and end timings.
+/// </summary>
+public sealed record LyricToken(
+    string Text,
+    TimeSpan StartTime,
+    TimeSpan EndTime)
+{
+    public TimeSpan Duration => EndTime > StartTime ? EndTime - StartTime : TimeSpan.Zero;
+}
+
+/// <summary>
+/// A single synchronized lyric line with timestamp, text, optional tokens/words, and explicit end time.
 /// </summary>
 public sealed record LyricLine(
     TimeSpan Timestamp,
     string Text,
     int LineIndex,
-    IReadOnlyList<LyricWordTiming>? Words = null)
+    IReadOnlyList<LyricWordTiming>? Words = null,
+    TimeSpan? EndTime = null,
+    IReadOnlyList<LyricToken>? Tokens = null)
 {
+    public TimeSpan StartTime => Timestamp;
+
+    public TimeSpan ResolvedEndTime => EndTime
+        ?? (Tokens != null && Tokens.Count > 0 ? Tokens[^1].EndTime : (Words != null && Words.Count > 0 ? Words[^1].End : Timestamp + TimeSpan.FromSeconds(3.5)));
+
+    public IReadOnlyList<LyricToken> ResolvedTokens
+    {
+        get
+        {
+            if (Tokens != null) return Tokens;
+            if (Words != null && Words.Count > 0)
+            {
+                var list = new List<LyricToken>(Words.Count);
+                for (int i = 0; i < Words.Count; i++)
+                {
+                    list.Add(new LyricToken(Words[i].Word, Words[i].Start, Words[i].End));
+                }
+                return list;
+            }
+            return Array.Empty<LyricToken>();
+        }
+    }
+
     public override string ToString() => $"[{Timestamp:mm\\:ss\\.ff}] {Text}";
 }
 

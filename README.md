@@ -1,10 +1,10 @@
-# Lyrow v2.8 — Modern Ambient Music & Apple Music-Style Lyrics
+# Lyrow v3.0 — Modern Ambient Music & Apple Music-Style Lyrics
 
 [![CI](https://github.com/owergungor/Lyrow/actions/workflows/release.yml/badge.svg)](https://github.com/owergungor/Lyrow/actions/workflows/release.yml)
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20Native-0078D6?logo=windows)](https://microsoft.com/windows)
 [![.NET 10 LTS](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![UI: WinUI 3 + Windows App SDK](https://img.shields.io/badge/UI-WinUI%203%20%2F%20Windows%20App%20SDK-0078D4?logo=windows)](https://learn.microsoft.com/windows/apps/winui/winui3/)
-[![Design: Windows 11 Fluent + Apple Music](https://img.shields.io/badge/Design-Windows%2011%20Mica%20%2B%20Apple-black)](docs/RELEASE_NOTES_v2.8.md)
+[![Design: Windows 11 Fluent + Apple Music](https://img.shields.io/badge/Design-Windows%2011%20Mica%20%2B%20Apple-black)](docs/RELEASE_NOTES_v3.0.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **Lyrow**, Windows 11 üzerinde müzik dinleme deneyimini görsel bir şölene dönüştüren, **WinUI 3 ve Windows App SDK** mimarisiyle tasarlanmış, **4 kenar ortam aydınlatması (ambient edge lighting)** ve **Apple Music benzeri 60 FPS akıcı dikey merkezlenen karaoke şarkı sözü deneyimi** sunan yerel Windows masaüstü müzik arkadaşıdır.
@@ -14,17 +14,17 @@ Lyrow iki bağımsız ancak birbiriyle tam senkron çalışan ana modülden olu�
 - **Glow:** Ekranın dört kenarında (Top, Bottom, Left, Right) sistem ses çıkışının (WASAPI Loopback) ritmine, baslarına, mid/treble bantlarına ve dinamik vuruşlarına (Smoothing → Attack → Hold → Decay) göre bağımsız renk enerjisi yayan, albüm kapağının dominant/vibrant RGBA piksellerinden çıkarılan paletle yumuşak cross-fade geçişler yapan ve diğer uygulamaların kullanımını **kesinlikle engellemeyen (click-through, zero-interference)** ortam aydınlatması.
 - **Lyrics:** Sistemde çalan şarkıyı (Spotify, Apple Music, YouTube vb.) Windows GSMTC üzerinden yakalayan, LRCLIB ile senkronize şarkı sözlerini milisaniye hassasiyetinde çeken, **aktif satırı daima dikey olarak merkezleyen**, soldan sağa akıcı **karakter/kelime dolum animasyonuna (karaoke fill)** sahip 60 FPS akıcı şarkı sözü penceresi.
 
-Ayrıntılı sürüm notları için [Lyrow v2.8 Sürüm Notları](docs/RELEASE_NOTES_v2.8.md)'na göz atın.
+Ayrıntılı sürüm notları için [Lyrow v3.0 Sürüm Notları](docs/RELEASE_NOTES_v3.0.md)'na göz atın.
 
 ---
 
-## ✨ v2.8 Öne Çıkan Yenilikler
+## ✨ v3.0 Öne Çıkan Yenilikler
 
-- **🛡️ Parça Geçiş İzolasyonu (A → B State Isolation):** Şarkı geçişlerinde süre (duration), zaman çizgisi, şarkı sözü sayısı, albüm kapağı kimliği ve sequence guard sayaçlarının atomik ve bağımsız sıfırlanması; eski parça artıklarının tamamen engellenmesi.
-- **🖥️ İyileştirilmiş Tam Ekran Şarkı Sözü Düzeni (40/60 Split):** %40 sol oynatıcı ve %60 sağ şarkı sözü oranı, dinamik radyal vinyet efekti, akıcı ilerleme çubuğu ve yarı saydam kontrol hapları (pills).
-- **🚀 Kararlı Kapanma & Tray Yönetimi:** Win32 subclassing ile `WM_CLOSE` mesajlarının güvenli yakalanması, non-blocking asynchronous modül kapatma ve thread deadlocks'sız çıkış.
-- **🎤 Apple Music Tarzı Karaoke / Karakter-Düzeyinde Dolum (Karaoke Fill):** Aktif şarkı sözünün harfleri playback zamanıyla tam senkron, soldan sağa kesintisiz akar; duraklatma ve sarma (seek) ile kusursuz senkronize kalır.
-- **🎨 Yeni Varsayılan Glow Standartları:** %80 Parlaklık, 48 px Kenar Işıması ve %250 Dinamik Tepkisellik ile kutudan çıktığı anda optimize deneyim.
+- **💡 Yeni Modern Fluent Glow İkonu:** Windows 11 Fluent tasarım standartlarına uygun, temiz ve vektörel `BrightLight` ışıma ikonu tüm gezinti, kart ve bildirim alanında güncellendi.
+- **🔄 Akıllı ve Kalıcı Güncelleme Bildirimi (Persistent Update Toast):** Güncelle butonuna basıldığında toast kaybolmaz; yerinde canlı indirme yüzdesi (0-100%), hazırlık ve kurulum aşamaları kesintisiz gösterilir; başarısızlık durumunda tekrar deneme desteği sunar.
+- **🛡️ Kusursuz Otomatik Parça Geçişi (A → B Atomic Hardening):** Şarkı otomatik değiştiğinde süre birikmesi (cumulative duration) tamamen engellendi; her parça bağımsız süre ve sıfırlanmış zaman çizgisiyle başlar, eski şarkının söz ve albüm kapağı yanıtları reddedilir.
+- **🎤 Çok Satırlı Bağımsız Karaoke İlerlemesi:** Aktif blokta birden fazla satır veya kelime olduğunda her satır ve kelime kendi bağımsız zaman aralığına göre doldurulur; iki satır asla aynı anda dolmaz.
+- **⏸️ Akıllı Oynatma Senkronizasyonu:** Duraklatmada (pause) animasyon tam konumunda donar, devam ettirildiğinde sıfırlanmadan kaldığı yerden akar; ileri/geri sarmalarda anında yeniden hesaplanır.
 - **🌐 5 Dilde Tam Yerelleştirme:** English, Türkçe, Français, Español, Deutsch.
 
 ---
@@ -45,13 +45,13 @@ Ayrıntılı sürüm notları için [Lyrow v2.8 Sürüm Notları](docs/RELEASE_N
 ## 🚀 Kurulum
 
 ### Yöntem 1: Windows Kurulum Paketi (Önerilen)
-1. [GitHub Releases](https://github.com/owergungor/Lyrow/releases) sayfasından en son `Lyrow-2.8-Setup-x64.exe` dosyasını indirin.
+1. [GitHub Releases](https://github.com/owergungor/Lyrow/releases) sayfasından en son `Lyrow-3.0-Setup-x64.exe` dosyasını indirin.
 2. Kurulum sihirbazını çalıştırın. İsteğe bağlı olarak masaüstü kısayolu oluşturun.
 3. Kurulum tamamlandığında Lyrow otomatik olarak başlayacaktır.
 4. *Not:* Kurulum ve yükseltmelerde kullanıcı ayarlarınız (`%APPDATA%\Lyrow`) silinmez, korunur.
 
 ### Yöntem 2: Taşınabilir (Portable) ZIP
-1. `Lyrow-v2.8-win-x64-portable.zip` arşivini indirin.
+1. `Lyrow-v3.0-win-x64-portable.zip` arşivini indirin.
 2. Dilediğiniz bir klasöre çıkartın.
 3. `Lyrow.App.exe` dosyasını doğrudan çalıştırın.
 

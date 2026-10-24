@@ -195,9 +195,12 @@ public sealed class LyricsModule : ILyrowModule
 
     public void UpdateTimelineExternal(MediaTimelineInfo timeline)
     {
-        _currentTimeline = timeline;
+        var dur = _currentTrack.Duration > TimeSpan.Zero ? _currentTrack.Duration : timeline.Duration;
+        var pos = timeline.Position;
+        if (dur > TimeSpan.Zero && pos > dur) pos = dur;
+        _currentTimeline = new MediaTimelineInfo(pos, dur, timeline.Status, timeline.LastUpdatedUtc);
         _synchronizer.SyncOffsetMs = _settingsManager?.Current.Lyrics.SyncOffsetMs ?? 0;
-        _synchronizer.UpdateTimeline(timeline);
+        _synchronizer.UpdateTimeline(_currentTimeline);
     }
 
     public void SetSyncOffset(int offsetMs)
@@ -219,14 +222,17 @@ public sealed class LyricsModule : ILyrowModule
     private void OnTimelineChanged(object? sender, MediaTimelineInfo timeline)
     {
         if (State != ModuleState.Running) return;
-        _currentTimeline = timeline;
+        var dur = _currentTrack.Duration > TimeSpan.Zero ? _currentTrack.Duration : timeline.Duration;
+        var pos = timeline.Position;
+        if (dur > TimeSpan.Zero && pos > dur) pos = dur;
+        _currentTimeline = new MediaTimelineInfo(pos, dur, timeline.Status, timeline.LastUpdatedUtc);
 
         _synchronizer.SyncOffsetMs = _settingsManager?.Current.Lyrics.SyncOffsetMs ?? 0;
-        _synchronizer.UpdateTimeline(timeline);
+        _synchronizer.UpdateTimeline(_currentTimeline);
 
         if (_eventBus != null)
         {
-            _ = _eventBus.PublishAsync(new MediaPlaybackStateChangedEvent(timeline));
+            _ = _eventBus.PublishAsync(new MediaPlaybackStateChangedEvent(_currentTimeline));
         }
     }
 

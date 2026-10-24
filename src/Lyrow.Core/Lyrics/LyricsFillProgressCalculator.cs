@@ -7,12 +7,26 @@ namespace Lyrow.Core.Lyrics;
 /// <summary>
 /// Authoritative real-time lyrics fill progress calculator powering Apple Music-style
 /// karaoke character/word fill synchronized directly with hardware media playback position.
-/// Supports smooth 60 FPS interpolation, instant seek synchronization, freeze on pause,
-/// and fallback line-duration distribution.
+/// Computes strictly independent timelines for each line and token, supports pause freeze,
+/// instantaneous seek recalculations, and fallback duration distributions.
 /// </summary>
 public static class LyricsFillProgressCalculator
 {
     public static readonly TimeSpan DefaultFallbackLineDuration = TimeSpan.FromSeconds(3.5);
+
+    /// <summary>
+    /// Computes strictly bounded independent progress [0.0, 1.0] for a line given start and end timestamps.
+    /// </summary>
+    public static double CalculateLineProgress(TimeSpan currentPosition, TimeSpan lineStartTime, TimeSpan lineEndTime)
+    {
+        if (currentPosition < lineStartTime) return 0.0;
+        if (currentPosition >= lineEndTime) return 1.0;
+        if (lineEndTime <= lineStartTime) return 1.0; // Avoid division by zero, safe fallback
+
+        var elapsed = currentPosition - lineStartTime;
+        var duration = lineEndTime - lineStartTime;
+        return Math.Clamp(elapsed.TotalMilliseconds / duration.TotalMilliseconds, 0.0, 1.0);
+    }
 
     /// <summary>
     /// Computes the exact fill progress [0.0, 1.0] for an active lyric line given playback position,
@@ -52,6 +66,54 @@ public static class LyricsFillProgressCalculator
         var elapsed = currentPosition - lineTimestamp;
         double progress = elapsed.TotalMilliseconds / effectiveDuration.TotalMilliseconds;
         return Math.Clamp(progress, 0.0, 1.0);
+    }
+
+    /// <summary>
+    /// Computes independent fill progress for a LyricLine model instance.
+    /// </summary>
+    public static double CalculateLineProgress(
+        LyricLine? line,
+        TimeSpan currentPosition,
+        TimeSpan? nextLineTimestamp = null,
+        TimeSpan? trackDuration = null)
+    {
+        if (line == null) return 0.0;
+
+        TimeSpan endTime = line.EndTime
+            ?? (nextLineTimestamp.HasValue && nextLineTimestamp.Value > line.StartTime
+                ? nextLineTimestamp.Value
+                : line.ResolvedEndTime);
+
+        return CalculateLineProgress(currentPosition, line.StartTime, endTime);
+    }
+
+    /// <summary>
+    /// Computes strictly bounded independent token-level progress [0.0, 1.0].
+    /// </summary>
+    public static double CalculateTokenProgress(LyricToken? token, TimeSpan currentPosition)
+    {
+        if (token == null) return 0.0;
+        if (currentPosition < token.StartTime) return 0.0;
+        if (currentPosition >= token.EndTime) return 1.0;
+        if (token.EndTime <= token.StartTime) return 1.0; // Avoid division by zero
+
+        var elapsed = currentPosition - token.StartTime;
+        var duration = token.EndTime - token.StartTime;
+        return Math.Clamp(elapsed.TotalMilliseconds / duration.TotalMilliseconds, 0.0, 1.0);
+    }
+
+    /// <summary>
+    /// Computes independent progresses for two consecutive or simultaneous lyric lines.
+    /// Never couples line1 progress to line2 progress.
+    /// </summary>
+    public static (double Line1Progress, double Line2Progress) CalculateTwoLineProgress(
+        LyricLine? line1,
+        LyricLine? line2,
+        TimeSpan currentPosition)
+    {
+        double p1 = CalculateLineProgress(line1, currentPosition, nextLineTimestamp: line2?.StartTime);
+        double p2 = CalculateLineProgress(line2, currentPosition);
+        return (p1, p2);
     }
 
     /// <summary>
@@ -117,4 +179,22 @@ public static class LyricsFillProgressCalculator
 
         return 1.0;
     }
+}
+
+/// <summary>
+/// Authoritative testable progress calculator service satisfying Section 20 requirements.
+/// </summary>
+public static class LyricsProgressCalculator
+{
+    public static double CalculateLineProgress(TimeSpan currentPosition, TimeSpan lineStartTime, TimeSpan lineEndTime) =>
+        LyricsFillProgressCalculator.CalculateLineProgress(currentPosition, lineStartTime, lineEndTime);
+
+    public static double CalculateLineProgress(LyricLine line, TimeSpan currentPosition, TimeSpan? nextLineTimestamp = null, TimeSpan? trackDuration = null) =>
+        LyricsFillProgressCalculator.CalculateLineProgress(line, currentPosition, nextLineTimestamp, trackDuration);
+
+    public static double CalculateTokenProgress(LyricToken token, TimeSpan currentPosition) =>
+        LyricsFillProgressCalculator.CalculateTokenProgress(token, currentPosition);
+
+    public static (double Line1Progress, double Line2Progress) CalculateTwoLineProgress(LyricLine line1, LyricLine line2, TimeSpan currentPosition) =>
+        LyricsFillProgressCalculator.CalculateTwoLineProgress(line1, line2, currentPosition);
 }

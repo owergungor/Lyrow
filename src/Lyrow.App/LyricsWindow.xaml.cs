@@ -295,7 +295,7 @@ public sealed partial class LyricsWindow : Window
         TxtArtistNameImmersive.Text = artistAlbum;
 
         var pos = timeline.GetInterpolatedPosition();
-        var dur = timeline.Duration > TimeSpan.Zero ? timeline.Duration : track.Duration;
+        var dur = track.Duration > TimeSpan.Zero ? track.Duration : timeline.Duration;
         TxtTimestamp.Text = $"{pos:mm\\:ss} / {dur:mm\\:ss}";
 
         if (dur.TotalSeconds > 0)
@@ -563,10 +563,14 @@ public sealed partial class LyricsWindow : Window
                 overlay.LineHeight = target.FontSize * 1.32;
                 overlay.FontWeight = FontWeights.Bold;
 
-                if (!target.IsActive && i < _lineClips.Count)
+                if (i < _lineClips.Count && i < _currentRenderedLines.Count)
                 {
-                    // Non-active lines: lines before active line are 100% filled, lines after are 0% filled
-                    double clipW = i < activeIdx ? (overlay.ActualWidth > 0 ? overlay.ActualWidth : 2000.0) : 0.0;
+                    var renderLine = _currentRenderedLines[i];
+                    var tline = _lyricsModule.CurrentTimeline;
+                    var cPos = tline.GetInterpolatedPosition();
+                    TimeSpan? nTs = (i + 1 < _currentRenderedLines.Count) ? _currentRenderedLines[i + 1].Timestamp : null;
+                    double lp = LyricsFillProgressCalculator.CalculateLineProgress(renderLine, cPos, nTs);
+                    double clipW = lp * (overlay.ActualWidth > 0 ? overlay.ActualWidth : 2000.0);
                     double clipH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
                     _lineClips[i].Rect = new Windows.Foundation.Rect(0, 0, clipW, clipH);
                 }
@@ -656,37 +660,49 @@ public sealed partial class LyricsWindow : Window
             }
         }
 
-        // 1b. Real-time Apple Music-style karaoke fill clipping on active lyric line
-        if (_currentActiveIndex >= 0 && _currentActiveIndex < _overlayBlocks.Count && _currentActiveIndex < _lineClips.Count)
+        // 1b. Real-time Apple Music-style karaoke fill clipping across all lyric lines
+        // Every line maintains its own strictly independent timeline, start/end bounds, and fill progress
+        var lyrics = _lyricsModule.CurrentLyrics;
+        var timeline = _lyricsModule.CurrentTimeline.Duration > TimeSpan.Zero || _lyricsModule.CurrentTimeline.Status != MediaPlaybackStatus.Stopped
+            ? _lyricsModule.CurrentTimeline
+            : (_mediaMonitor?.CurrentTimeline ?? MediaTimelineInfo.Zero);
+
+        var currentPos = timeline.GetInterpolatedPosition();
+        var trackDur = _lyricsModule.CurrentTrack.Duration > TimeSpan.Zero
+            ? _lyricsModule.CurrentTrack.Duration
+            : (timeline.Duration > TimeSpan.Zero ? timeline.Duration : (TimeSpan?)null);
+
+        if (lyrics != null && lyrics.Lines.Count > 0)
         {
-            var activeOverlay = _overlayBlocks[_currentActiveIndex];
-            var activeClip = _lineClips[_currentActiveIndex];
-            double actualW = activeOverlay.ActualWidth;
-            double actualH = activeOverlay.ActualHeight > 0 ? activeOverlay.ActualHeight : 200.0;
-
-            if (actualW > 0)
+            int lineLimit = Math.Min(_lineClips.Count, Math.Min(_overlayBlocks.Count, lyrics.Lines.Count));
+            for (int i = 0; i < lineLimit; i++)
             {
-                var lyrics = _lyricsModule.CurrentLyrics;
-                if (lyrics != null && _currentActiveIndex < lyrics.Lines.Count)
+                var overlay = _overlayBlocks[i];
+                var clip = _lineClips[i];
+                double actualW = overlay.ActualWidth;
+                double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
+
+                if (actualW <= 0) continue;
+
+                var line = lyrics.Lines[i];
+                TimeSpan? nextTimestamp = (i + 1 < lyrics.Lines.Count) ? lyrics.Lines[i + 1].Timestamp : null;
+
+                double progress = LyricsFillProgressCalculator.CalculateLineProgress(
+                    line,
+                    currentPos,
+                    nextTimestamp,
+                    trackDur);
+
+                if (line.Words != null && line.Words.Count > 0)
                 {
-                    var currentLine = lyrics.Lines[_currentActiveIndex];
-                    TimeSpan? nextTimestamp = (_currentActiveIndex + 1 < lyrics.Lines.Count)
-                        ? lyrics.Lines[_currentActiveIndex + 1].Timestamp
-                        : null;
-
-                    var timeline = _lyricsModule.CurrentTimeline.Duration > TimeSpan.Zero || _lyricsModule.CurrentTimeline.Status != MediaPlaybackStatus.Stopped
-                        ? _lyricsModule.CurrentTimeline
-                        : (_mediaMonitor?.CurrentTimeline ?? MediaTimelineInfo.Zero);
-
-                    var currentPos = timeline.GetInterpolatedPosition();
-                    double progress = LyricsFillProgressCalculator.CalculateLineProgress(
+                    progress = LyricsFillProgressCalculator.CalculateWordTimingProgress(
                         currentPos,
-                        currentLine.Timestamp,
+                        line.StartTime,
                         nextTimestamp,
-                        timeline.Duration > TimeSpan.Zero ? timeline.Duration : null);
-
-                    activeClip.Rect = new Windows.Foundation.Rect(0, 0, progress * actualW, actualH);
+                        line.Words);
                 }
+
+                clip.Rect = new Windows.Foundation.Rect(0, 0, progress * actualW, actualH);
             }
         }
 
