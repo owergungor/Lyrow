@@ -7,10 +7,47 @@ using Lyrow.Core.Services;
 
 namespace Lyrow.App.Controls;
 
+public enum UpdateToastState
+{
+    Available,
+    Downloading,
+    Downloaded,
+    Installing,
+    Completed,
+    DownloadFailed,
+    InstallFailed
+}
+
+/// <summary>
+/// Active controller handle for interactive progress toasts (such as in-app self-update downloading).
+/// Allows continuous progress updates, state transitions, retry triggers, and keeps toast visible throughout operations.
+/// </summary>
+public sealed class ProgressToastHandle
+{
+    private readonly Action<double, string?> _updateProgress;
+    private readonly Action<UpdateToastState, string?, Action?> _updateState;
+    private readonly Action _dismiss;
+
+    public ProgressToastHandle(
+        Action<double, string?> updateProgress,
+        Action<UpdateToastState, string?, Action?> updateState,
+        Action dismiss)
+    {
+        _updateProgress = updateProgress;
+        _updateState = updateState;
+        _dismiss = dismiss;
+    }
+
+    public void ReportProgress(double percent, string? statusText = null) => _updateProgress(percent, statusText);
+    public void SetState(UpdateToastState state, string? message = null, Action? retryAction = null) => _updateState(state, message, retryAction);
+    public void Dismiss() => _dismiss();
+}
+
 /// <summary>
 /// Manages elegant Mac-style floating toast notifications in the top-right safe area of the application.
 /// Provides smooth slide/fade animations, automatic debounce/deduplication, stacking (up to 3 cards),
 /// action button support, and auto-dismissal without shifting the main layout.
+/// Also hosts persistent progress-driven update cards with full state machine support.
 /// </summary>
 public sealed class ToastNotificationManager
 {
@@ -26,6 +63,7 @@ public sealed class ToastNotificationManager
         public required Border CardBorder { get; init; }
         public required DispatcherTimer AutoDismissTimer { get; init; }
         public TextBlock? MessageTextBlock { get; set; }
+        public bool IsPersistent { get; set; }
     }
 
     public ToastNotificationManager(StackPanel container, DispatcherQueue dispatcherQueue)
@@ -53,8 +91,11 @@ public sealed class ToastNotificationManager
                 var existing = _activeCards.FirstOrDefault(c => string.Equals(c.Message, message.Trim(), StringComparison.OrdinalIgnoreCase));
                 if (existing != null)
                 {
-                    existing.AutoDismissTimer.Stop();
-                    existing.AutoDismissTimer.Start();
+                    if (!existing.IsPersistent)
+                    {
+                        existing.AutoDismissTimer.Stop();
+                        existing.AutoDismissTimer.Start();
+                    }
                     if (existing.MessageTextBlock != null && count > 1)
                     {
                         existing.MessageTextBlock.Text = $"{message} (x{count})";
@@ -69,6 +110,230 @@ public sealed class ToastNotificationManager
         });
     }
 
+    /// <summary>
+    /// Creates a dedicated persistent progress toast for downloading updates.
+    /// Does not auto-dismiss during downloading and renders an Apple-inspired compact progress bar and status text.
+    /// </summary>
+    public ProgressToastHandle ShowUpdateDownloadToast(
+        string title,
+        string initialMessage,
+        Action onStartDownload)
+    {
+        ProgressToastHandle? handle = null;
+
+        _dispatcherQueue.TryEnqueue(() =>
+        {
+            if (_activeCards.Count >= 3)
+            {
+                var nonPersistent = _activeCards.FirstOrDefault(c => !c.IsPersistent);
+                if (nonPersistent != null) DismissCard(nonPersistent);
+            }
+
+            var rootGrid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
+                }
+            };
+
+            var iconBorder = new Border
+            {
+                Width = 28,
+                Height = 28,
+                CornerRadius = new CornerRadius(14),
+                Background = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"],
+                Margin = new Thickness(0, 0, 10, 0),
+                VerticalAlignment = VerticalAlignment.Top,
+                Child = new FontIcon
+                {
+                    Glyph = "\uE895", // Sync / Update Download glyph
+                    FontSize = 13,
+                    Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
+            };
+            Grid.SetColumn(iconBorder, 0);
+            rootGrid.Children.Add(iconBorder);
+
+            var textStack = new StackPanel
+            {
+                Spacing = 4,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var titleBlock = new TextBlock
+            {
+                Text = title,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                FontSize = 12.5,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            textStack.Children.Add(titleBlock);
+
+            var msgTextBlock = new TextBlock
+            {
+                Text = initialMessage,
+                FontSize = 12,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                TextWrapping = TextWrapping.Wrap
+            };
+            textStack.Children.Add(msgTextBlock);
+
+            var progressBar = new ProgressBar
+            {
+                Minimum = 0,
+                Maximum = 100,
+                Value = 0,
+                Height = 4,
+                Margin = new Thickness(0, 4, 0, 0),
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+            textStack.Children.Add(progressBar);
+
+            var actionRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                Margin = new Thickness(0, 6, 0, 0),
+                Visibility = Visibility.Collapsed
+            };
+
+            var retryBtn = new Button
+            {
+                Content = "Retry",
+                Style = (Style)Application.Current.Resources["AccentButtonStyle"],
+                Height = 26,
+                Padding = new Thickness(10, 0, 10, 0),
+                FontSize = 11,
+                CornerRadius = new CornerRadius(6)
+            };
+            actionRow.Children.Add(retryBtn);
+
+            var dismissBtn = new Button
+            {
+                Content = "Dismiss",
+                Height = 26,
+                Padding = new Thickness(8, 0, 8, 0),
+                FontSize = 11,
+                CornerRadius = new CornerRadius(6)
+            };
+            actionRow.Children.Add(dismissBtn);
+
+            textStack.Children.Add(actionRow);
+
+            Grid.SetColumn(textStack, 1);
+            rootGrid.Children.Add(textStack);
+
+            bool isLight = Application.Current.RequestedTheme == ApplicationTheme.Light;
+            var solidCardBg = isLight
+                ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xF2, 0xF2, 0xF7))
+                : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x1C, 0x1C, 0x1E));
+            var solidCardStroke = isLight
+                ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xD1, 0xD1, 0xD6))
+                : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x38, 0x38, 0x3A));
+
+            var transform = new TranslateTransform { X = 40 };
+            var cardBorder = new Border
+            {
+                CornerRadius = new CornerRadius(12),
+                Padding = new Thickness(14, 11, 14, 11),
+                Background = solidCardBg,
+                BorderBrush = solidCardStroke,
+                BorderThickness = new Thickness(1),
+                Opacity = 0.0,
+                RenderTransform = transform,
+                Child = rootGrid
+            };
+
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+
+            var cardHandle = new ToastCardHandle
+            {
+                Message = initialMessage,
+                CardBorder = cardBorder,
+                AutoDismissTimer = timer,
+                MessageTextBlock = msgTextBlock,
+                IsPersistent = true
+            };
+
+            dismissBtn.Click += (_, _) => DismissCard(cardHandle);
+
+            _activeCards.Add(cardHandle);
+            _container.Children.Add(cardBorder);
+
+            AnimateEntry(cardBorder, transform);
+
+            // Trigger the download callback now that the toast UI is safely mounted
+            onStartDownload();
+
+            handle = new ProgressToastHandle(
+                updateProgress: (pct, statusText) =>
+                {
+                    _dispatcherQueue.TryEnqueue(() =>
+                    {
+                        progressBar.Value = pct;
+                        if (!string.IsNullOrWhiteSpace(statusText))
+                        {
+                            msgTextBlock.Text = statusText;
+                        }
+                    });
+                },
+                updateState: (state, message, retryAction) =>
+                {
+                    _dispatcherQueue.TryEnqueue(() =>
+                    {
+                        switch (state)
+                        {
+                            case UpdateToastState.Downloading:
+                                progressBar.Visibility = Visibility.Visible;
+                                actionRow.Visibility = Visibility.Collapsed;
+                                if (!string.IsNullOrWhiteSpace(message)) msgTextBlock.Text = message;
+                                break;
+
+                            case UpdateToastState.Downloaded:
+                            case UpdateToastState.Installing:
+                                progressBar.Value = 100;
+                                if (!string.IsNullOrWhiteSpace(message)) msgTextBlock.Text = message;
+                                break;
+
+                            case UpdateToastState.Completed:
+                                progressBar.Visibility = Visibility.Collapsed;
+                                if (!string.IsNullOrWhiteSpace(message)) msgTextBlock.Text = message;
+                                cardHandle.IsPersistent = false;
+                                cardHandle.AutoDismissTimer.Interval = TimeSpan.FromSeconds(3.5);
+                                cardHandle.AutoDismissTimer.Start();
+                                break;
+
+                            case UpdateToastState.DownloadFailed:
+                            case UpdateToastState.InstallFailed:
+                                progressBar.Visibility = Visibility.Collapsed;
+                                if (!string.IsNullOrWhiteSpace(message)) msgTextBlock.Text = message;
+                                actionRow.Visibility = Visibility.Visible;
+                                if (retryAction != null)
+                                {
+                                    retryBtn.Click += (_, _) =>
+                                    {
+                                        actionRow.Visibility = Visibility.Collapsed;
+                                        progressBar.Visibility = Visibility.Visible;
+                                        retryAction();
+                                    };
+                                }
+                                break;
+                        }
+                    });
+                },
+                dismiss: () =>
+                {
+                    _dispatcherQueue.TryEnqueue(() => DismissCard(cardHandle));
+                });
+        });
+
+        return handle ?? new ProgressToastHandle((_, _) => { }, (_, _, _) => { }, () => { });
+    }
+
     private void CreateAndDisplayToastCard(
         string message,
         string? title,
@@ -79,7 +344,8 @@ public sealed class ToastNotificationManager
         // Enforce maximum 3 stacked toast cards (dismiss oldest if necessary)
         if (_activeCards.Count >= 3)
         {
-            DismissCard(_activeCards[0]);
+            var dismissTarget = _activeCards.FirstOrDefault(c => !c.IsPersistent) ?? _activeCards[0];
+            DismissCard(dismissTarget);
         }
 
         var (glyph, accentBrushKey) = severity switch
@@ -103,20 +369,20 @@ public sealed class ToastNotificationManager
         // Icon indicator
         var iconBorder = new Border
         {
-            Width = 28,
-            Height = 28,
-            CornerRadius = new CornerRadius(7),
-            Background = Application.Current.Resources.TryGetValue("LayerFillColorDefaultBrush", out var layerBrush)
-                ? (Brush)layerBrush
-                : new SolidColorBrush(Windows.UI.Color.FromArgb(40, 255, 255, 255)),
-            VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(0, 2, 10, 0),
+            Width = 26,
+            Height = 26,
+            CornerRadius = new CornerRadius(13),
+            Background = Application.Current.Resources.ContainsKey(accentBrushKey)
+                ? (Brush)Application.Current.Resources[accentBrushKey]
+                : (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"],
+            Margin = new Thickness(0, 0, 10, 0),
+            VerticalAlignment = VerticalAlignment.Center,
             Child = new FontIcon
             {
                 Glyph = glyph,
-                FontSize = 13,
-                Foreground = Application.Current.Resources.TryGetValue(accentBrushKey, out var accBrush)
-                    ? (Brush)accBrush
+                FontSize = 12,
+                Foreground = Application.Current.Resources.ContainsKey("TextOnAccentFillColorPrimaryBrush")
+                    ? (Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"]
                     : (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"],
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
@@ -222,7 +488,6 @@ public sealed class ToastNotificationManager
         Grid.SetColumn(closeBtn, 2);
         rootGrid.Children.Add(closeBtn);
 
-        // Modern Mac-style solid opaque surface (no desktop transparency/bleed-through, dark/light theme aware)
         bool isLight = Application.Current.RequestedTheme == ApplicationTheme.Light;
         var solidCardBg = isLight
             ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xF2, 0xF2, 0xF7))
@@ -254,7 +519,8 @@ public sealed class ToastNotificationManager
             Message = message,
             CardBorder = cardBorder,
             AutoDismissTimer = timer,
-            MessageTextBlock = msgTextBlock
+            MessageTextBlock = msgTextBlock,
+            IsPersistent = false
         };
 
         closeBtn.Click += (_, _) => DismissCard(cardHandle);
@@ -343,7 +609,8 @@ public sealed class ToastNotificationManager
     {
         _dispatcherQueue.TryEnqueue(() =>
         {
-            foreach (var card in _activeCards.ToList())
+            var list = _activeCards.ToList();
+            foreach (var card in list)
             {
                 DismissCard(card);
             }

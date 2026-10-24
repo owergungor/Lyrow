@@ -133,9 +133,9 @@ public class LyrowV20OverhaulVerificationTests
         string root = GetSolutionRoot();
 
         string buildProps = File.ReadAllText(Path.Combine(root, "Directory.Build.props"));
-        buildProps.Should().Contain("<Version>2.6</Version>");
-        buildProps.Should().Contain("<PackageVersion>2.6</PackageVersion>");
-        buildProps.Should().Contain("<InformationalVersion>2.6</InformationalVersion>");
+        buildProps.Should().Contain("<Version>2.7</Version>");
+        buildProps.Should().Contain("<PackageVersion>2.7</PackageVersion>");
+        buildProps.Should().Contain("<InformationalVersion>2.7</InformationalVersion>");
         buildProps.Should().NotContain("2.6.0</Version>");
         buildProps.Should().NotContain("2.5.0</Version>");
         buildProps.Should().NotContain("2.4.0</Version>");
@@ -144,7 +144,7 @@ public class LyrowV20OverhaulVerificationTests
         buildProps.Should().NotContain("2.0.0</Version>");
 
         string setupIss = File.ReadAllText(Path.Combine(root, "installer", "setup.iss"));
-        setupIss.Should().Contain("#define MyAppVersion \"2.6\"");
+        setupIss.Should().Contain("#define MyAppVersion \"2.7\"");
         setupIss.Should().NotContain("2.6.0");
         setupIss.Should().NotContain("2.5.0");
         setupIss.Should().NotContain("2.4.0");
@@ -162,9 +162,10 @@ public class LyrowV20OverhaulVerificationTests
         releaseYml.Should().NotContain("v1.3.0");
 
         string readme = File.ReadAllText(Path.Combine(root, "README.md"));
-        readme.Should().Contain("Lyrow v2.6");
-        readme.Should().Contain("Lyrow-2.6-Setup-x64.exe");
-        readme.Should().Contain("Lyrow-v2.6-win-x64-portable.zip");
+        readme.Should().Contain("Lyrow v2.7");
+        readme.Should().Contain("Lyrow-2.7-Setup-x64.exe");
+        readme.Should().Contain("Lyrow-v2.7-win-x64-portable.zip");
+        readme.Should().NotContain("v2.7.0");
         readme.Should().NotContain("v2.6.0");
         readme.Should().NotContain("v2.5.0");
         readme.Should().NotContain("v2.4.0");

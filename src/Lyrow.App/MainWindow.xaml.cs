@@ -1033,6 +1033,8 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        ProgressToastHandle? toastHandle = null;
+
         try
         {
             BtnDownloadAndInstallUpdate.IsEnabled = false;
@@ -1042,7 +1044,7 @@ public sealed partial class MainWindow : Window
             TxtUpdateDownloadProgress.Text = $"{LocalizationService.Instance["Updates_Downloading"]} 0%";
 
             string tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Lyrow", "Updates");
-            string fileName = "Lyrow-2.5-Setup-x64.exe";
+            string fileName = "Lyrow-2.7-Setup-x64.exe";
             try
             {
                 var uri = new Uri(downloadUrl);
@@ -1055,32 +1057,41 @@ public sealed partial class MainWindow : Window
             catch { }
             string destFile = System.IO.Path.Combine(tempDir, fileName);
 
+            // Display persistent progress toast card that stays pinned on screen throughout download
+            toastHandle = _toastManager?.ShowUpdateDownloadToast(
+                title: LocalizationService.Instance["Updates_Available"],
+                initialMessage: $"{LocalizationService.Instance["Updates_Downloading"]} 0%",
+                onStartDownload: () => { });
+
             var progress = new Progress<double>(pct =>
             {
                 DispatcherQueue.TryEnqueue(() =>
                 {
                     ProgressUpdateDownload.Value = pct;
-                    TxtUpdateDownloadProgress.Text = $"{LocalizationService.Instance["Updates_Downloading"]} {pct:0}%";
+                    string progressText = $"{LocalizationService.Instance["Updates_Downloading"]} {pct:0}%";
+                    TxtUpdateDownloadProgress.Text = progressText;
+                    toastHandle?.ReportProgress(pct, progressText);
                 });
             });
 
             await _updateService.DownloadUpdatePackageAsync(downloadUrl, destFile, progress);
 
             TxtUpdateDownloadProgress.Text = "Update ready. Applying update...";
-            ShowToast(
-                LocalizationService.Instance["Updates_InstallPrompt"],
-                severity: InfoBarSeverity.Success,
-                title: LocalizationService.Instance["Updates_Available"],
-                actionLabel: LocalizationService.Instance["Updates_InstallBtn"],
-                onAction: () =>
-                {
-                    _updateService.LaunchInstallerAndExit(destFile);
-                });
+            toastHandle?.SetState(UpdateToastState.Downloaded, "Update downloaded. Applying update...");
+
+            // Trigger silent installer execution and graceful restart
+            _updateService.LaunchInstallerAndExit(destFile);
         }
         catch (Exception ex)
         {
             TxtUpdateDownloadProgress.Text = $"Download failed: {ex.Message}";
-            ShowToast($"Update download failed: {ex.Message}", InfoBarSeverity.Error);
+            toastHandle?.SetState(
+                UpdateToastState.DownloadFailed,
+                $"Download failed: {ex.Message}",
+                retryAction: () =>
+                {
+                    _ = StartSelfUpdateDownloadAsync(downloadUrl);
+                });
         }
         finally
         {

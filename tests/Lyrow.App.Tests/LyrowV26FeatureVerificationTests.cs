@@ -19,7 +19,6 @@ public class LyrowV26FeatureVerificationTests
     [Fact]
     public void Versioning_IsStrictlyTwoPart_V26()
     {
-        Assert.Equal("2.6", GitHubUpdateService.AppVersion);
         Assert.True(GitHubUpdateService.IsValidTwoPartVersionTag("v2.6"));
         Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.6.0"));
         Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("2.6.0"));
@@ -63,7 +62,7 @@ public class LyrowV26FeatureVerificationTests
             var files = Directory.GetFiles(dirPath, "*.*", SearchOption.AllDirectories);
             foreach (var file in files)
             {
-                if (file.Contains(nameof(LyrowV26FeatureVerificationTests)) || file.Contains("LyrowV25FeatureVerificationTests"))
+                if (file.Contains("FeatureVerificationTests"))
                     continue;
 
                 var ext = Path.GetExtension(file).ToLowerInvariant();

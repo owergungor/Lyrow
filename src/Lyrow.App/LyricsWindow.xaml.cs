@@ -36,7 +36,9 @@ public sealed partial class LyricsWindow : Window
     private readonly List<TextBlock> _lineBlocks = new();
     private readonly List<TextBlock> _overlayBlocks = new();
     private readonly List<RectangleGeometry> _lineClips = new();
+    private readonly List<LyricLine> _currentRenderedLines = new();
     private readonly List<double> _currentOpacities = new();
+    private long _windowTrackSequence = 0;
     private readonly List<double> _targetOpacities = new();
     private readonly List<double> _currentScales = new();
     private readonly List<double> _targetScales = new();
@@ -295,15 +297,17 @@ public sealed partial class LyricsWindow : Window
 
             if (trackChanged)
             {
+                long currentSeq = Interlocked.Increment(ref _windowTrackSequence);
                 _currentScrollOffsetY = 0;
                 _targetScrollOffsetY = 0;
                 LyricsScrollViewer.ChangeView(null, 0, null, disableAnimation: true);
                 _currentActiveIndex = -99;
+                _snapToCenterOnNextLayout = true;
                 ImgTrackArtwork.Source = null;
                 IconArtworkPlaceholder.Visibility = Visibility.Visible;
                 ImgTrackArtworkImmersive.Source = null;
                 IconArtworkPlaceholderImmersive.Visibility = Visibility.Visible;
-                await UpdateArtworkAsync(track);
+                await UpdateArtworkAsync(track, currentSeq);
             }
         }
 
@@ -318,12 +322,14 @@ public sealed partial class LyricsWindow : Window
         StepSmoothAnimations();
     }
 
-    private async Task UpdateArtworkAsync(MediaTrackInfo track)
+    private async Task UpdateArtworkAsync(MediaTrackInfo track, long sequenceId = 0)
     {
         if (_artworkBitmapManager == null) return;
         try
         {
             var bitmap = await _artworkBitmapManager.GetArtworkBitmapAsync(track);
+            if (sequenceId > 0 && Interlocked.Read(ref _windowTrackSequence) != sequenceId) return;
+
             if (bitmap != null)
             {
                 ImgTrackArtwork.Source = bitmap;
@@ -340,10 +346,12 @@ public sealed partial class LyricsWindow : Window
             }
 
             var palette = await _artworkBitmapManager.ExtractArtworkPaletteAsync(track);
+            if (sequenceId > 0 && Interlocked.Read(ref _windowTrackSequence) != sequenceId) return;
             _targetAmbientPalette = ArtworkPaletteExtractor.ExtractAmbientPalette(palette);
         }
         catch
         {
+            if (sequenceId > 0 && Interlocked.Read(ref _windowTrackSequence) != sequenceId) return;
             ImgTrackArtwork.Source = null;
             IconArtworkPlaceholder.Visibility = Visibility.Visible;
             ImgTrackArtworkImmersive.Source = null;
@@ -357,6 +365,9 @@ public sealed partial class LyricsWindow : Window
         LyricsPanel.Children.Clear();
         _lineContainers.Clear();
         _lineBlocks.Clear();
+        _overlayBlocks.Clear();
+        _lineClips.Clear();
+        _currentRenderedLines.Clear();
         _currentOpacities.Clear();
         _targetOpacities.Clear();
         _currentScales.Clear();
@@ -405,21 +416,46 @@ public sealed partial class LyricsWindow : Window
         {
             var line = lyrics.Lines[i];
             var target = LyricsViewportCalculator.GetLineVisualTarget(i, -1, focusedSize, unfocusedSize);
+            string lineText = string.IsNullOrWhiteSpace(line.Text) ? "♪" : line.Text;
 
-            var block = new TextBlock
+            // Base TextBlock (dim/secondary inactive color)
+            var baseBlock = new TextBlock
             {
-                Text = string.IsNullOrWhiteSpace(line.Text) ? "♪" : line.Text,
+                Text = lineText,
                 FontSize = target.FontSize,
                 FontWeight = FontWeights.Medium,
                 TextWrapping = TextWrapping.Wrap,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 TextAlignment = TextAlignment.Center,
-                LineHeight = target.FontSize * 1.32
+                LineHeight = target.FontSize * 1.32,
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(200, 190, 190, 205))
             };
+
+            // Overlay TextBlock (active/accent bright white clipped by dynamic RectangleGeometry)
+            var overlayClip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, 0, 0) };
+            var overlayBlock = new TextBlock
+            {
+                Text = lineText,
+                FontSize = target.FontSize,
+                FontWeight = FontWeights.Bold,
+                TextWrapping = TextWrapping.Wrap,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextAlignment = TextAlignment.Center,
+                LineHeight = target.FontSize * 1.32,
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)),
+                Clip = overlayClip
+            };
+
+            var textGrid = new Grid
+            {
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            textGrid.Children.Add(baseBlock);
+            textGrid.Children.Add(overlayBlock);
 
             var container = new Border
             {
-                Child = block,
+                Child = textGrid,
                 Padding = new Thickness(12, 6, 12, 6),
                 CornerRadius = new CornerRadius(10),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -429,14 +465,17 @@ public sealed partial class LyricsWindow : Window
                 Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0))
             };
 
-            // Interactive seek-to-timestamp on lyric line click
-            var lineTimestamp = line.Timestamp;
+            // Robust click-to-seek: Capture actual LyricLine model reference rather than volatile UI index
+            var targetModelLine = line;
             container.PointerPressed += async (_, _) =>
             {
-                await SeekToLyricLineAsync(lineTimestamp);
+                await SeekToLyricLineAsync(targetModelLine.Timestamp);
             };
 
-            _lineBlocks.Add(block);
+            _lineBlocks.Add(baseBlock);
+            _overlayBlocks.Add(overlayBlock);
+            _lineClips.Add(overlayClip);
+            _currentRenderedLines.Add(line);
             _lineContainers.Add(container);
             _currentOpacities.Add(target.TargetOpacity);
             _targetOpacities.Add(target.TargetOpacity);
@@ -469,6 +508,22 @@ public sealed partial class LyricsWindow : Window
             block.FontWeight = target.IsActive
                 ? FontWeights.Bold
                 : (target.Distance == 1 ? FontWeights.SemiBold : FontWeights.Normal);
+
+            if (i < _overlayBlocks.Count)
+            {
+                var overlay = _overlayBlocks[i];
+                overlay.FontSize = target.FontSize;
+                overlay.LineHeight = target.FontSize * 1.32;
+                overlay.FontWeight = FontWeights.Bold;
+
+                if (!target.IsActive && i < _lineClips.Count)
+                {
+                    // Non-active lines: lines before active line are 100% filled, lines after are 0% filled
+                    double clipW = i < activeIdx ? (overlay.ActualWidth > 0 ? overlay.ActualWidth : 2000.0) : 0.0;
+                    double clipH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
+                    _lineClips[i].Rect = new Windows.Foundation.Rect(0, 0, clipW, clipH);
+                }
+            }
 
             if (immediate)
             {
