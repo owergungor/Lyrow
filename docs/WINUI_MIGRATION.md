@@ -1,4 +1,4 @@
-# Lyrow v1.3 — WinUI 3 Migration & Overlay Architecture
+﻿# Lyrow v1.3 — WinUI 3 Migration & Overlay Architecture
 
 ## 1. Executive Summary
 
@@ -6,7 +6,7 @@ In Lyrow v1.3, the entire Windows user interface framework was migrated from Ava
 
 This migration transforms Lyrow from a cross-platform emulation into a true **Windows 11 Native Music Companion**, delivering:
 - Native Windows 11 design language (Mica backdrops, customized title bars, fluent typography, native ToggleSwitches, Sliders, and ComboBoxes).
-- A zero-interference ambient edge lighting overlay inspired by macOS Lumn.
+- A zero-interference ambient edge lighting overlay inspired by macOS Glow.
 - Apple Music-style fluid, vertically centered synchronized lyrics.
 - 0%–100% linear volume presentation replacing technical dBFS units in the UI.
 - Deterministic startup states (Glow = OFF, Lyrics = OFF).
@@ -97,7 +97,7 @@ In the custom window procedure (`WndProc`):
 
 ---
 
-## 6. Lumn-Style Ambient Edge Lighting Pipeline
+## 6. Glow-Style Ambient Edge Lighting Pipeline
 
 Glow implements dynamic 4-edge ambient lighting that responds to musical transients:
 

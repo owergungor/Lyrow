@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
 using Lyrow.Core.Modules;
@@ -32,29 +32,29 @@ public class VolumeAndStartupStateTests
         var settings = await settingsManager.LoadAsync();
 
         // 1. Persisted defaults must specify OFF for Glow and Lyrics
-        settings.LumnEnabled.Should().BeFalse();
-        settings.VerciEnabled.Should().BeFalse();
+        settings.GlowEnabled.Should().BeFalse();
+        settings.LyricsEnabled.Should().BeFalse();
 
         // 2. ModuleManager initialized with modules
         var moduleManager = new ModuleManager();
-        var lumn = new LumnModule();
-        var verci = new VerciModule();
+        var glow = new GlowModule();
+        var lyrics = new LyricsModule();
 
-        moduleManager.RegisterModule(lumn);
-        moduleManager.RegisterModule(verci);
+        moduleManager.RegisterModule(glow);
+        moduleManager.RegisterModule(lyrics);
 
-        await lumn.InitializeAsync();
-        await verci.InitializeAsync();
+        await glow.InitializeAsync();
+        await lyrics.InitializeAsync();
 
         // 3. Apply default startup mode (BothDisabled)
         await moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.BothDisabled);
 
         moduleManager.CurrentExecutionMode.Should().Be(ModuleExecutionMode.BothDisabled);
-        lumn.State.Should().Be(ModuleState.Initialized);
-        verci.State.Should().Be(ModuleState.Initialized);
+        glow.State.Should().Be(ModuleState.Initialized);
+        lyrics.State.Should().Be(ModuleState.Initialized);
 
         // Neither module should be in Running state on app startup
-        (lumn.State == ModuleState.Running).Should().BeFalse();
-        (verci.State == ModuleState.Running).Should().BeFalse();
+        (glow.State == ModuleState.Running).Should().BeFalse();
+        (lyrics.State == ModuleState.Running).Should().BeFalse();
     }
 }

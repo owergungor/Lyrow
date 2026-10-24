@@ -76,7 +76,7 @@ public sealed class SpectrumAnalyzer : ISpectrumAnalyzer
     public float Sensitivity
     {
         get => _sensitivity;
-        set => _sensitivity = Math.Clamp(value, 0.1f, 5.0f);
+        set => _sensitivity = Math.Clamp(value, 0.0f, 5.0f);
     }
 
     public float SilenceThresholdDb

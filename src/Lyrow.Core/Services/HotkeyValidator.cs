@@ -1,4 +1,4 @@
-using Lyrow.Core.Models;
+﻿using Lyrow.Core.Models;
 
 namespace Lyrow.Core.Services;
 
@@ -140,21 +140,21 @@ public static class HotkeyValidator
     {
         collisionError = null;
 
-        if (AreColliding(settings.ToggleLumn, settings.ToggleVerci))
+        if (AreColliding(settings.ToggleGlow, settings.ToggleLyrics))
         {
-            collisionError = $"'{NormalizeGesture(settings.ToggleLumn)}' hem Glow hem de Lyrics için kullanılamaz.";
+            collisionError = $"'{NormalizeGesture(settings.ToggleGlow)}' hem Glow hem de Lyrics için kullanılamaz.";
             return false;
         }
 
-        if (AreColliding(settings.ToggleLumn, settings.ToggleClickThrough))
+        if (AreColliding(settings.ToggleGlow, settings.ToggleClickThrough))
         {
-            collisionError = $"'{NormalizeGesture(settings.ToggleLumn)}' hem Glow hem de Tıklama Geçirgenliği için kullanılamaz.";
+            collisionError = $"'{NormalizeGesture(settings.ToggleGlow)}' hem Glow hem de Tıklama Geçirgenliği için kullanılamaz.";
             return false;
         }
 
-        if (AreColliding(settings.ToggleVerci, settings.ToggleClickThrough))
+        if (AreColliding(settings.ToggleLyrics, settings.ToggleClickThrough))
         {
-            collisionError = $"'{NormalizeGesture(settings.ToggleVerci)}' hem Lyrics hem de Tıklama Geçirgenliği için kullanılamaz.";
+            collisionError = $"'{NormalizeGesture(settings.ToggleLyrics)}' hem Lyrics hem de Tıklama Geçirgenliği için kullanılamaz.";
             return false;
         }
 

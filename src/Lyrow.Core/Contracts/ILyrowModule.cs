@@ -1,4 +1,4 @@
-namespace Lyrow.Core.Contracts;
+﻿namespace Lyrow.Core.Contracts;
 
 /// <summary>
 /// Represents the execution states of a Lyrow module.
@@ -19,7 +19,7 @@ public enum ModuleState
 /// </summary>
 public interface ILyrowModule : IAsyncDisposable
 {
-    /// <summary>Unique identifier for the module (e.g. "lumn", "verci").</summary>
+    /// <summary>Unique identifier for the module (e.g. "glow", "lyrics").</summary>
     string ModuleId { get; }
 
     /// <summary>User-facing display name.</summary>

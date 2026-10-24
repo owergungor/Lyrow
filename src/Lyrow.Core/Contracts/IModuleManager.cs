@@ -1,4 +1,4 @@
-namespace Lyrow.Core.Contracts;
+﻿namespace Lyrow.Core.Contracts;
 
 /// <summary>
 /// The 4 fundamental execution configurations of the Lyrow product.
@@ -6,8 +6,8 @@ namespace Lyrow.Core.Contracts;
 public enum ModuleExecutionMode
 {
     BothDisabled = 0,
-    LumnOnly = 1,
-    VerciOnly = 2,
+    GlowOnly = 1,
+    LyricsOnly = 2,
     BothEnabled = 3
 }
 
@@ -19,7 +19,7 @@ public interface IModuleManager
     /// <summary>Gets all registered modules.</summary>
     IReadOnlyCollection<ILyrowModule> RegisteredModules { get; }
 
-    /// <summary>Current combined execution mode of Lumn and Verci.</summary>
+    /// <summary>Current combined execution mode of Glow and Lyrics.</summary>
     ModuleExecutionMode CurrentExecutionMode { get; }
 
     /// <summary>Fired whenever any module changes its lifecycle state.</summary>

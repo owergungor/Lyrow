@@ -1,4 +1,4 @@
-# Lyrow v2.0 — Major UX, Audio, Lyrics & Glow Overhaul
+﻿# Lyrow v2.0 — Major UX, Audio, Lyrics & Glow Overhaul
 
 **Sürüm:** `v2.0`  
 **Platform:** Windows 11 Native (`WinUI 3` / `Windows App SDK 1.6` / `.NET 10.0`)
@@ -7,13 +7,13 @@
 
 ## 🎯 Genel Bakış
 
-**Lyrow v2.0**, `v1.3` temel alınarak geliştirilen ve uygulamanın görsel tasarımını, ses kontrolünü, medya yönetimini, Lumn tarzı 4 kenar ambiyans aydınlatmasını ve Apple Music tarzı şarkı sözü deneyimini baştan sona yenileyen kapsamlı bir ana sürümdür.
+**Lyrow v2.0**, `v1.3` temel alınarak geliştirilen ve uygulamanın görsel tasarımını, ses kontrolünü, medya yönetimini, Glow tarzı 4 kenar ambiyans aydınlatmasını ve Apple Music tarzı şarkı sözü deneyimini baştan sona yenileyen kapsamlı bir ana sürümdür.
 
 ---
 
 ## 🚀 Yenilikler ve Düzeltmeler
 
-### 1. Lumn Tarzı 4 Kenar Ambient Glow Motoru
+### 1. Glow Tarzı 4 Kenar Ambient Glow Motoru
 - **4 Bağımsız Kenar Enerjisi:** Üst (`Top`), Alt (`Bottom`), Sol (`Left`) ve Sağ (`Right`) ekran kenarları için bas, mid, tiz ve transient (vuruş) frekanslarından beslenen bağımsız yoğunluk hesaplaması.
 - **Akıcı Zarf (Attack → Hold → Decay):** Keskin aç/kapa (ON/OFF) davranışı yerine `Audio Energy → Smoothing → Attack → Hold → Decay → Rendered Intensity` modeliyle vuruş geldiğinde parlaklığın hızla yükselmesi, kısa süre tutunması ve yumuşakça sönümlenmesi.
 - **Ayrılmış STA Win32 Render Thread'i:** `GlowOverlayWindow` kendi mesaj döngüsüne sahip ayrılmış STA thread'inde 32-bit pre-multiplied ARGB DIB ve `UpdateLayeredWindow` kullanarak 60 FPS akıcılığında çizim yapar.

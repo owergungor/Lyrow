@@ -1,16 +1,16 @@
-# Lyrow v2.2 Sürüm Notları (Release Notes)
+﻿# Lyrow v2.2 Sürüm Notları (Release Notes)
 
 **Sürüm:** `v2.2`  
 **Tarih:** 20 Ekim 2026  
 **Platform:** Windows 11 (22H2 / 24H2) / Windows 10 (Build 19041+) 64-bit  
 **Geliştirme Çatısı:** .NET 10 LTS, WinUI 3, Windows App SDK 1.6+  
-**Tasarım Dili:** Windows 11 Mica / Fluent + Apple Music Estetiği (Lumn Ambient Lighting Experience)
+**Tasarım Dili:** Windows 11 Mica / Fluent + Apple Music Estetiği (Glow Ambient Lighting Experience)
 
 ---
 
 ## 🌟 Genel Bakış
 
-Lyrow `v2.2`, macOS'taki Lumn ambient-lighting deneyimini Windows 11'in yerel tasarım diliyle buluşturan, Mac tarzı sağ üst yüzen bildirim (toast) mimarisine geçen, çift ses seviyesi kontrolü (aktif oynatıcı oturumu + sistem ana çıkışı) sunan, şarkı sözü penceresine medya kontrolleri entegre eden ve tipografi/ortam aydınlatması üzerinde kusursuz bir kontrol sağlayan büyük bir deneyim ve cila güncellemesidir.
+Lyrow `v2.2`, macOS'taki Glow ambient-lighting deneyimini Windows 11'in yerel tasarım diliyle buluşturan, Mac tarzı sağ üst yüzen bildirim (toast) mimarisine geçen, çift ses seviyesi kontrolü (aktif oynatıcı oturumu + sistem ana çıkışı) sunan, şarkı sözü penceresine medya kontrolleri entegre eden ve tipografi/ortam aydınlatması üzerinde kusursuz bir kontrol sağlayan büyük bir deneyim ve cila güncellemesidir.
 
 ---
 

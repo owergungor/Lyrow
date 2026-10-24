@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
@@ -15,7 +15,7 @@ namespace Lyrow.App.Platform;
 [SupportedOSPlatform("windows")]
 public sealed class GlowOverlayManager : IDisposable
 {
-    private readonly LumnModule _lumnModule;
+    private readonly GlowModule _glowModule;
     private readonly ISettingsManager _settingsManager;
     private readonly List<GlowOverlayWindow> _activeOverlays = new();
     private readonly object _lock = new();
@@ -58,9 +58,9 @@ public sealed class GlowOverlayManager : IDisposable
         }
     }
 
-    public GlowOverlayManager(LumnModule lumnModule, ISettingsManager settingsManager)
+    public GlowOverlayManager(GlowModule glowModule, ISettingsManager settingsManager)
     {
-        _lumnModule = lumnModule;
+        _glowModule = glowModule;
         _settingsManager = settingsManager;
     }
 
@@ -188,7 +188,7 @@ public sealed class GlowOverlayManager : IDisposable
         var screens = EnumerateScreens();
         if (screens.Count == 0)
         {
-            var overlay = new GlowOverlayWindow(_lumnModule, _settingsManager);
+            var overlay = new GlowOverlayWindow(_glowModule, _settingsManager);
             overlay.SetPalette(_currentPalette, immediate: true);
             overlay.Create(0, 0, 1920, 1080);
             _activeOverlays.Add(overlay);
@@ -204,7 +204,7 @@ public sealed class GlowOverlayManager : IDisposable
             if (!shouldInclude) continue;
 
             var screen = screens[i];
-            var overlay = new GlowOverlayWindow(_lumnModule, _settingsManager);
+            var overlay = new GlowOverlayWindow(_glowModule, _settingsManager);
             overlay.SetPalette(_currentPalette, immediate: true);
             overlay.Create(screen.Bounds.X, screen.Bounds.Y, screen.Bounds.Width, screen.Bounds.Height);
             _activeOverlays.Add(overlay);

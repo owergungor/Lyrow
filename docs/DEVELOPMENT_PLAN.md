@@ -1,4 +1,4 @@
-# Lyrow — Geliştirme Yol Haritası (DEVELOPMENT_PLAN.md)
+﻿# Lyrow — Geliştirme Yol Haritası (DEVELOPMENT_PLAN.md)
 
 Bu belge, Lyrow projesinin Aşama 1'den Aşama 7'ye kadar olan uçtan uca geliştirme adımlarını, aşamalar arası bağımlılıkları, test kabul kriterlerini ve sürüm dağıtım planını tanımlar.
 
@@ -9,8 +9,8 @@ Bu belge, Lyrow projesinin Aşama 1'den Aşama 7'ye kadar olan uçtan uca geliş
 ```mermaid
 graph LR
     P1[Aşama 1: Keşif & Mimari] --> P2[Aşama 2: Çekirdek Altyapı]
-    P2 --> P3[Aşama 3: Lumn Modülü]
-    P2 --> P4[Aşama 4: Verci Modülü]
+    P2 --> P3[Aşama 3: Glow Modülü]
+    P2 --> P4[Aşama 4: Lyrics Modülü]
     P3 --> P5[Aşama 5: Görsel Entegrasyon & UI/UX]
     P4 --> P5
     P5 --> P6[Aşama 6: Performans & Kararlılık]
@@ -44,13 +44,13 @@ graph LR
 
 ---
 
-### Aşama 3: Lumn Modülü (Ses Yakalama ve Görselleştirme) — **[TAMAMLANDI]**
+### Aşama 3: Glow Modülü (Ses Yakalama ve Görselleştirme) — **[TAMAMLANDI]**
 - **Kapsam:**
   - `NAudio.Wasapi` ile WASAPI Loopback sistem ses akışının bağlanması (`WasapiAudioCaptureService`).
   - Hanning pencereli ve sıfır-tahsisli Radix-2 Cooley-Tukey FFT analiz motorunun (`FftAnalyzer`) yazılması.
   - Güç, tepe değer, dBFS loudness ve sessizlik algılama (`AudioLevelAnalyzer`).
   - Frekans bantlarının (Sub-bass, Bass, Mid, Treble) ve logaritmik 32 çubuğun ayrıştırılması (`FrequencyBandProcessor`).
-  - Avalonia 12 üzerinde donanım hızlandırmalı GPU spektrum ve ambiyans parıltı penceresinin (`LumnWindow` & `LumnVisualizerControl`) oluşturulması.
+  - Avalonia 12 üzerinde donanım hızlandırmalı GPU spektrum ve ambiyans parıltı penceresinin (`GlowWindow` & `GlowVisualizerControl`) oluşturulması.
   - Ses cihazı değişimi ve `AUDCLNT_E_DEVICE_INVALIDATED` otomatik yeniden bağlanma yönetiminin doğrulanması.
   - CI ve donanımsız ortamlar için sanal test servisi (`SyntheticAudioCaptureService`).
 - **Test ve Kabul Kriteri:**
@@ -61,7 +61,7 @@ graph LR
 
 ---
 
-### Aşama 4: Verci Modülü (Müzik Metadata ve Senkronize Şarkı Sözleri) — **[TAMAMLANDI]**
+### Aşama 4: Lyrics Modülü (Müzik Metadata ve Senkronize Şarkı Sözleri) — **[TAMAMLANDI]**
 - **Kapsam:**
   - Windows GSMTC (`GlobalSystemMediaTransportControlsSessionManager`) ile arka planda çalan müziğin (Spotify/Chrome/Apple Music) başlık, sanatçı, albüm ve süresinin yakalanması (`WindowsGsmtcMediaSessionMonitor`).
   - Donanımsız / CI ortamları için tam donanımlı simülasyon monitörü (`SyntheticMediaSessionMonitor`).
@@ -70,8 +70,8 @@ graph LR
   - $O(\log N)$ Binary Search ile sıfır-tahsisli aktif satır seçimi (`SyncedLyrics.FindActiveLineIndex`).
   - Disk tabanlı atomik yerel önbellek (`LocalFileLyricsCache`) ve dosya adı güvenliği (`SanitizeFileName`).
   - Düşük CPU tüketimli, pürüzsüz enterpolasyonlu zamanlama motoru (`LyricsTimelineSynchronizer`).
-  - Avalonia 12 üzerinde bağımsız Neumorphic şarkı sözü penceresinin (`VerciWindow`) oluşturulması (aktif satır parıltısı, otomatik kaydırma, zaman ofseti ayarı).
-  - Lumn modülü olmadan tamamen bağımsız başlatma ve durdurma yeteneği.
+  - Avalonia 12 üzerinde bağımsız Neumorphic şarkı sözü penceresinin (`LyricsWindow`) oluşturulması (aktif satır parıltısı, otomatik kaydırma, zaman ofseti ayarı).
+  - Glow modülü olmadan tamamen bağımsız başlatma ve durdurma yeteneği.
 - **Test ve Kabul Kriteri:**
   - Spotify/YouTube üzerinde şarkı değiştiğinde sözlerin ve sürenin senkronize olarak akması.
   - Çevrimdışı modda önbellekteki şarkı sözlerinin gösterilebilmesi.
@@ -82,10 +82,10 @@ graph LR
 
 ### Aşama 5: Görsel Entegrasyon, Ayarlar, Gerçek Ortam Doğrulaması ve Polish [TAMAMLANDI]
 - **Kapsam:**
-  - Lumn ve Verci pencerelerinin tekilleştirilmiş görsel teması (Neumorphism Açık/Koyu/Sistem temaları `ThemeDictionaries` entegrasyonu).
+  - Glow ve Lyrics pencerelerinin tekilleştirilmiş görsel teması (Neumorphism Açık/Koyu/Sistem temaları `ThemeDictionaries` entegrasyonu).
   - Gerçek Windows WASAPI sistem sesi ve GSMTC medya oturumu yaşam döngüsü doğrulaması.
   - Gerçek LRCLIB çevrimiçi şarkı sözü çekme, yerel atomik JSON disk önbellekleme ve çevrimdışı fallback doğrulaması.
-  - Lumn ve Verci modüllerinin eşzamanlı çalışması, 4 temel çalışma modunun anlık geçiş testleri.
+  - Glow ve Lyrics modüllerinin eşzamanlı çalışması, 4 temel çalışma modunun anlık geçiş testleri.
   - Pencere gizleme (`Hide`) ve küçültme (`Minimize`) durumlarında timer'ların durdurulması, sessizlik anında adaptif render throttling ile CPU ve RAM optimizasyonu.
   - Uygulama kapanışında kaynakların zarifçe serbest bırakılması (`AppExit`, `WasapiAudioCaptureService.DisposeAsync`, `WindowsGsmtcMediaSessionMonitor.DisposeAsync`).
 - **Test ve Kabul Kriteri:**
@@ -120,8 +120,8 @@ graph LR
 ### Aşama 8: v1.1 Geliştirme, Kararlılık ve Modern UI Yenilemesi — **[TAMAMLANDI]**
 - **Kapsam:**
   - **İki Parçalı Sürüm Formatı:** Uygulama, installer, repo ve belgelerde kesin `v1.1` numaralandırması uygulandı.
-  - **Ürün İsimlendirmesi:** Lumn → **Glow**, Verci → **Lyrics** olarak kullanıcı arayüzünde tamamen güncellendi.
-  - **Lyrics Senkronizasyonu Kök Neden Çözümü:** `LyricsTimelineSynchronizer` `VerciModule`'e doğrudan entegre edildi. 30 FPS canlı interpolasyon ve O(log N) ikili arama ile 5. satır playback anında UI 5. satıra getirildi; `BringIntoView` merkezleme sağlandı.
+  - **Ürün İsimlendirmesi:** Glow → **Glow**, Lyrics → **Lyrics** olarak kullanıcı arayüzünde tamamen güncellendi.
+  - **Lyrics Senkronizasyonu Kök Neden Çözümü:** `LyricsTimelineSynchronizer` `LyricsModule`'e doğrudan entegre edildi. 30 FPS canlı interpolasyon ve O(log N) ikili arama ile 5. satır playback anında UI 5. satıra getirildi; `BringIntoView` merkezleme sağlandı.
   - **Win32 1408 Hotkey Çözümü:** `WindowsGlobalHotkeyManager` kayıt ve unregister işlemleri dedicated mesaj döngüsü iş parçacığına taşınarak thread affinity hatası kökten çözüldü. Çakışma durumları güvenli yönetildi.
   - **Startup & Single-Instance:** Senkron pencere gösterimi, arka plan modül başlatma, sistem geneli `Mutex` + `EventWaitHandle` ile ikinci çalıştırmada mevcut pencereyi öne getirme ve yerel `%APPDATA%\Lyrow\logs\app.log` tanı günlüğü sağlandı.
   - **Vercel + Apple Tasarım Dili:** Saf siyah/açık yüzeyler, 1px zarif sınırlar, akıcı Apple tarzı `ToggleSwitch`, sol/sağ eşit ağırlıklı Ses Seviyesi ve Söz Durumu metrik kartları; gereksiz mod butonları ve rozetleri temizlendi.

@@ -8,7 +8,7 @@ using Lyrow.Core.Modules;
 namespace Lyrow.App.Platform;
 
 /// <summary>
-/// Native Win32 transparent layered overlay window providing zero-interference Lumn-style
+/// Native Win32 transparent layered overlay window providing zero-interference ambient
 /// 4-edge ambient lighting. Uses WS_EX_TRANSPARENT, WS_EX_NOACTIVATE, WS_EX_LAYERED, and WS_EX_TOOLWINDOW
 /// on a dedicated Win32 render/message thread so mouse/keyboard/scroll events pass straight through
 /// without stealing focus, altering Alt+Tab, or blocking UI scrolling.
@@ -60,7 +60,7 @@ public sealed class GlowOverlayWindow : IDisposable
     private int _width;
     private int _height;
 
-    private readonly LumnModule? _lumnModule;
+    private readonly GlowModule? _glowModule;
     private readonly ISettingsManager? _settingsManager;
     private readonly GlowBeatEngine _beatEngine = new();
     private readonly object _paletteLock = new();
@@ -102,9 +102,9 @@ public sealed class GlowOverlayWindow : IDisposable
     public float LastRenderedRightAlpha { get; private set; }
     public long RenderedFrameCount { get; private set; }
 
-    public GlowOverlayWindow(LumnModule? lumnModule = null, ISettingsManager? settingsManager = null)
+    public GlowOverlayWindow(GlowModule? glowModule = null, ISettingsManager? settingsManager = null)
     {
-        _lumnModule = lumnModule;
+        _glowModule = glowModule;
         _settingsManager = settingsManager;
     }
 
@@ -252,8 +252,8 @@ public sealed class GlowOverlayWindow : IDisposable
 
         try
         {
-            var spectrum = _lumnModule?.LatestSpectrum ?? FrequencySpectrum.Empty;
-            float sensitivity = _settingsManager?.Current.Lumn.Sensitivity ?? 1.0f;
+            var spectrum = _glowModule?.LatestSpectrum ?? FrequencySpectrum.Empty;
+            float sensitivity = _settingsManager?.Current.Glow.Sensitivity ?? 1.0f;
 
             if (_isPaused)
             {
@@ -349,16 +349,25 @@ public sealed class GlowOverlayWindow : IDisposable
         LastRenderedLeftAlpha = alphaLeft;
         LastRenderedRightAlpha = alphaRight;
 
-        // Dynamic edge thickness: base user setting + musical expansion on beats
-        int baseThickness = Math.Clamp(userThicknessPx, 30, 140);
-        int dynamicBoost = (int)(overall * 42.0f + transient * 34.0f);
-        int thickness = Math.Clamp(baseThickness + dynamicBoost, 30, 190);
-        int maxThickness = Math.Min(thickness, Math.Min(_width / 3, _height / 3));
+        // Dynamic edge thickness: base user setting (0 - 256 px) + subtle dynamic pulse on musical beats
+        int baseThickness = Math.Clamp(userThicknessPx, 0, 256);
+        if (baseThickness == 0)
+        {
+            LastRenderedTopAlpha = 0f;
+            LastRenderedBottomAlpha = 0f;
+            LastRenderedLeftAlpha = 0f;
+            LastRenderedRightAlpha = 0f;
+            return;
+        }
+
+        int dynamicBoost = (int)(overall * 32.0f + transient * 24.0f);
+        int thickness = Math.Clamp(baseThickness + dynamicBoost, 0, 256);
+        int maxThickness = Math.Min(thickness, Math.Min(_width / 2, _height / 2));
 
         uint* pixels = (uint*)_pixelBufferPtr;
         int stride = _width;
 
-        // Precompute blended corner colors for Lumn-style flowing gradients along each edge
+        // Precompute blended corner colors for ambient flowing gradients along each edge
         var topStart = GlowColor.Lerp(palette.LeftColor, palette.TopColor, 0.65f);
         var topEnd = GlowColor.Lerp(palette.RightColor, palette.TopColor, 0.65f);
         var bottomStart = GlowColor.Lerp(palette.LeftColor, palette.BottomColor, 0.65f);

@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Lyrow.Core.Models;
 using Lyrow.Core.Services;
 using Xunit;
@@ -26,8 +26,8 @@ public sealed class SettingsManagerTests : IDisposable
 
         settings.Should().NotBeNull();
         settings.Theme.Should().Be(ThemeMode.SystemDefault);
-        settings.LumnEnabled.Should().BeFalse();
-        settings.VerciEnabled.Should().BeFalse();
+        settings.GlowEnabled.Should().BeFalse();
+        settings.LyricsEnabled.Should().BeFalse();
     }
 
     [Fact]
@@ -40,8 +40,8 @@ public sealed class SettingsManagerTests : IDisposable
         var newSettings = new LyrowSettings
         {
             Theme = ThemeMode.Dark,
-            LumnEnabled = false,
-            VerciEnabled = true,
+            GlowEnabled = false,
+            LyricsEnabled = true,
             MasterOpacity = 0.85,
             AccentColor = "#FF5500"
         };
@@ -56,8 +56,8 @@ public sealed class SettingsManagerTests : IDisposable
         var reloaded = await reloadedManager.LoadAsync();
 
         reloaded.Theme.Should().Be(ThemeMode.Dark);
-        reloaded.LumnEnabled.Should().BeFalse();
-        reloaded.VerciEnabled.Should().BeTrue();
+        reloaded.GlowEnabled.Should().BeFalse();
+        reloaded.LyricsEnabled.Should().BeTrue();
         reloaded.MasterOpacity.Should().Be(0.85);
         reloaded.AccentColor.Should().Be("#FF5500");
     }
@@ -123,8 +123,8 @@ public sealed class SettingsManagerTests : IDisposable
         string legacyJson = """
         {
             "Theme": 1,
-            "LumnEnabled": true,
-            "VerciEnabled": true,
+            "GlowEnabled": true,
+            "LyricsEnabled": true,
             "ClickThroughEnabled": false,
             "MasterOpacity": 1.0,
             "AccentColor": "#4A90E2"
@@ -143,8 +143,8 @@ public sealed class SettingsManagerTests : IDisposable
         loaded.SystemTrayEnabled.Should().BeTrue();
         loaded.MinimizeToTray.Should().BeTrue();
         loaded.StartWithWindows.Should().BeFalse();
-        loaded.Hotkeys.ToggleLumn.Should().BeEmpty();
-        loaded.Hotkeys.ToggleVerci.Should().BeEmpty();
+        loaded.Hotkeys.ToggleGlow.Should().BeEmpty();
+        loaded.Hotkeys.ToggleLyrics.Should().BeEmpty();
         loaded.Hotkeys.ToggleClickThrough.Should().BeEmpty();
     }
 
@@ -159,8 +159,8 @@ public sealed class SettingsManagerTests : IDisposable
             s.SystemTrayEnabled = false;
             s.MinimizeToTray = false;
             s.StartWithWindows = true;
-            s.Hotkeys.ToggleLumn = "Ctrl+Alt+L";
-            s.Hotkeys.ToggleVerci = "Ctrl+Alt+V";
+            s.Hotkeys.ToggleGlow = "Ctrl+Alt+L";
+            s.Hotkeys.ToggleLyrics = "Ctrl+Alt+V";
             s.Hotkeys.ToggleClickThrough = "Ctrl+Alt+C";
         });
 
@@ -170,8 +170,8 @@ public sealed class SettingsManagerTests : IDisposable
         verified.SystemTrayEnabled.Should().BeFalse();
         verified.MinimizeToTray.Should().BeFalse();
         verified.StartWithWindows.Should().BeTrue();
-        verified.Hotkeys.ToggleLumn.Should().Be("Ctrl+Alt+L");
-        verified.Hotkeys.ToggleVerci.Should().Be("Ctrl+Alt+V");
+        verified.Hotkeys.ToggleGlow.Should().Be("Ctrl+Alt+L");
+        verified.Hotkeys.ToggleLyrics.Should().Be("Ctrl+Alt+V");
         verified.Hotkeys.ToggleClickThrough.Should().Be("Ctrl+Alt+C");
     }
 

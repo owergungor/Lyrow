@@ -38,7 +38,7 @@ public sealed partial class MainWindow : Window
     private readonly IUpdateService _updateService;
     private readonly IEventBus? _eventBus;
     private readonly IMediaSessionMonitor? _mediaMonitor;
-    private readonly VerciModule? _verciModule;
+    private readonly LyricsModule? _lyricsModule;
 
     private readonly List<IDisposable> _subscriptions = new();
     private readonly DispatcherTimer _dashboardTimer;
@@ -82,7 +82,7 @@ public sealed partial class MainWindow : Window
             ?? new GitHubUpdateService();
         _eventBus = App.Services?.GetService<IEventBus>();
         _mediaMonitor = App.Services?.GetService<IMediaSessionMonitor>();
-        _verciModule = App.Services?.GetService<VerciModule>();
+        _lyricsModule = App.Services?.GetService<LyricsModule>();
 
         try
         {
@@ -126,8 +126,8 @@ public sealed partial class MainWindow : Window
 
         _trayIconManager?.Initialize(
             onShowMainWindow: () => DispatcherQueue.TryEnqueue(() => { AppWindow.Show(); }),
-            onToggleLumn: () => ToggleGlowFromExternal(),
-            onToggleVerci: () => ToggleLyricsFromExternal(),
+            onToggleGlow: () => ToggleGlowFromExternal(),
+            onToggleLyrics: () => ToggleLyricsFromExternal(),
             onToggleClickThrough: () => { },
             onOpenSettings: () => DispatcherQueue.TryEnqueue(() => { AppWindow.Show(); NavView.SelectedItem = NavView.SettingsItem; ShowPage(PageSettings); }),
             onExit: () => DispatcherQueue.TryEnqueue(RequestExit));
@@ -291,7 +291,7 @@ public sealed partial class MainWindow : Window
             SliderGlowThickness.Value = settings.GlowThickness;
             TxtGlowThicknessVal.Text = $"{settings.GlowThickness} px";
 
-            int sensPct = (int)Math.Round(settings.Lumn.Sensitivity * 100.0f);
+            int sensPct = (int)Math.Round(settings.Glow.Sensitivity * 100.0f);
             SliderGlowSensitivity.Value = Math.Clamp(sensPct, 40, 250);
             TxtGlowSensitivityVal.Text = $"{Math.Clamp(sensPct, 40, 250)}%";
 
@@ -307,10 +307,10 @@ public sealed partial class MainWindow : Window
             SelectShutdownDelayCombo(ComboSettingsGlowShutdownDelay, settings.GlowShutdownDelaySeconds);
 
             // Lyrics controls
-            SliderLyricsOffset.Value = settings.Verci.SyncOffsetMs;
-            SliderSettingsLyricsOffset.Value = settings.Verci.SyncOffsetMs;
-            TxtPageLyricsOffset.Text = $"{settings.Verci.SyncOffsetMs:+0;-0;0} ms";
-            TxtSettingsLyricsOffset.Text = $"{settings.Verci.SyncOffsetMs:+0;-0;0} ms";
+            SliderLyricsOffset.Value = settings.Lyrics.SyncOffsetMs;
+            SliderSettingsLyricsOffset.Value = settings.Lyrics.SyncOffsetMs;
+            TxtPageLyricsOffset.Text = $"{settings.Lyrics.SyncOffsetMs:+0;-0;0} ms";
+            TxtSettingsLyricsOffset.Text = $"{settings.Lyrics.SyncOffsetMs:+0;-0;0} ms";
 
             // Lyrics Font Sliders
             SliderFocusedFontSize.Value = settings.FocusedLyricFontSize;
@@ -343,8 +343,8 @@ public sealed partial class MainWindow : Window
             ApplyLocalization();
             ShowSettingsCategory("All");
 
-            TxtHotkeyGlow.Text = settings.Hotkeys.ToggleLumn;
-            TxtHotkeyLyrics.Text = settings.Hotkeys.ToggleVerci;
+            TxtHotkeyGlow.Text = settings.Hotkeys.ToggleGlow;
+            TxtHotkeyLyrics.Text = settings.Hotkeys.ToggleLyrics;
 
             ComboTheme.SelectedIndex = settings.Theme switch
             {
@@ -378,8 +378,10 @@ public sealed partial class MainWindow : Window
             bool playbackMuted = _volumeService.IsPlaybackMuted;
             SliderPlaybackVolume.Value = currentPlayback;
             SliderSettingsPlaybackVolume.Value = currentPlayback;
+            if (SliderPagePlaybackVolume != null) SliderPagePlaybackVolume.Value = currentPlayback;
             TxtPlaybackVolumePercent.Text = playbackMuted ? $"Muted ({currentPlayback}%)" : $"{currentPlayback}%";
             TxtSettingsPlaybackVolumePercent.Text = playbackMuted ? $"Muted ({currentPlayback}%)" : $"{currentPlayback}%";
+            if (TxtPagePlaybackVolumePercent != null) TxtPagePlaybackVolumePercent.Text = playbackMuted ? $"Muted ({currentPlayback}%)" : $"{currentPlayback}%";
             TxtPlaybackTarget.Text = _volumeService.PlaybackTargetName;
             IconPlaybackMute.Glyph = (playbackMuted || currentPlayback == 0) ? "\uE74F" : "\uE767";
 
@@ -388,8 +390,10 @@ public sealed partial class MainWindow : Window
             bool systemMuted = _volumeService.IsSystemMuted;
             SliderSystemVolume.Value = currentSystem;
             SliderSettingsSystemVolume.Value = currentSystem;
+            if (SliderPageSystemVolume != null) SliderPageSystemVolume.Value = currentSystem;
             TxtSystemVolumePercent.Text = systemMuted ? $"Muted ({currentSystem}%)" : $"{currentSystem}%";
             TxtSettingsSystemVolumePercent.Text = systemMuted ? $"Muted ({currentSystem}%)" : $"{currentSystem}%";
+            if (TxtPageSystemVolumePercent != null) TxtPageSystemVolumePercent.Text = systemMuted ? $"Muted ({currentSystem}%)" : $"{currentSystem}%";
             TxtSystemTarget.Text = _volumeService.SystemTargetName;
             IconSystemMute.Glyph = (systemMuted || currentSystem == 0) ? "\uE74F" : "\uE767";
         }
@@ -413,6 +417,7 @@ public sealed partial class MainWindow : Window
         // Real Windows Dual Volume Sliders (0% - 100% linear percentage)
         SliderPlaybackVolume.ValueChanged += (_, e) => OnPlaybackVolumeSliderChanged(e.NewValue);
         SliderSettingsPlaybackVolume.ValueChanged += (_, e) => OnPlaybackVolumeSliderChanged(e.NewValue);
+        if (SliderPagePlaybackVolume != null) SliderPagePlaybackVolume.ValueChanged += (_, e) => OnPlaybackVolumeSliderChanged(e.NewValue);
 
         BtnMutePlayback.Click += (_, _) =>
         {
@@ -422,6 +427,7 @@ public sealed partial class MainWindow : Window
 
         SliderSystemVolume.ValueChanged += (_, e) => OnSystemVolumeSliderChanged(e.NewValue);
         SliderSettingsSystemVolume.ValueChanged += (_, e) => OnSystemVolumeSliderChanged(e.NewValue);
+        if (SliderPageSystemVolume != null) SliderPageSystemVolume.ValueChanged += (_, e) => OnSystemVolumeSliderChanged(e.NewValue);
 
         BtnMuteSystem.Click += (_, _) =>
         {
@@ -446,8 +452,8 @@ public sealed partial class MainWindow : Window
             if (_isUpdatingSettingsUi) return;
             int pct = (int)Math.Round(e.NewValue);
             TxtGlowSensitivityVal.Text = $"{pct}%";
-            float sens = Math.Clamp(pct / 100.0f, 0.4f, 2.5f);
-            _settingsManager.Current.Lumn.Sensitivity = sens;
+            float sens = Math.Clamp(pct / 100.0f, 0.0f, 5.0f);
+            _settingsManager.Current.Glow.Sensitivity = sens;
             var analyzer = App.Services?.GetService<ISpectrumAnalyzer>();
             if (analyzer != null) analyzer.Sensitivity = sens;
         };
@@ -576,13 +582,13 @@ public sealed partial class MainWindow : Window
         // Shortcuts
         BtnSaveHotkeys.Click += async (_, _) =>
         {
-            _settingsManager.Current.Hotkeys.ToggleLumn = TxtHotkeyGlow.Text.Trim();
-            _settingsManager.Current.Hotkeys.ToggleVerci = TxtHotkeyLyrics.Text.Trim();
+            _settingsManager.Current.Hotkeys.ToggleGlow = TxtHotkeyGlow.Text.Trim();
+            _settingsManager.Current.Hotkeys.ToggleLyrics = TxtHotkeyLyrics.Text.Trim();
             await _settingsManager.SaveAsync(_settingsManager.Current);
             _hotkeyManager.RegisterHotkeys(
                 _settingsManager.Current.Hotkeys,
-                onLumnToggle: ToggleGlowFromExternal,
-                onVerciToggle: ToggleLyricsFromExternal,
+                onGlowToggle: ToggleGlowFromExternal,
+                onLyricsToggle: ToggleLyricsFromExternal,
                 onClickThroughToggle: () => { });
             ShowToast("Shortcuts saved and applied.", InfoBarSeverity.Success);
         };
@@ -591,8 +597,8 @@ public sealed partial class MainWindow : Window
         {
             TxtHotkeyGlow.Text = string.Empty;
             TxtHotkeyLyrics.Text = string.Empty;
-            _settingsManager.Current.Hotkeys.ToggleLumn = string.Empty;
-            _settingsManager.Current.Hotkeys.ToggleVerci = string.Empty;
+            _settingsManager.Current.Hotkeys.ToggleGlow = string.Empty;
+            _settingsManager.Current.Hotkeys.ToggleLyrics = string.Empty;
             _hotkeyManager.UnregisterAll();
             await _settingsManager.SaveAsync(_settingsManager.Current);
             ShowToast("All global shortcuts cleared.", InfoBarSeverity.Informational);
@@ -626,6 +632,10 @@ public sealed partial class MainWindow : Window
         BtnSettingsPlayPause.Click += async (_, _) => await ExecutePlayPauseCommandAsync();
         BtnSettingsNext.Click += async (_, _) => await ExecuteNextTrackCommandAsync();
         BtnSettingsPrev.Click += async (_, _) => await ExecutePrevTrackCommandAsync();
+
+        if (BtnPagePlayPause != null) BtnPagePlayPause.Click += async (_, _) => await ExecutePlayPauseCommandAsync();
+        if (BtnPageNext != null) BtnPageNext.Click += async (_, _) => await ExecuteNextTrackCommandAsync();
+        if (BtnPagePrev != null) BtnPagePrev.Click += async (_, _) => await ExecutePrevTrackCommandAsync();
 
         // Navigation and Theme events
         NavView.SelectionChanged += NavView_SelectionChanged;
@@ -896,8 +906,8 @@ public sealed partial class MainWindow : Window
             SliderSettingsLyricsOffset.Value = val;
             TxtPageLyricsOffset.Text = $"{val:+0;-0;0} ms";
             TxtSettingsLyricsOffset.Text = $"{val:+0;-0;0} ms";
-            _settingsManager.Current.Verci.SyncOffsetMs = val;
-            _verciModule?.SetSyncOffset(val);
+            _settingsManager.Current.Lyrics.SyncOffsetMs = val;
+            _lyricsModule?.SetSyncOffset(val);
         }
         finally
         {
@@ -1065,7 +1075,7 @@ public sealed partial class MainWindow : Window
             TxtUpdateDownloadProgress.Text = $"{LocalizationService.Instance["Updates_Downloading"]} 0%";
 
             string tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Lyrow", "Updates");
-            string destFile = System.IO.Path.Combine(tempDir, "Lyrow-2.3-Setup-x64.exe");
+            string destFile = System.IO.Path.Combine(tempDir, "Lyrow-2.4-Setup-x64.exe");
 
             var progress = new Progress<double>(pct =>
             {
@@ -1137,7 +1147,8 @@ public sealed partial class MainWindow : Window
         var loc = LocalizationService.Instance;
 
         // Navigation
-        NavHome.Content = loc["Nav_Dashboard"];
+        NavHome.Content = loc["Nav_Home"];
+        if (NavPlayback != null) NavPlayback.Content = loc["Nav_Playback"];
         NavGlow.Content = loc["Nav_Glow"];
         NavLyrics.Content = loc["Nav_Lyrics"];
         TxtSettingsHeader.Text = loc["Settings_Title"];
@@ -1215,7 +1226,7 @@ public sealed partial class MainWindow : Window
             SwitchGlowMaster.IsOn = active;
             SwitchSettingsGlowEnabled.IsOn = active;
 
-            await _moduleManager.SetModuleActiveAsync("lumn", active);
+            await _moduleManager.SetModuleActiveAsync("glow", active);
 
             if (active)
             {
@@ -1256,16 +1267,16 @@ public sealed partial class MainWindow : Window
             SwitchHomeLyrics.IsOn = active;
             SwitchLyricsMaster.IsOn = active;
 
-            await _moduleManager.SetModuleActiveAsync("verci", active);
+            await _moduleManager.SetModuleActiveAsync("lyrics", active);
 
             if (active)
             {
                 TxtLyricsStatus.Text = "Running (Active)";
                 TxtLyricsStatus.Foreground = (Brush)Application.Current.Resources["LyrowSuccessBrush"];
 
-                if (_lyricsWindow == null && _verciModule != null)
+                if (_lyricsWindow == null && _lyricsModule != null)
                 {
-                    _lyricsWindow = new LyricsWindow(_verciModule, _settingsManager, _artworkBitmapManager, _mediaMonitor, _volumeService, _toastManager);
+                    _lyricsWindow = new LyricsWindow(_lyricsModule, _settingsManager, _artworkBitmapManager, _mediaMonitor, _volumeService, _toastManager);
                     _lyricsWindow.Closed += (_, _) =>
                     {
                         _lyricsWindow = null;
@@ -1313,7 +1324,7 @@ public sealed partial class MainWindow : Window
 
     private void OnHardwareMediaTimelineChanged(object? sender, MediaTimelineInfo timeline)
     {
-        _verciModule?.UpdateTimelineExternal(timeline);
+        _lyricsModule?.UpdateTimelineExternal(timeline);
 
         DispatcherQueue.TryEnqueue(() =>
         {
@@ -1327,15 +1338,15 @@ public sealed partial class MainWindow : Window
         // Re-bind volume service to active media session if player changed
         _volumeService.SetPreferredAppId(_mediaMonitor?.SourceAppId);
 
-        // If VerciModule is not currently Running, still trigger background lyrics lookup & timeline reset
+        // If LyricsModule is not currently Running, still trigger background lyrics lookup & timeline reset
         // so Dashboard lyrics status/current line and future LyricsWindow activation are immediately synced!
-        if (_verciModule != null && _verciModule.State != ModuleState.Running)
+        if (_lyricsModule != null && _lyricsModule.State != ModuleState.Running)
         {
             if (_mediaMonitor != null)
             {
-                _verciModule.UpdateTimelineExternal(_mediaMonitor.CurrentTimeline);
+                _lyricsModule.UpdateTimelineExternal(_mediaMonitor.CurrentTimeline);
             }
-            _ = _verciModule.HandleTrackChangedAsync(track);
+            _ = _lyricsModule.HandleTrackChangedAsync(track);
         }
 
         DispatcherQueue.TryEnqueue(() =>
@@ -1436,10 +1447,10 @@ public sealed partial class MainWindow : Window
             var timeline = _mediaMonitor.CurrentTimeline;
             UpdateDashboardTimelineDisplay(timeline, _mediaMonitor.CurrentTrack);
 
-            if (_verciModule != null)
+            if (_lyricsModule != null)
             {
                 var pos = timeline.GetInterpolatedPosition();
-                _verciModule.Synchronizer.EvaluatePosition(pos);
+                _lyricsModule.Synchronizer.EvaluatePosition(pos);
             }
         }
 
@@ -1474,7 +1485,7 @@ public sealed partial class MainWindow : Window
             if (count > 0)
             {
                 TxtLyricsAvailability.Text = $"Synchronized ({count} timed lines • {e.Source})";
-                int idx = _verciModule?.ActiveLineIndex ?? -1;
+                int idx = _lyricsModule?.ActiveLineIndex ?? -1;
                 if (idx >= 0 && idx < count)
                 {
                     TxtHomeCurrentLyricLine.Text = e.Lyrics.Lines[idx].Text;
@@ -1534,6 +1545,9 @@ public sealed partial class MainWindow : Window
                 case "Lyrics":
                     ShowPage(PageLyrics);
                     break;
+                case "Playback":
+                    ShowPage(PagePlayback);
+                    break;
                 default:
                     ShowPage(PageHome);
                     break;
@@ -1547,6 +1561,7 @@ public sealed partial class MainWindow : Window
         PageHome.Visibility = (activePage == PageHome) ? Visibility.Visible : Visibility.Collapsed;
         PageGlow.Visibility = (activePage == PageGlow) ? Visibility.Visible : Visibility.Collapsed;
         PageLyrics.Visibility = (activePage == PageLyrics) ? Visibility.Visible : Visibility.Collapsed;
+        if (PagePlayback != null) PagePlayback.Visibility = (activePage == PagePlayback) ? Visibility.Visible : Visibility.Collapsed;
         PageSettings.Visibility = (activePage == PageSettings) ? Visibility.Visible : Visibility.Collapsed;
 
         MainScrollViewer?.ChangeView(null, 0, null, disableAnimation: true);

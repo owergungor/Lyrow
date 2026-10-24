@@ -23,7 +23,7 @@ namespace Lyrow.App;
 /// </summary>
 public sealed partial class LyricsWindow : Window
 {
-    private readonly VerciModule _verciModule;
+    private readonly LyricsModule _lyricsModule;
     private readonly ISettingsManager _settingsManager;
     private readonly ArtworkBitmapManager? _artworkBitmapManager;
     private readonly IMediaSessionMonitor? _mediaMonitor;
@@ -53,7 +53,7 @@ public sealed partial class LyricsWindow : Window
     private bool _isShuttingDown = false;
 
     public LyricsWindow(
-        VerciModule verciModule,
+        LyricsModule lyricsModule,
         ISettingsManager settingsManager,
         ArtworkBitmapManager? artworkBitmapManager = null,
         IMediaSessionMonitor? mediaMonitor = null,
@@ -61,7 +61,7 @@ public sealed partial class LyricsWindow : Window
         ToastNotificationManager? toastManager = null)
     {
         InitializeComponent();
-        _verciModule = verciModule;
+        _lyricsModule = lyricsModule;
         _settingsManager = settingsManager;
         _artworkBitmapManager = artworkBitmapManager;
         _mediaMonitor = mediaMonitor;
@@ -72,7 +72,7 @@ public sealed partial class LyricsWindow : Window
         SetTitleBar(LyricsTitleBar);
         ResizeForCurrentDpi(500, 720);
 
-        TxtOffsetMs.Text = $"{_settingsManager.Current.Verci.SyncOffsetMs:+0;-0;0} ms";
+        TxtOffsetMs.Text = $"{_settingsManager.Current.Lyrics.SyncOffsetMs:+0;-0;0} ms";
         BtnOffsetMinus.Click += (_, _) => AdjustOffset(-250);
         BtnOffsetPlus.Click += (_, _) => AdjustOffset(250);
 
@@ -184,9 +184,9 @@ public sealed partial class LyricsWindow : Window
 
     private void AdjustOffset(int deltaMs)
     {
-        int newOffset = _settingsManager.Current.Verci.SyncOffsetMs + deltaMs;
-        _settingsManager.Current.Verci.SyncOffsetMs = newOffset;
-        _verciModule.SetSyncOffset(newOffset);
+        int newOffset = _settingsManager.Current.Lyrics.SyncOffsetMs + deltaMs;
+        _settingsManager.Current.Lyrics.SyncOffsetMs = newOffset;
+        _lyricsModule.SetSyncOffset(newOffset);
         TxtOffsetMs.Text = $"{newOffset:+0;-0;0} ms";
     }
 
@@ -203,15 +203,15 @@ public sealed partial class LyricsWindow : Window
 
     private async void OnUiTimerTick(object? sender, object e)
     {
-        var track = !_verciModule.CurrentTrack.IsEmpty
-            ? _verciModule.CurrentTrack
+        var track = !_lyricsModule.CurrentTrack.IsEmpty
+            ? _lyricsModule.CurrentTrack
             : (_mediaMonitor?.CurrentTrack ?? MediaTrackInfo.Empty);
 
-        var timeline = _verciModule.CurrentTimeline.Duration > TimeSpan.Zero || _verciModule.CurrentTimeline.Status != MediaPlaybackStatus.Stopped
-            ? _verciModule.CurrentTimeline
+        var timeline = _lyricsModule.CurrentTimeline.Duration > TimeSpan.Zero || _lyricsModule.CurrentTimeline.Status != MediaPlaybackStatus.Stopped
+            ? _lyricsModule.CurrentTimeline
             : (_mediaMonitor?.CurrentTimeline ?? MediaTimelineInfo.Zero);
 
-        var lyrics = _verciModule.CurrentLyrics;
+        var lyrics = _lyricsModule.CurrentLyrics;
 
         if (track.IsEmpty)
         {
@@ -252,7 +252,7 @@ public sealed partial class LyricsWindow : Window
         IconLyricsPlayPause.Glyph = (timeline.Status == MediaPlaybackStatus.Playing) ? "\uE769" : "\uE768";
 
         // Ensure synchronizer evaluates latest interpolated position
-        _verciModule.Synchronizer.EvaluatePosition(pos);
+        _lyricsModule.Synchronizer.EvaluatePosition(pos);
 
         double focusedSize = _settingsManager.Current.FocusedLyricFontSize > 0 ? _settingsManager.Current.FocusedLyricFontSize : 28.0;
         double unfocusedSize = _settingsManager.Current.UnfocusedLyricFontSize > 0 ? _settingsManager.Current.UnfocusedLyricFontSize : 20.0;
@@ -276,7 +276,7 @@ public sealed partial class LyricsWindow : Window
         }
 
         // Active line synchronization
-        int activeIdx = _verciModule.ActiveLineIndex;
+        int activeIdx = _lyricsModule.ActiveLineIndex;
         if (activeIdx != _currentActiveIndex)
         {
             UpdateActiveLineTargets(activeIdx, immediate: _currentActiveIndex == -99);
@@ -573,7 +573,7 @@ public sealed partial class LyricsWindow : Window
         }
         else
         {
-            _verciModule.Synchronizer.EvaluatePosition(timestamp);
+            _lyricsModule.Synchronizer.EvaluatePosition(timestamp);
             RecalculateCenterScrollTarget(immediate: false);
         }
     }

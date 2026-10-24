@@ -1,13 +1,13 @@
-using Lyrow.Core.Contracts;
+﻿using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
 
 namespace Lyrow.Core.Modules;
 
 /// <summary>
-/// Core implementation of the Lumn module managing audio-reactive lighting and visualizations.
-/// Operates completely independently from Verci and manages the audio capture & analysis lifecycle.
+/// Core implementation of the Glow module managing audio-reactive lighting and visualizations.
+/// Operates completely independently from Lyrics and manages the audio capture & analysis lifecycle.
 /// </summary>
-public sealed class LumnModule : ILyrowModule
+public sealed class GlowModule : ILyrowModule
 {
     private readonly SemaphoreSlim _stateLock = new(1, 1);
     private IAudioCaptureService? _audioCaptureService;
@@ -19,7 +19,7 @@ public sealed class LumnModule : ILyrowModule
     private Task? _analysisLoopTask;
     private bool _isDisposed;
 
-    public LumnModule(
+    public GlowModule(
         IAudioCaptureService? audioCaptureService = null,
         ISpectrumAnalyzer? spectrumAnalyzer = null,
         IEventBus? eventBus = null,
@@ -31,8 +31,8 @@ public sealed class LumnModule : ILyrowModule
         _settingsManager = settingsManager;
     }
 
-    public string ModuleId => "lumn";
-    public string DisplayName => "Lumn (Audio Visualizer)";
+    public string ModuleId => "glow";
+    public string DisplayName => "Glow (Ambient Edge Lighting)";
     public ModuleState State { get; private set; } = ModuleState.Uninitialized;
     public Exception? LastFault { get; private set; }
 
@@ -89,10 +89,10 @@ public sealed class LumnModule : ILyrowModule
                 _audioCaptureService.DataAvailable += OnAudioDataAvailable;
                 _audioCaptureService.CaptureFaulted += OnAudioCaptureFaulted;
 
-                string? preferredDevice = _settingsManager?.Current.Lumn.PreferredDeviceId;
+                string? preferredDevice = _settingsManager?.Current.Glow.PreferredDeviceId;
                 await _audioCaptureService.StartAsync(preferredDevice, ct).ConfigureAwait(false);
 
-                int fps = _settingsManager?.Current.Lumn.TargetFps ?? 60;
+                int fps = _settingsManager?.Current.Glow.TargetFps ?? 60;
                 fps = Math.Clamp(fps, 15, 144);
                 var frameInterval = TimeSpan.FromMilliseconds(1000.0 / fps);
 
@@ -164,11 +164,11 @@ public sealed class LumnModule : ILyrowModule
     {
         if (_spectrumAnalyzer == null || _settingsManager == null) return;
 
-        var lumnSettings = _settingsManager.Current.Lumn;
-        _spectrumAnalyzer.FftSize = lumnSettings.FftSize;
-        _spectrumAnalyzer.BarCount = lumnSettings.BarCount;
-        _spectrumAnalyzer.SmoothingFactor = lumnSettings.SmoothingFactor;
-        _spectrumAnalyzer.Sensitivity = lumnSettings.Sensitivity;
+        var glowSettings = _settingsManager.Current.Glow;
+        _spectrumAnalyzer.FftSize = glowSettings.FftSize;
+        _spectrumAnalyzer.BarCount = glowSettings.BarCount;
+        _spectrumAnalyzer.SmoothingFactor = glowSettings.SmoothingFactor;
+        _spectrumAnalyzer.Sensitivity = glowSettings.Sensitivity;
     }
 
     private void OnAudioDataAvailable(object? sender, AudioDataAvailableEventArgs e)

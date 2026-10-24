@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
 using Lyrow.Core.Modules;
@@ -9,17 +9,17 @@ using Xunit;
 
 namespace Lyrow.Music.Tests;
 
-public sealed class VerciModuleIntegrationTests : IDisposable
+public sealed class LyricsModuleIntegrationTests : IDisposable
 {
     private readonly string _tempCacheDir;
 
-    public VerciModuleIntegrationTests()
+    public LyricsModuleIntegrationTests()
     {
-        _tempCacheDir = Path.Combine(Path.GetTempPath(), "Lyrow_VerciTest_" + Guid.NewGuid().ToString("N"));
+        _tempCacheDir = Path.Combine(Path.GetTempPath(), "Lyrow_LyricsTest_" + Guid.NewGuid().ToString("N"));
     }
 
     [Fact]
-    public async Task VerciModule_ShouldFetchLyricsAndTrackTimeline_IndependentlyFromLumn()
+    public async Task LyricsModule_ShouldFetchLyricsAndTrackTimeline_IndependentlyFromGlow()
     {
         // Arrange
         var eventBus = new InMemoryEventBus();
@@ -34,7 +34,7 @@ public sealed class VerciModuleIntegrationTests : IDisposable
         var mockLyrics = LrcParser.Parse(sampleLrc, "Test Song", "Test Artist");
         var client = new MockLyricsClient(new LyricsSearchResult(true, mockLyrics, "LRCLIB"));
 
-        var verci = new VerciModule(monitor, client, cache, eventBus);
+        var lyrics = new LyricsModule(monitor, client, cache, eventBus);
 
         var trackEvents = new List<MediaTrackInfo>();
         var lyricsEvents = new List<LyricsLoadedEvent>();
@@ -54,11 +54,11 @@ public sealed class VerciModuleIntegrationTests : IDisposable
         });
 
         // Act - Initialize and Start
-        await verci.InitializeAsync();
-        verci.State.Should().Be(ModuleState.Initialized);
+        await lyrics.InitializeAsync();
+        lyrics.State.Should().Be(ModuleState.Initialized);
 
-        await verci.StartAsync();
-        verci.State.Should().Be(ModuleState.Running);
+        await lyrics.StartAsync();
+        lyrics.State.Should().Be(ModuleState.Running);
         monitor.IsMonitoring.Should().BeTrue();
 
         // 1. Simulate new track detected by GSMTC
@@ -75,36 +75,36 @@ public sealed class VerciModuleIntegrationTests : IDisposable
             lyricsEvents.Should().ContainSingle(l => l.Source == "LRCLIB" && l.Lyrics.Lines.Count == 3);
         }
 
-        verci.CurrentLyrics.Lines.Should().HaveCount(3);
+        lyrics.CurrentLyrics.Lines.Should().HaveCount(3);
 
         // 2. Simulate playback timeline advancing to 5 seconds (within line 0 at 2s)
         monitor.SimulatePlaybackState(MediaPlaybackStatus.Playing, TimeSpan.FromSeconds(5));
         await Task.Delay(50);
 
-        verci.ActiveLineIndex.Should().Be(0);
+        lyrics.ActiveLineIndex.Should().Be(0);
 
         // 3. Simulate Seek to 16 seconds (within line 2 at 15s)
         monitor.SimulateSeek(TimeSpan.FromSeconds(16));
         await Task.Delay(50);
 
-        verci.ActiveLineIndex.Should().Be(2);
+        lyrics.ActiveLineIndex.Should().Be(2);
 
         // 4. Verify disk caching occurred
         var cached = await cache.GetAsync("Test Song", "Test Artist");
         cached.Should().NotBeNull();
         cached!.Lines.Should().HaveCount(3);
 
-        // 5. Stop Verci
-        await verci.StopAsync();
-        verci.State.Should().Be(ModuleState.Stopped);
+        // 5. Stop Lyrics
+        await lyrics.StopAsync();
+        lyrics.State.Should().Be(ModuleState.Stopped);
         monitor.IsMonitoring.Should().BeFalse();
-        verci.CurrentLyrics.Lines.Should().BeEmpty();
+        lyrics.CurrentLyrics.Lines.Should().BeEmpty();
 
-        await verci.DisposeAsync();
+        await lyrics.DisposeAsync();
     }
 
     [Fact]
-    public async Task VerciModule_ShouldHandleOfflineCacheGracefully_WhenNetworkClientFails()
+    public async Task LyricsModule_ShouldHandleOfflineCacheGracefully_WhenNetworkClientFails()
     {
         var monitor = new SyntheticMediaSessionMonitor();
         var cache = new LocalFileLyricsCache(_tempCacheDir);
@@ -114,9 +114,9 @@ public sealed class VerciModuleIntegrationTests : IDisposable
         var preCached = LrcParser.Parse("[00:05.00]Pre-cached lyric line", "Cached Song", "Cached Artist");
         await cache.SaveAsync("Cached Song", "Cached Artist", preCached);
 
-        var verci = new VerciModule(monitor, failingClient, cache);
-        await verci.InitializeAsync();
-        await verci.StartAsync();
+        var lyrics = new LyricsModule(monitor, failingClient, cache);
+        await lyrics.InitializeAsync();
+        await lyrics.StartAsync();
 
         // Simulate track change for pre-cached song
         monitor.SimulateTrack("Cached Song", "Cached Artist", "Album", TimeSpan.FromMinutes(2));
@@ -124,16 +124,16 @@ public sealed class VerciModuleIntegrationTests : IDisposable
         // Deterministically wait for lyrics to be loaded from cache (polling up to 3 seconds)
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         while (stopwatch.Elapsed < TimeSpan.FromSeconds(3) &&
-               !verci.CurrentLyrics.Lines.Any(l => l.Text == "Pre-cached lyric line"))
+               !lyrics.CurrentLyrics.Lines.Any(l => l.Text == "Pre-cached lyric line"))
         {
             await Task.Delay(25);
         }
 
         // Should successfully use cache even though network client fails!
-        verci.CurrentLyrics.Lines.Should().ContainSingle(l => l.Text == "Pre-cached lyric line");
+        lyrics.CurrentLyrics.Lines.Should().ContainSingle(l => l.Text == "Pre-cached lyric line");
 
-        await verci.StopAsync();
-        await verci.DisposeAsync();
+        await lyrics.StopAsync();
+        await lyrics.DisposeAsync();
     }
 
     public void Dispose()

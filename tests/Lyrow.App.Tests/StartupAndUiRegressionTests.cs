@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Lyrow.Core.Models;
 using Lyrow.Core.Modules;
 using Lyrow.Core.Services;
@@ -29,11 +29,11 @@ public class StartupAndUiRegressionTests
         var settings = manager.Current;
 
         settings.Should().NotBeNull();
-        settings.LumnEnabled.Should().BeFalse();
-        settings.VerciEnabled.Should().BeFalse();
+        settings.GlowEnabled.Should().BeFalse();
+        settings.LyricsEnabled.Should().BeFalse();
         settings.MinimizeToTray.Should().BeTrue();
-        settings.Hotkeys.ToggleLumn.Should().BeEmpty();
-        settings.Hotkeys.ToggleVerci.Should().BeEmpty();
+        settings.Hotkeys.ToggleGlow.Should().BeEmpty();
+        settings.Hotkeys.ToggleLyrics.Should().BeEmpty();
         settings.Hotkeys.ToggleClickThrough.Should().BeEmpty();
     }
 
@@ -47,13 +47,13 @@ public class StartupAndUiRegressionTests
             await manager.UpdateAsync(s =>
             {
                 s.Theme = ThemeMode.Dark;
-                s.Verci.SyncOffsetMs = 250;
-                s.Lumn.Sensitivity = 1.8f;
+                s.Lyrics.SyncOffsetMs = 250;
+                s.Glow.Sensitivity = 1.8f;
             });
 
             manager.Current.Theme.Should().Be(ThemeMode.Dark);
-            manager.Current.Verci.SyncOffsetMs.Should().Be(250);
-            manager.Current.Lumn.Sensitivity.Should().Be(1.8f);
+            manager.Current.Lyrics.SyncOffsetMs.Should().Be(250);
+            manager.Current.Glow.Sensitivity.Should().Be(1.8f);
         }
         finally
         {
@@ -65,14 +65,14 @@ public class StartupAndUiRegressionTests
     public void ModuleManager_TerminologyVerification_GlowAndLyrics()
     {
         var moduleManager = new ModuleManager();
-        var lumn = new LumnModule();
-        var verci = new VerciModule();
+        var glow = new GlowModule();
+        var lyrics = new LyricsModule();
 
-        moduleManager.RegisterModule(lumn);
-        moduleManager.RegisterModule(verci);
+        moduleManager.RegisterModule(glow);
+        moduleManager.RegisterModule(lyrics);
 
-        verci.DisplayName.Should().Contain("Lyrics");
-        verci.ModuleId.Should().Be("verci");
-        lumn.ModuleId.Should().Be("lumn");
+        lyrics.DisplayName.Should().Contain("Lyrics");
+        lyrics.ModuleId.Should().Be("lyrics");
+        glow.ModuleId.Should().Be("glow");
     }
 }

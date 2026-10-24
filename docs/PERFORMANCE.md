@@ -1,4 +1,4 @@
-# Lyrow — Performans Hedefleri ve Ölçüm Metodolojisi (PERFORMANCE.md)
+﻿# Lyrow — Performans Hedefleri ve Ölçüm Metodolojisi (PERFORMANCE.md)
 
 Bu belge, Lyrow uygulamasının sistem kaynağı (RAM, CPU, GPU) hedeflerini, test senaryolarını, ölçüm metodolojisini ve optimizasyon ilkelerini belirler.
 
@@ -13,8 +13,8 @@ Bu belge, Lyrow uygulamasının sistem kaynağı (RAM, CPU, GPU) hedeflerini, te
 | Çalışma Durumu | Hedeflenen Bellek (RAM) | Not / Kısıt |
 | :--- | :--- | :--- |
 | **Boşta / Arka Plan (Modüller Kapalı, Sadece Tray)** | **≤ 100 – 150 MB** | Avalonia çekirdek çalışma zamanı ve DI servisleri aktif. Render devre dışı. |
-| **Yalnızca Lumn Aktif** | **150 – 250 MB** | WASAPI ses yakalama buffer'ları ve FFT analiz dizileri havuzlanmış olmalı. |
-| **Yalnızca Verci Aktif** | **150 – 250 MB** | Albüm kapağı önbelleği sınırlandırılmalı (maks. 10 kapak hafızada). |
+| **Yalnızca Glow Aktif** | **150 – 250 MB** | WASAPI ses yakalama buffer'ları ve FFT analiz dizileri havuzlanmış olmalı. |
+| **Yalnızca Lyrics Aktif** | **150 – 250 MB** | Albüm kapağı önbelleği sınırlandırılmalı (maks. 10 kapak hafızada). |
 | **İki Modül Birlikte Aktif** | **200 – 350 MB** | Eşzamanlı ses analizi, söz kaydırma ve çift Avalonia render katmanı. |
 
 ### 1.2. CPU Kullanım Hedefleri (Modern 6+ Çekirdekli İşlemci Baz Alınarak)
@@ -22,8 +22,8 @@ Bu belge, Lyrow uygulamasının sistem kaynağı (RAM, CPU, GPU) hedeflerini, te
 | Çalışma Durumu | Hedeflenen Ortalama CPU | Zirve (Spike) Toleransı |
 | :--- | :--- | :--- |
 | **Boşta (Müzik Çalmıyorken / Duraklatılmış)** | **< %1** | Kısa süreli <%2 |
-| **Lumn Aktif (60 FPS Efekt Render)** | **%4 – %8** | <%10 |
-| **Verci Aktif (Satır Kaydırma / Zaman Takibi)** | **%1 – %3** | <%5 |
+| **Glow Aktif (60 FPS Efekt Render)** | **%4 – %8** | <%10 |
+| **Lyrics Aktif (Satır Kaydırma / Zaman Takibi)** | **%1 – %3** | <%5 |
 | **İki Modül Birlikte Aktif** | **%5 – %10** | Maks. <%12 |
 
 ---
@@ -52,11 +52,11 @@ Performans ölçümleri kullanıcı tahminine bırakılmayacak, aşağıdaki sta
 
 1. **Senaryo A: Temiz Başlatma ve Boşta Bekleme (Idle)**
    - Uygulama başlatılır, modüller kapalıdır veya ses çalmıyordur. 15 dakika beklenir. Bellek sızıntısı ve arka plan CPU tüketimi ölçülür.
-2. **Senaryo B: Sürekli Müzik Çalma (Lumn Tek Başına)**
+2. **Senaryo B: Sürekli Müzik Çalma (Glow Tek Başına)**
    - 120 BPM yüksek tempolu elektronik müzik kesintisiz 60 dakika çalınır. FFT motorunun bellek tahsisatı (allocation) ve kare hızı (FPS kararlılığı) ölçülür.
-3. **Senaryo C: Şarkı Değiştirme Döngüsü (Verci Tek Başına)**
+3. **Senaryo C: Şarkı Değiştirme Döngüsü (Lyrics Tek Başına)**
    - 20 farklı şarkı sırayla oynatılır. Her şarkıda LRCLIB'den sözler indirilir ve albüm kapağı yüklenir. Belleğin serbest bırakılıp bırakılmadığı kontrol edilir.
-4. **Senaryo D: Stres ve Aşırı Yük (Lumn + Verci Entegre)**
+4. **Senaryo D: Stres ve Aşırı Yük (Glow + Lyrics Entegre)**
    - İki modül aynı anda çalışırken kullanıcı pencere boyutlarını hızla değiştirir ve şeffaf mod / click-through arasında geçiş yapar. Donma veya gecikme (jank) gözlemlenir.
 
 ---
@@ -78,7 +78,7 @@ Her ölçüm raporu aşağıdaki ortam bilgileriyle eşleştirilecektir:
 1. **Sıfır Tahsisli Ses Analizi (Zero-Allocation FFT):**
    - Her ses tamponunda (buffer) yeni `float[]` dizileri üretilmeyecek; `ArrayPool<float>.Shared` veya modüle ait sabit uzunluklu önceden tahsis edilmiş buffer'lar kullanılacaktır.
 2. **Kare Hızı Sınırlama (Frame Pacing):**
-   - Lumn görselleştirmeleri ekran tazeleme oranına (V-Sync / 60 Hz) kilitlenecek, boş yere 144+ FPS render alarak CPU/GPU israf edilmeyecektir.
+   - Glow görselleştirmeleri ekran tazeleme oranına (V-Sync / 60 Hz) kilitlenecek, boş yere 144+ FPS render alarak CPU/GPU israf edilmeyecektir.
 3. **Müzik Durduğunda Uyuma (Sleep-on-Silence):**
    - Ses seviyesi 5 saniye boyunca sessizlik eşiğinin altındaysa render döngüsü duraklatılacak ve CPU kullanımı %0'a çekilecektir.
 4. **Görsel Efektlerde Basitlik (Shader & Neumorphism Dikkat):**

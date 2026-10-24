@@ -36,7 +36,7 @@
                         IsBackButtonVisible="Collapsed"
                         IsSettingsVisible="True">
             <NavigationView.MenuItems>
-                <NavigationViewItem x:Name="NavHome" Content="Dashboard" Tag="Home">
+                <NavigationViewItem x:Name="NavHome" Content="Home" Tag="Home">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE80F;" />
                     </NavigationViewItem.Icon>
@@ -51,6 +51,12 @@
                 <NavigationViewItem x:Name="NavLyrics" Content="Lyrics" Tag="Lyrics">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xEC4F;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
+                <NavigationViewItem x:Name="NavPlayback" Content="Playback" Tag="Playback">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE768;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
@@ -238,7 +244,7 @@
                         <TextBlock Text="Ambient Edge Lighting" FontSize="22" FontWeight="SemiBold" />
 
                         <InfoBar IsOpen="True" Severity="Informational" IsClosable="False"
-                                 Message="Lumn-style 4-edge lighting renders on a click-through layered surface (WS_EX_TRANSPARENT). Clicks, keyboard shortcuts, and scrolling pass effortlessly to underlying apps." />
+                                 Message="Modern 4-edge ambient lighting renders on a click-through layered surface (WS_EX_TRANSPARENT). Clicks, keyboard shortcuts, and scrolling pass effortlessly to underlying apps." />
 
                         <!-- Master Toggle -->
                         <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -269,14 +275,14 @@
                                     <TextBlock x:Name="TxtGlowThicknessVal" Grid.Column="1" Text="60 px" FontWeight="SemiBold"
                                                FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
                                 </Grid>
-                                <Slider x:Name="SliderGlowThickness" Minimum="30" Maximum="140" Value="60" StepFrequency="2" />
+                                <Slider x:Name="SliderGlowThickness" Minimum="0" Maximum="256" Value="60" StepFrequency="2" />
 
                                 <Grid ColumnDefinitions="*,Auto">
                                     <TextBlock Text="Beat &amp; Transient Reactivity" FontWeight="Medium" FontSize="14" />
                                     <TextBlock x:Name="TxtGlowSensitivityVal" Grid.Column="1" Text="100%" FontWeight="SemiBold"
                                                FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
                                 </Grid>
-                                <Slider x:Name="SliderGlowSensitivity" Minimum="40" Maximum="250" Value="100" StepFrequency="5" />
+                                <Slider x:Name="SliderGlowSensitivity" Minimum="0" Maximum="500" Value="100" StepFrequency="5" />
                             </StackPanel>
                         </Border>
 
@@ -410,6 +416,42 @@
                                     </Grid>
                                     <Slider x:Name="SliderUnfocusedFontSize" Minimum="14" Maximum="36" Value="20" StepFrequency="1" />
                                 </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- PAGE: PLAYBACK -->
+                    <StackPanel x:Name="PagePlayback" Grid.Row="1" Spacing="16" Visibility="Collapsed" Background="Transparent">
+                        <TextBlock x:Name="TxtPlaybackPageHeader" Text="Playback &amp; Volume" FontSize="22" FontWeight="SemiBold" />
+
+                        <Border Padding="18" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Media Sessions &amp; Master Audio" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock x:Name="TxtPagePlaybackActiveLabel" Text="Active Session Playback Volume" FontWeight="Medium" FontSize="14" />
+                                    <TextBlock x:Name="TxtPagePlaybackVolumePercent" Grid.Column="1" Text="78%" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                </Grid>
+                                <Slider x:Name="SliderPagePlaybackVolume" Minimum="0" Maximum="100" Value="78" StepFrequency="1" IsThumbToolTipEnabled="False" />
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock x:Name="TxtPagePlaybackSystemLabel" Text="System Endpoint Master Volume" FontWeight="Medium" FontSize="14" />
+                                    <TextBlock x:Name="TxtPageSystemVolumePercent" Grid.Column="1" Text="78%" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                </Grid>
+                                <Slider x:Name="SliderPageSystemVolume" Minimum="0" Maximum="100" Value="78" StepFrequency="1" IsThumbToolTipEnabled="False" />
+
+                                <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                    <TextBlock x:Name="TxtPageMediaStatus" Text="Media Transport Controls"
+                                               FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                        <Button x:Name="BtnPagePrev" Content="Previous" />
+                                        <Button x:Name="BtnPagePlayPause" Content="Play / Pause" Style="{ThemeResource AccentButtonStyle}" />
+                                        <Button x:Name="BtnPageNext" Content="Next" />
+                                    </StackPanel>
+                                </Grid>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -639,7 +681,7 @@
 
                                 <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                                     <StackPanel Spacing="2">
-                                        <TextBlock x:Name="TxtCurrentVersion" Text="Current Version: v2.3" FontWeight="SemiBold" FontSize="14" />
+                                        <TextBlock x:Name="TxtCurrentVersion" Text="Current Version: v2.4" FontWeight="SemiBold" FontSize="14" />
                                         <TextBlock x:Name="TxtUpdateStatusSummary" Text="Release channel: GitHub Releases (Stable)"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
@@ -682,7 +724,7 @@
                         <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <StackPanel Spacing="10">
-                                <TextBlock Text="Lyrow v2.3" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="Lyrow v2.4" FontWeight="SemiBold" FontSize="14" />
                                 <TextBlock Text="Windows 11 Native Ambient Edge Lighting &amp; Apple Music-Style Synchronized Lyrics"
                                            FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">

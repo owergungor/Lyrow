@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Lyrow.App.Platform;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
@@ -14,8 +14,8 @@ public class HotkeyV12Tests
     {
         var settings = new HotkeySettings();
 
-        settings.ToggleLumn.Should().BeEmpty();
-        settings.ToggleVerci.Should().BeEmpty();
+        settings.ToggleGlow.Should().BeEmpty();
+        settings.ToggleLyrics.Should().BeEmpty();
         settings.ToggleClickThrough.Should().BeEmpty();
 
         var manager = new SyntheticGlobalHotkeyManager();
@@ -37,8 +37,8 @@ public class HotkeyV12Tests
         var manager = new SyntheticGlobalHotkeyManager();
         var settings = new HotkeySettings
         {
-            ToggleLumn = "Ctrl+Alt+G",
-            ToggleVerci = "Ctrl+Shift+L",
+            ToggleGlow = "Ctrl+Alt+G",
+            ToggleLyrics = "Ctrl+Shift+L",
             ToggleClickThrough = "Ctrl+Win+C"
         };
 
@@ -58,20 +58,20 @@ public class HotkeyV12Tests
     public void ClearHotkey_UnregistersAndLeavesUnassigned()
     {
         var manager = new SyntheticGlobalHotkeyManager();
-        int lumnHits = 0;
+        int glowHits = 0;
 
-        var settings = new HotkeySettings { ToggleLumn = "Ctrl+Alt+G" };
-        manager.RegisterHotkeys(settings, () => lumnHits++, () => { }, () => { });
-        manager.TriggerLumn();
-        lumnHits.Should().Be(1);
+        var settings = new HotkeySettings { ToggleGlow = "Ctrl+Alt+G" };
+        manager.RegisterHotkeys(settings, () => glowHits++, () => { }, () => { });
+        manager.TriggerGlow();
+        glowHits.Should().Be(1);
 
         // User clears hotkey
-        settings.ToggleLumn = "";
-        manager.RegisterHotkeys(settings, () => lumnHits++, () => { }, () => { });
+        settings.ToggleGlow = "";
+        manager.RegisterHotkeys(settings, () => glowHits++, () => { }, () => { });
 
         manager.GetStatus().First(s => s.ActionName == "Glow").State.Should().Be(HotkeyRegistrationState.NotRegistered);
-        manager.TriggerLumn();
-        lumnHits.Should().Be(1); // Callback not invoked
+        manager.TriggerGlow();
+        glowHits.Should().Be(1); // Callback not invoked
     }
 
     [Fact]
@@ -80,8 +80,8 @@ public class HotkeyV12Tests
         var manager = new SyntheticGlobalHotkeyManager();
         var settings = new HotkeySettings
         {
-            ToggleLumn = "Ctrl+Shift+L",
-            ToggleVerci = "Ctrl+Shift+L" // Collision!
+            ToggleGlow = "Ctrl+Shift+L",
+            ToggleLyrics = "Ctrl+Shift+L" // Collision!
         };
 
         bool ok = manager.RegisterHotkeys(settings, () => { }, () => { }, () => { });
@@ -106,7 +106,7 @@ public class HotkeyV12Tests
     public void OSCollision_SimulatedWin32Conflict_IsRejectedWithClearMessage()
     {
         var manager = new SyntheticGlobalHotkeyManager { SimulateConflict = true };
-        var settings = new HotkeySettings { ToggleLumn = "Ctrl+Shift+L" };
+        var settings = new HotkeySettings { ToggleGlow = "Ctrl+Shift+L" };
 
         bool ok = manager.RegisterHotkeys(settings, () => { }, () => { }, () => { });
 
@@ -128,16 +128,16 @@ public class HotkeyV12Tests
 
             await manager.UpdateAsync(s =>
             {
-                s.Hotkeys.ToggleLumn = "Ctrl+Alt+1";
-                s.Hotkeys.ToggleVerci = "Ctrl+Alt+2";
+                s.Hotkeys.ToggleGlow = "Ctrl+Alt+1";
+                s.Hotkeys.ToggleLyrics = "Ctrl+Alt+2";
                 s.Hotkeys.ToggleClickThrough = "Ctrl+Alt+3";
             });
 
             var reloaded = new SettingsManager(tempFile);
             var fresh = await reloaded.LoadAsync();
 
-            fresh.Hotkeys.ToggleLumn.Should().Be("Ctrl+Alt+1");
-            fresh.Hotkeys.ToggleVerci.Should().Be("Ctrl+Alt+2");
+            fresh.Hotkeys.ToggleGlow.Should().Be("Ctrl+Alt+1");
+            fresh.Hotkeys.ToggleLyrics.Should().Be("Ctrl+Alt+2");
             fresh.Hotkeys.ToggleClickThrough.Should().Be("Ctrl+Alt+3");
         }
         finally

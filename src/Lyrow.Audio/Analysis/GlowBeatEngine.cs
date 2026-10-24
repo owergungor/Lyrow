@@ -5,7 +5,7 @@ namespace Lyrow.Audio.Analysis;
 /// <summary>
 /// Audio dynamics processor tracking composite spectral energy, frequency sub-bands,
 /// and beat/transient spikes with zero allocation per frame.
-/// Implements Lumn-style pipeline: Audio Energy -> Smoothing -> Attack -> Hold -> Decay -> Rendered 4-Edge Intensity.
+/// Implements ambient pipeline: Audio Energy -> Smoothing -> Attack -> Hold -> Decay -> Rendered 4-Edge Intensity.
 /// </summary>
 public sealed class GlowBeatEngine
 {
@@ -97,16 +97,18 @@ public sealed class GlowBeatEngine
             return;
         }
 
-        float sens = Math.Clamp(sensitivity, 0.2f, 3.0f);
+        // High reactivity support: [0.0, 5.0]. Normalizes and soft-clamps with hyperbolic tonemapping at high values to prevent strobing
+        float sens = Math.Clamp(sensitivity, 0.0f, 5.0f);
+        float toneMappedSens = sens <= 1.0f ? sens : 1.0f + MathF.Tanh((sens - 1.0f) * 0.75f) * 1.5f;
 
         // 1. Calculate isolated sub-band energies
-        float instantBass = Math.Clamp((spectrum.Bass * 1.6f + spectrum.SubBass * 1.2f) * sens, 0f, 1.5f);
-        float instantMid = Math.Clamp(spectrum.Mid * 1.4f * sens, 0f, 1.5f);
-        float instantTreble = Math.Clamp(spectrum.Treble * 1.2f * sens, 0f, 1.5f);
+        float instantBass = Math.Clamp((spectrum.Bass * 1.6f + spectrum.SubBass * 1.2f) * toneMappedSens, 0f, 1.5f);
+        float instantMid = Math.Clamp(spectrum.Mid * 1.4f * toneMappedSens, 0f, 1.5f);
+        float instantTreble = Math.Clamp(spectrum.Treble * 1.2f * toneMappedSens, 0f, 1.5f);
 
         // 2. Composite RMS and spectral energy
         float instantEnergy = Math.Clamp(
-            (spectrum.Levels.Rms * 2.2f + instantBass * 0.7f + instantMid * 0.4f + instantTreble * 0.2f) * sens,
+            (spectrum.Levels.Rms * 2.2f + instantBass * 0.7f + instantMid * 0.4f + instantTreble * 0.2f) * toneMappedSens,
             0f, 2.0f);
 
         // 3. Transient / Beat Detection using dynamic threshold spike against rolling EMA + positive onset delta

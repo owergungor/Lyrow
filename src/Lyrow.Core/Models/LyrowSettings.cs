@@ -9,13 +9,13 @@ public sealed class LyrowSettings
 
     public string Language { get; set; } = "en";
 
-    public bool LumnEnabled { get; set; } = false;
+    public bool GlowEnabled { get; set; } = false;
 
-    public LumnSettings Lumn { get; set; } = new();
+    public GlowModuleSettings Glow { get; set; } = new();
 
-    public bool VerciEnabled { get; set; } = false;
+    public bool LyricsEnabled { get; set; } = false;
 
-    public VerciSettings Verci { get; set; } = new();
+    public LyricsModuleSettings Lyrics { get; set; } = new();
 
     public bool VisualIntegrationEnabled { get; set; } = true;
 

@@ -74,12 +74,12 @@ public partial class App : Application
 
             // Register core modules into module manager
             var moduleManager = Services.GetRequiredService<IModuleManager>();
-            var lumn = Services.GetRequiredService<LumnModule>();
-            var verci = Services.GetRequiredService<VerciModule>();
-            verci.KeepMediaMonitorAliveWhenStopped = true;
+            var glow = Services.GetRequiredService<GlowModule>();
+            var lyrics = Services.GetRequiredService<LyricsModule>();
+            lyrics.KeepMediaMonitorAliveWhenStopped = true;
 
-            moduleManager.RegisterModule(lumn);
-            moduleManager.RegisterModule(verci);
+            moduleManager.RegisterModule(glow);
+            moduleManager.RegisterModule(lyrics);
 
             // Deterministic default startup: Modules initialize into Stopped/OFF state
             LocalDiagnosticLogger.LogInfo("Deterministic startup: Glow and Lyrics modules default to OFF");
@@ -116,8 +116,8 @@ public partial class App : Application
                 {
                     trayIconManager.Initialize(
                         onShowMainWindow: () => mainWindow.ShowAndActivate(),
-                        onToggleLumn: () => mainWindow.ToggleGlowFromExternal(),
-                        onToggleVerci: () => mainWindow.ToggleLyricsFromExternal(),
+                        onToggleGlow: () => mainWindow.ToggleGlowFromExternal(),
+                        onToggleLyrics: () => mainWindow.ToggleLyricsFromExternal(),
                         onToggleClickThrough: () => { },
                         onOpenSettings: () => mainWindow.ShowAndActivate(),
                         onExit: () => mainWindow.RequestExit());
@@ -144,8 +144,8 @@ public partial class App : Application
         try
         {
             LocalDiagnosticLogger.LogInfo("Application shutdown requested, performing cleanup...");
-            var glow = Services?.GetService<GlowOverlayManager>();
-            glow?.Dispose();
+            var glowOverlay = Services?.GetService<GlowOverlayManager>();
+            glowOverlay?.Dispose();
 
             var hotkeys = Services?.GetService<IGlobalHotkeyManager>();
             hotkeys?.Dispose();
@@ -162,11 +162,11 @@ public partial class App : Application
                 moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.BothDisabled).GetAwaiter().GetResult();
             }
 
-            var lumn = Services?.GetService<LumnModule>();
-            lumn?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            var glow = Services?.GetService<GlowModule>();
+            glow?.DisposeAsync().AsTask().GetAwaiter().GetResult();
 
-            var verci = Services?.GetService<VerciModule>();
-            verci?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            var lyrics = Services?.GetService<LyricsModule>();
+            lyrics?.DisposeAsync().AsTask().GetAwaiter().GetResult();
 
             var wasapi = Services?.GetService<IAudioCaptureService>();
             wasapi?.DisposeAsync().AsTask().GetAwaiter().GetResult();
@@ -212,7 +212,7 @@ public partial class App : Application
 
         services.AddSingleton<ISpectrumAnalyzer>(sp => new Lyrow.Audio.Analysis.SpectrumAnalyzer(fftSize: 2048, barCount: 32));
 
-        services.AddSingleton<LumnModule>(sp => new LumnModule(
+        services.AddSingleton<GlowModule>(sp => new GlowModule(
             sp.GetRequiredService<IAudioCaptureService>(),
             sp.GetRequiredService<ISpectrumAnalyzer>(),
             sp.GetRequiredService<IEventBus>(),
@@ -233,7 +233,7 @@ public partial class App : Application
         services.AddSingleton<ArtworkBitmapManager>();
         services.AddSingleton<IToastNotificationService, ToastNotificationService>();
 
-        services.AddSingleton<VerciModule>(sp => new VerciModule(
+        services.AddSingleton<LyricsModule>(sp => new LyricsModule(
             sp.GetRequiredService<IMediaSessionMonitor>(),
             sp.GetRequiredService<ILyricsClient>(),
             sp.GetRequiredService<ILyricsCache>(),
@@ -270,7 +270,7 @@ public partial class App : Application
         services.AddSingleton<LyrowTrayIconManager>();
 
         services.AddSingleton<GlowOverlayManager>(sp => new GlowOverlayManager(
-            sp.GetRequiredService<LumnModule>(),
+            sp.GetRequiredService<GlowModule>(),
             sp.GetRequiredService<ISettingsManager>()));
     }
 

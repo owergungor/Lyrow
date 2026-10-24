@@ -1,4 +1,4 @@
-# Lyrow v1.1 — Modern UI, Reliable Lyrics Sync & Stability
+﻿# Lyrow v1.1 — Modern UI, Reliable Lyrics Sync & Stability
 
 Lyrow v1.1, önceki sürümdeki senkronizasyon, kısayol ve açılış problemlerini kökten çözen, arayüzü modern Vercel ve Apple tasarım standartlarına yükselten ve yeni marka terminolojisini (Glow & Lyrics) benimseyen kararlı resmi sürümdür.
 
@@ -7,8 +7,8 @@ Lyrow v1.1, önceki sürümdeki senkronizasyon, kısayol ve açılış problemle
 ## 🚀 Öne Çıkan Yenilikler & İyileştirmeler
 
 ### 1. Yeni Ürün Terminolojisi: Glow & Lyrics
-- **Lumn → Glow**: Kullanıcı arayüzünde ses analizi ve spektrum görselleştirme modülü artık **Glow** olarak adlandırılmaktadır.
-- **Verci → Lyrics**: Kullanıcı arayüzünde senkronize şarkı sözü ve medya bilgisi modülü artık **Lyrics** olarak adlandırılmaktadır.
+- **Glow → Glow**: Kullanıcı arayüzünde ses analizi ve spektrum görselleştirme modülü artık **Glow** olarak adlandırılmaktadır.
+- **Lyrics → Lyrics**: Kullanıcı arayüzünde senkronize şarkı sözü ve medya bilgisi modülü artık **Lyrics** olarak adlandırılmaktadır.
 
 ### 2. Vercel & Apple İlhamlı Modern Masaüstü Tasarımı
 - **Vercel / shadcn Teması**: Saf siyah arka planlar, 1px zarif sınırlar (`#27272A`), nötr tipografi ve ferah kart düzeni.
@@ -22,7 +22,7 @@ Lyrow v1.1, önceki sürümdeki senkronizasyon, kısayol ve açılış problemle
 #### A. Şarkı Sözü Senkronizasyonu (Lyrics Synchronization)
 - **Problem**: Şarkı sözleri doğru çekilmesine rağmen müzik 5. satıra geldiğinde pencere eski satırda (örneğin 12. satırda) takılı kalıyordu.
 - **Kök Neden**: Windows GSMTC API'si çalma sırasında düzenli timeline tick üretmez; sadece duraklatma/başlatma veya parça geçişlerinde event ateşler. Bu nedenle ara interpolasyon çalışmıyordu ve UI katmanı şarkı sözleri internetten sonradan yüklendiğinde liste referansını güncellemiyordu.
-- **Çözüm**: `LyricsTimelineSynchronizer` motoru `VerciModule`'e tam entegre edildi. 30 FPS allocation-free `PeriodicTimer` ile canlı interpolasyon ve O(log N) ikili arama sağlandı. Aktif satır değiştiğinde yumuşak `BringIntoView` scroll tetiklenerek 5. satır playback anında UI 5. satıra getirildi. Pozitif/negatif manuel offset motorla senkronize edildi.
+- **Çözüm**: `LyricsTimelineSynchronizer` motoru `LyricsModule`'e tam entegre edildi. 30 FPS allocation-free `PeriodicTimer` ile canlı interpolasyon ve O(log N) ikili arama sağlandı. Aktif satır değiştiğinde yumuşak `BringIntoView` scroll tetiklenerek 5. satır playback anında UI 5. satıra getirildi. Pozitif/negatif manuel offset motorla senkronize edildi.
 
 #### B. Ctrl+Shift+L Global Kısayol & Win32 1408 Hatası
 - **Problem**: `Ctrl + Shift + L` kısayolu kaydedilirken `Win32 Kayıt hatası 1408` alınıyordu.

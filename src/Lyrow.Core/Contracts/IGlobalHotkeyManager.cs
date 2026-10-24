@@ -1,4 +1,4 @@
-using Lyrow.Core.Models;
+﻿using Lyrow.Core.Models;
 
 namespace Lyrow.Core.Contracts;
 
@@ -40,8 +40,8 @@ public interface IGlobalHotkeyManager : IDisposable
     /// </summary>
     bool RegisterHotkeys(
         HotkeySettings settings,
-        Action onLumnToggle,
-        Action onVerciToggle,
+        Action onGlowToggle,
+        Action onLyricsToggle,
         Action onClickThroughToggle);
 
     /// <summary>Unregisters all registered global hotkeys.</summary>

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using FluentAssertions;
 using Lyrow.Audio.Analysis;
 using Lyrow.Audio.Capture;
@@ -69,7 +69,7 @@ public sealed class Stage5PerformanceBenchmarkTests
     }
 
     [Fact]
-    public async Task LumnAndVerci_ConcurrentLoad_ShouldMaintainLowMemoryAndCleanDisposal()
+    public async Task GlowAndLyrics_ConcurrentLoad_ShouldMaintainLowMemoryAndCleanDisposal()
     {
         var proc = Process.GetCurrentProcess();
         proc.Refresh();
@@ -81,14 +81,14 @@ public sealed class Stage5PerformanceBenchmarkTests
 
         var capture = new SyntheticAudioCaptureService(48000, 2);
         var analyzer = new SpectrumAnalyzer(fftSize: 1024, barCount: 32);
-        var lumn = new LumnModule(capture, analyzer, eventBus, settingsManager);
+        var glow = new GlowModule(capture, analyzer, eventBus, settingsManager);
 
         var monitor = new SyntheticMediaSessionMonitor();
         var cache = new LocalFileLyricsCache(Path.Combine(Path.GetTempPath(), "Lyrow_Perf_" + Guid.NewGuid().ToString("N")));
-        var verci = new VerciModule(monitor, new LrclibClient(new HttpClient(new FastMockHandler())), cache, eventBus, settingsManager);
+        var lyrics = new LyricsModule(monitor, new LrclibClient(new HttpClient(new FastMockHandler())), cache, eventBus, settingsManager);
 
-        moduleManager.RegisterModule(lumn);
-        moduleManager.RegisterModule(verci);
+        moduleManager.RegisterModule(glow);
+        moduleManager.RegisterModule(lyrics);
 
         int spectrumCount = 0;
         using var sub = eventBus.Subscribe<AudioSpectrumUpdatedEvent>(_ => Interlocked.Increment(ref spectrumCount));
@@ -108,20 +108,20 @@ public sealed class Stage5PerformanceBenchmarkTests
         proc.Refresh();
         long peakWorkingSetMb = proc.WorkingSet64 / (1024 * 1024);
 
-        _output.WriteLine($"[PERF] Concurrent Lumn + Verci active: Received {spectrumCount} audio spectrum frames. WorkingSet: {peakWorkingSetMb} MB (Delta: {peakWorkingSetMb - initialWorkingSetMb} MB)");
+        _output.WriteLine($"[PERF] Concurrent Glow + Lyrics active: Received {spectrumCount} audio spectrum frames. WorkingSet: {peakWorkingSetMb} MB (Delta: {peakWorkingSetMb - initialWorkingSetMb} MB)");
 
         // Stop both
         await moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.BothDisabled);
-        await lumn.DisposeAsync();
-        await verci.DisposeAsync();
+        await glow.DisposeAsync();
+        await lyrics.DisposeAsync();
 
         proc.Refresh();
         long finalWorkingSetMb = proc.WorkingSet64 / (1024 * 1024);
         _output.WriteLine($"[PERF] After disposal WorkingSet: {finalWorkingSetMb} MB");
 
         spectrumCount.Should().BeGreaterThan(5);
-        lumn.State.Should().Be(ModuleState.Stopped);
-        verci.State.Should().Be(ModuleState.Stopped);
+        glow.State.Should().Be(ModuleState.Stopped);
+        lyrics.State.Should().Be(ModuleState.Stopped);
     }
 
     private sealed class FastMockHandler : HttpMessageHandler

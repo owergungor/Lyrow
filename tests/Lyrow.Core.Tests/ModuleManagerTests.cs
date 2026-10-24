@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Modules;
 using Lyrow.Core.Services;
@@ -12,65 +12,65 @@ public sealed class ModuleManagerTests
     public void RegisterModule_ShouldAddModule_WhenUnique()
     {
         var manager = new ModuleManager();
-        var lumn = new LumnModule();
+        var glow = new GlowModule();
 
-        manager.RegisterModule(lumn);
+        manager.RegisterModule(glow);
 
-        manager.RegisteredModules.Should().ContainSingle(m => m.ModuleId == "lumn");
-        manager.GetModule("lumn").Should().BeSameAs(lumn);
+        manager.RegisteredModules.Should().ContainSingle(m => m.ModuleId == "glow");
+        manager.GetModule("glow").Should().BeSameAs(glow);
     }
 
     [Fact]
     public void RegisterModule_ShouldThrow_WhenDuplicateId()
     {
         var manager = new ModuleManager();
-        manager.RegisterModule(new LumnModule());
+        manager.RegisterModule(new GlowModule());
 
-        var act = () => manager.RegisterModule(new LumnModule());
+        var act = () => manager.RegisterModule(new GlowModule());
 
         act.Should().Throw<InvalidOperationException>();
     }
 
     [Theory]
     [InlineData(ModuleExecutionMode.BothDisabled, false, false)]
-    [InlineData(ModuleExecutionMode.LumnOnly, true, false)]
-    [InlineData(ModuleExecutionMode.VerciOnly, false, true)]
+    [InlineData(ModuleExecutionMode.GlowOnly, true, false)]
+    [InlineData(ModuleExecutionMode.LyricsOnly, false, true)]
     [InlineData(ModuleExecutionMode.BothEnabled, true, true)]
     public async Task ApplyExecutionMode_ShouldCorrectlyActivateModules_ForFourDiscreteModes(
         ModuleExecutionMode targetMode,
-        bool expectLumnRunning,
-        bool expectVerciRunning)
+        bool expectGlowRunning,
+        bool expectLyricsRunning)
     {
         var manager = new ModuleManager();
-        var lumn = new LumnModule();
-        var verci = new VerciModule();
+        var glow = new GlowModule();
+        var lyrics = new LyricsModule();
 
-        manager.RegisterModule(lumn);
-        manager.RegisterModule(verci);
+        manager.RegisterModule(glow);
+        manager.RegisterModule(lyrics);
 
         await manager.ApplyExecutionModeAsync(targetMode);
 
         manager.CurrentExecutionMode.Should().Be(targetMode);
-        (lumn.State == ModuleState.Running).Should().Be(expectLumnRunning);
-        (verci.State == ModuleState.Running).Should().Be(expectVerciRunning);
+        (glow.State == ModuleState.Running).Should().Be(expectGlowRunning);
+        (lyrics.State == ModuleState.Running).Should().Be(expectLyricsRunning);
     }
 
     [Fact]
     public async Task ModuleStateChanged_EventShouldFire_WhenStateTransitions()
     {
         var manager = new ModuleManager();
-        var lumn = new LumnModule();
-        manager.RegisterModule(lumn);
+        var glow = new GlowModule();
+        manager.RegisterModule(glow);
 
         var transitionEvents = new List<ModuleStateChangedEventArgs>();
         manager.ModuleStateChanged += (_, args) => transitionEvents.Add(args);
 
-        await manager.SetModuleActiveAsync("lumn", true);
+        await manager.SetModuleActiveAsync("glow", true);
 
         transitionEvents.Should().NotBeEmpty();
         transitionEvents.Last().NewState.Should().Be(ModuleState.Running);
 
-        await manager.SetModuleActiveAsync("lumn", false);
+        await manager.SetModuleActiveAsync("glow", false);
         transitionEvents.Last().NewState.Should().Be(ModuleState.Stopped);
     }
 
@@ -78,10 +78,10 @@ public sealed class ModuleManagerTests
     public async Task ShutdownAllAsync_ShouldStopAllActiveModules()
     {
         var manager = new ModuleManager();
-        var lumn = new LumnModule();
-        var verci = new VerciModule();
-        manager.RegisterModule(lumn);
-        manager.RegisterModule(verci);
+        var glow = new GlowModule();
+        var lyrics = new LyricsModule();
+        manager.RegisterModule(glow);
+        manager.RegisterModule(lyrics);
 
         await manager.ApplyExecutionModeAsync(ModuleExecutionMode.BothEnabled);
         manager.CurrentExecutionMode.Should().Be(ModuleExecutionMode.BothEnabled);
@@ -89,8 +89,8 @@ public sealed class ModuleManagerTests
         await manager.ShutdownAllAsync();
 
         manager.CurrentExecutionMode.Should().Be(ModuleExecutionMode.BothDisabled);
-        lumn.State.Should().Be(ModuleState.Stopped);
-        verci.State.Should().Be(ModuleState.Stopped);
+        glow.State.Should().Be(ModuleState.Stopped);
+        lyrics.State.Should().Be(ModuleState.Stopped);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class ModuleManagerTests
     {
         var manager = new ModuleManager();
         var failingModule = new FaultyMockModule("faulty", "Failing Module");
-        var healthyModule = new LumnModule();
+        var healthyModule = new GlowModule();
 
         manager.RegisterModule(failingModule);
         manager.RegisterModule(healthyModule);
@@ -108,7 +108,7 @@ public sealed class ModuleManagerTests
 
         // Act - Start failing module, then healthy module
         await manager.SetModuleActiveAsync("faulty", true);
-        await manager.SetModuleActiveAsync("lumn", true);
+        await manager.SetModuleActiveAsync("glow", true);
 
         // Assert
         failingModule.State.Should().Be(ModuleState.Faulted);

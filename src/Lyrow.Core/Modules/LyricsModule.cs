@@ -1,14 +1,14 @@
-using Lyrow.Core.Contracts;
+﻿using Lyrow.Core.Contracts;
 using Lyrow.Core.Lyrics;
 using Lyrow.Core.Models;
 
 namespace Lyrow.Core.Modules;
 
 /// <summary>
-/// Core implementation of the Verci / Lyrics module managing synchronized lyrics and music metadata overlay.
-/// Operates completely independently from Lumn/Glow and coordinates the media monitor, lyrics cache and synchronizer.
+/// Core implementation of the Lyrics module managing synchronized lyrics and music metadata overlay.
+/// Operates completely independently from Glow/Glow and coordinates the media monitor, lyrics cache and synchronizer.
 /// </summary>
-public sealed class VerciModule : ILyrowModule
+public sealed class LyricsModule : ILyrowModule
 {
     private readonly SemaphoreSlim _stateLock = new(1, 1);
     private readonly LyricsTimelineSynchronizer _synchronizer;
@@ -26,7 +26,7 @@ public sealed class VerciModule : ILyrowModule
     private bool _isDisposed;
     private DateTime _rateLimitUntilUtc = DateTime.MinValue;
 
-    public VerciModule(
+    public LyricsModule(
         IMediaSessionMonitor? mediaSessionMonitor = null,
         ILyricsClient? lyricsClient = null,
         ILyricsCache? lyricsCache = null,
@@ -43,7 +43,7 @@ public sealed class VerciModule : ILyrowModule
         _synchronizer.ActiveLineChanged += OnSynchronizerActiveLineChanged;
     }
 
-    public string ModuleId => "verci";
+    public string ModuleId => "lyrics";
     public string DisplayName => "Lyrics (Synced Lyrics & Metadata)";
     public ModuleState State { get; private set; } = ModuleState.Uninitialized;
     public Exception? LastFault { get; private set; }
@@ -99,7 +99,7 @@ public sealed class VerciModule : ILyrowModule
             _activeCts = new CancellationTokenSource();
             var ct = _activeCts.Token;
 
-            _synchronizer.SyncOffsetMs = _settingsManager?.Current.Verci.SyncOffsetMs ?? 0;
+            _synchronizer.SyncOffsetMs = _settingsManager?.Current.Lyrics.SyncOffsetMs ?? 0;
 
             if (_mediaSessionMonitor != null)
             {
@@ -190,7 +190,7 @@ public sealed class VerciModule : ILyrowModule
     public void UpdateTimelineExternal(MediaTimelineInfo timeline)
     {
         _currentTimeline = timeline;
-        _synchronizer.SyncOffsetMs = _settingsManager?.Current.Verci.SyncOffsetMs ?? 0;
+        _synchronizer.SyncOffsetMs = _settingsManager?.Current.Lyrics.SyncOffsetMs ?? 0;
         _synchronizer.UpdateTimeline(timeline);
     }
 
@@ -215,7 +215,7 @@ public sealed class VerciModule : ILyrowModule
         if (State != ModuleState.Running) return;
         _currentTimeline = timeline;
 
-        _synchronizer.SyncOffsetMs = _settingsManager?.Current.Verci.SyncOffsetMs ?? 0;
+        _synchronizer.SyncOffsetMs = _settingsManager?.Current.Lyrics.SyncOffsetMs ?? 0;
         _synchronizer.UpdateTimeline(timeline);
 
         if (_eventBus != null)
@@ -290,7 +290,7 @@ public sealed class VerciModule : ILyrowModule
                 _synchronizer.SetLyrics(result.Lyrics);
                 _synchronizer.UpdateTimeline(_currentTimeline);
 
-                if (_lyricsCache != null && (_settingsManager?.Current.Verci.CacheLyricsLocally ?? true))
+                if (_lyricsCache != null && (_settingsManager?.Current.Lyrics.CacheLyricsLocally ?? true))
                 {
                     await _lyricsCache.SaveAsync(track.Title, track.Artist, result.Lyrics, ct).ConfigureAwait(false);
                 }

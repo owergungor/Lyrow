@@ -1,4 +1,4 @@
-# Lyrow v1.0.0 — Ambient Audio Visualization & Synchronized Lyrics for Windows
+﻿# Lyrow v1.0.0 — Ambient Audio Visualization & Synchronized Lyrics for Windows
 
 Lyrow'un ilk resmi kararlı sürümü **v1.0.0** yayınlandı! 🎉
 
@@ -8,13 +8,13 @@ Lyrow, masaüstünüzde müzik dinleme deneyimini görsel bir şölene dönüşt
 
 ## 🌟 Öne Çıkan Özellikler
 
-### 1. Lumn — Sistem Sesi Frekans Spektrumu & Ambiyans Görselleştirici
+### 1. Glow — Sistem Sesi Frekans Spektrumu & Ambiyans Görselleştirici
 - **WASAPI Loopback:** Herhangi bir sanal ses kablosu gerekmeksizin Windows varsayılan ses çıkışını doğrudan dinler.
 - **Sıfır-Tahsisli FFT:** Radix-2 Cooley-Tukey algoritması, Hanning pencereli ve önceden hesaplanmış trigonometrik tablolarla sıfır heap tahsisiyle çalışır.
 - **Müzikal Frekans Bantları:** Sub-bass, Bass, Mid ve Treble aralıklarını ve 32 logaritmik sütunu dinamik sönümleme (falloff smoothing) ile 60 FPS hızında çizer.
 - **Adaptif Güç Koruma:** Müzik durduğunda veya sessizlik algılandığında render hızı 5 FPS'e düşer; GPU ve CPU tüketimi <%1 seviyesine iner.
 
-### 2. Verci — Gerçek Zamanlı GSMTC Medya Takibi & Senkronize Şarkı Sözleri
+### 2. Lyrics — Gerçek Zamanlı GSMTC Medya Takibi & Senkronize Şarkı Sözleri
 - **Windows GSMTC Desteği:** Spotify, Apple Music, Tidal, Chrome, Edge ve diğer tüm Windows medya oturumlarıyla tam uyumlu çalışır.
 - **LRCLIB Entegrasyonu:** Milisaniye hassasiyetinde `.lrc` senkronize sözleri otomatik olarak indirir.
 - **$O(\log N)$ İkili Arama (Binary Search):** Şarkı içinde ileri/geri sarma (seek) durumlarında anında doğru satırı bulur.
@@ -33,13 +33,13 @@ Lyrow, masaüstünüzde müzik dinleme deneyimini görsel bir şölene dönüşt
 ### 5. Windows System Tray (Sistem Tepsisi Entegrasyonu)
 - Görev çubuğu bildirim alanında Lyrow ikonu yer alır.
 - Pencerenin `X` butonuna basıldığında uygulama kapanmaz, arka planda müzik deneyimini kesintisiz sürdürmek için tepsiye küçülür (`MinimizeToTrayOnClose`).
-- Zengin sağ tık menüsü: *Lyrow'u Göster*, *Lumn Aç/Kapat*, *Verci Aç/Kapat*, *Click-Through Aç/Kapat*, *Ayarlar* ve *Çıkış*.
+- Zengin sağ tık menüsü: *Lyrow'u Göster*, *Glow Aç/Kapat*, *Lyrics Aç/Kapat*, *Click-Through Aç/Kapat*, *Ayarlar* ve *Çıkış*.
 - Tepsi menüsünden *Çıkış* seçildiğinde tüm arka plan iş parçacıkları ve Win32 kancaları temiz bir şekilde kapatılır.
 
 ### 6. Global Kısayollar (Global Hotkeys)
 - Uygulama arka plandayken veya oyundayken çalışan sistem geneli Win32 kısayolları:
-  - `Ctrl + Shift + L` : Lumn görselleştiricisini aç / kapat
-  - `Ctrl + Shift + V` : Verci şarkı sözü penceresini aç / kapat
+  - `Ctrl + Shift + L` : Glow görselleştiricisini aç / kapat
+  - `Ctrl + Shift + V` : Lyrics şarkı sözü penceresini aç / kapat
   - `Ctrl + Shift + C` : Click-through saydamlığını aç / kapat
 - Uygulama kapanırken veya ayarlar güncellenirken tüm kısayollar güvenle serbest bırakılır (`UnregisterHotKey`).
 
@@ -72,6 +72,6 @@ Lyrow, masaüstünüzde müzik dinleme deneyimini görsel bir şölene dönüşt
 ---
 
 ## ⚠️ Bilinen Teknik Sınırlamalar
-1. **Exclusive Fullscreen Oyunlar:** Windows DWM mimarisi gereği, masaüstü overlay pencereleri (Lumn ve Verci) "Exclusive Fullscreen" çalışan oyunların üzerinde görüntülenemez. Oyun ayarlarından **"Borderless Windowed" (Kenarlıksız Pencereli)** modunun seçilmesi gerekmektedir.
+1. **Exclusive Fullscreen Oyunlar:** Windows DWM mimarisi gereği, masaüstü overlay pencereleri (Glow ve Lyrics) "Exclusive Fullscreen" çalışan oyunların üzerinde görüntülenemez. Oyun ayarlarından **"Borderless Windowed" (Kenarlıksız Pencereli)** modunun seçilmesi gerekmektedir.
 2. **Korumalı DRM Ses Akışları:** Bazı özel DRM korumalı ses akışları Windows WASAPI Loopback tarafından sessiz olarak bildirilebilir. Standart müzik akış servisleri (Spotify, Apple Music, YouTube vb.) bu durumdan etkilenmez.
 3. **Şarkı Sözü Eşleşmesi:** LRCLIB topluluk destekli bir veritabanıdır; metadata bilgisi (Sanatçı & Şarkı Adı) eksik olan yerel dosyalarda veya nadir parçalarda şarkı sözü bulunamayabilir.

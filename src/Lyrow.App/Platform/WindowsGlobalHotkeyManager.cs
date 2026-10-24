@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Lyrow.Core.Contracts;
@@ -194,20 +194,20 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
 
     public bool RegisterHotkeys(
         HotkeySettings settings,
-        Action onLumnToggle,
-        Action onVerciToggle,
+        Action onGlowToggle,
+        Action onLyricsToggle,
         Action onClickThroughToggle)
     {
         lock (_lock)
         {
-            _onGlow = onLumnToggle;
-            _onLyrics = onVerciToggle;
+            _onGlow = onGlowToggle;
+            _onLyrics = onLyricsToggle;
             _onClickThrough = onClickThroughToggle;
 
             if (!OperatingSystem.IsWindows() || _hwnd == IntPtr.Zero)
             {
                 _statuses.Clear();
-                _statuses.Add(new HotkeyStatus("Glow", settings.ToggleLumn, false, "Windows platformu gereklidir", HotkeyRegistrationState.Failed));
+                _statuses.Add(new HotkeyStatus("Glow", settings.ToggleGlow, false, "Windows platformu gereklidir", HotkeyRegistrationState.Failed));
                 return false;
             }
 
@@ -215,12 +215,12 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
             if (!HotkeyValidator.CheckInternalCollisions(settings, out var collisionError))
             {
                 _statuses.Clear();
-                bool glowCol = HotkeyValidator.AreColliding(settings.ToggleLumn, settings.ToggleVerci) || HotkeyValidator.AreColliding(settings.ToggleLumn, settings.ToggleClickThrough);
-                bool lyricsCol = HotkeyValidator.AreColliding(settings.ToggleVerci, settings.ToggleLumn) || HotkeyValidator.AreColliding(settings.ToggleVerci, settings.ToggleClickThrough);
-                bool clickCol = HotkeyValidator.AreColliding(settings.ToggleClickThrough, settings.ToggleLumn) || HotkeyValidator.AreColliding(settings.ToggleClickThrough, settings.ToggleVerci);
+                bool glowCol = HotkeyValidator.AreColliding(settings.ToggleGlow, settings.ToggleLyrics) || HotkeyValidator.AreColliding(settings.ToggleGlow, settings.ToggleClickThrough);
+                bool lyricsCol = HotkeyValidator.AreColliding(settings.ToggleLyrics, settings.ToggleGlow) || HotkeyValidator.AreColliding(settings.ToggleLyrics, settings.ToggleClickThrough);
+                bool clickCol = HotkeyValidator.AreColliding(settings.ToggleClickThrough, settings.ToggleGlow) || HotkeyValidator.AreColliding(settings.ToggleClickThrough, settings.ToggleLyrics);
 
-                _statuses.Add(new HotkeyStatus("Glow", settings.ToggleLumn, false, glowCol ? collisionError : null, glowCol ? HotkeyRegistrationState.Conflict : (string.IsNullOrWhiteSpace(settings.ToggleLumn) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered)));
-                _statuses.Add(new HotkeyStatus("Lyrics", settings.ToggleVerci, false, lyricsCol ? collisionError : null, lyricsCol ? HotkeyRegistrationState.Conflict : (string.IsNullOrWhiteSpace(settings.ToggleVerci) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered)));
+                _statuses.Add(new HotkeyStatus("Glow", settings.ToggleGlow, false, glowCol ? collisionError : null, glowCol ? HotkeyRegistrationState.Conflict : (string.IsNullOrWhiteSpace(settings.ToggleGlow) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered)));
+                _statuses.Add(new HotkeyStatus("Lyrics", settings.ToggleLyrics, false, lyricsCol ? collisionError : null, lyricsCol ? HotkeyRegistrationState.Conflict : (string.IsNullOrWhiteSpace(settings.ToggleLyrics) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered)));
                 _statuses.Add(new HotkeyStatus("ClickThrough", settings.ToggleClickThrough, false, clickCol ? collisionError : null, clickCol ? HotkeyRegistrationState.Conflict : (string.IsNullOrWhiteSpace(settings.ToggleClickThrough) ? HotkeyRegistrationState.NotRegistered : HotkeyRegistrationState.Registered)));
                 return false;
             }
@@ -233,8 +233,8 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
                 UnregisterHotkeysInternal();
                 _statuses.Clear();
 
-                bool ok1 = TryRegisterSingleHotkeyInternal(HotkeyIdGlow, "Glow", settings.ToggleLumn);
-                bool ok2 = TryRegisterSingleHotkeyInternal(HotkeyIdLyrics, "Lyrics", settings.ToggleVerci);
+                bool ok1 = TryRegisterSingleHotkeyInternal(HotkeyIdGlow, "Glow", settings.ToggleGlow);
+                bool ok2 = TryRegisterSingleHotkeyInternal(HotkeyIdLyrics, "Lyrics", settings.ToggleLyrics);
                 bool ok3 = TryRegisterSingleHotkeyInternal(HotkeyIdClickThrough, "ClickThrough", settings.ToggleClickThrough);
 
                 allSuccess = ok1 && ok2 && ok3;

@@ -1,9 +1,9 @@
 namespace Lyrow.Core.Models;
 
 /// <summary>
-/// Configuration settings specific to the Verci music metadata & synchronized lyrics module.
+/// Configuration settings specific to the Lyrics music metadata & synchronized lyrics module.
 /// </summary>
-public sealed class VerciSettings
+public sealed class LyricsModuleSettings
 {
     public bool IsEnabled { get; set; } = false;
 

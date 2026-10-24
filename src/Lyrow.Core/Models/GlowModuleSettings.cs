@@ -1,9 +1,9 @@
 namespace Lyrow.Core.Models;
 
 /// <summary>
-/// Configuration specific to the Lumn audio-reactive visualization module.
+/// Configuration specific to the Glow audio-reactive visualization module.
 /// </summary>
-public sealed class LumnSettings
+public sealed class GlowModuleSettings
 {
     public bool IsEnabled { get; set; } = false;
 

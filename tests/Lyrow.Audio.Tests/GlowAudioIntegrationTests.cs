@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Lyrow.Audio.Analysis;
 using Lyrow.Audio.Capture;
 using Lyrow.Core.Contracts;
@@ -9,10 +9,10 @@ using Xunit;
 
 namespace Lyrow.Audio.Tests;
 
-public sealed class LumnAudioIntegrationTests
+public sealed class GlowAudioIntegrationTests
 {
     [Fact]
-    public async Task LumnModule_ShouldCaptureAudioAndPublishSpectrumEvents_IndependentlyFromVerci()
+    public async Task GlowModule_ShouldCaptureAudioAndPublishSpectrumEvents_IndependentlyFromLyrics()
     {
         // Arrange
         var eventBus = new InMemoryEventBus();
@@ -21,7 +21,7 @@ public sealed class LumnAudioIntegrationTests
         captureService.Amplitude = 0.8f;
 
         var analyzer = new SpectrumAnalyzer(fftSize: 1024, barCount: 16);
-        var module = new LumnModule(captureService, analyzer, eventBus);
+        var module = new GlowModule(captureService, analyzer, eventBus);
 
         var receivedSpectrums = new List<FrequencySpectrum>();
         using var sub = eventBus.Subscribe<AudioSpectrumUpdatedEvent>(e =>
@@ -63,11 +63,11 @@ public sealed class LumnAudioIntegrationTests
     }
 
     [Fact]
-    public async Task LumnModule_ShouldHandleDeviceSwitching_Gracefully()
+    public async Task GlowModule_ShouldHandleDeviceSwitching_Gracefully()
     {
         var captureService = new SyntheticAudioCaptureService();
         var analyzer = new SpectrumAnalyzer(fftSize: 512, barCount: 8);
-        var module = new LumnModule(captureService, analyzer);
+        var module = new GlowModule(captureService, analyzer);
 
         await module.InitializeAsync();
         await module.StartAsync();
@@ -88,11 +88,11 @@ public sealed class LumnAudioIntegrationTests
     }
 
     [Fact]
-    public async Task LumnModule_ShouldReleaseResourcesAndStopCpuLoops_OnStop()
+    public async Task GlowModule_ShouldReleaseResourcesAndStopCpuLoops_OnStop()
     {
         var captureService = new SyntheticAudioCaptureService();
         var analyzer = new SpectrumAnalyzer();
-        var module = new LumnModule(captureService, analyzer);
+        var module = new GlowModule(captureService, analyzer);
 
         await module.InitializeAsync();
         await module.StartAsync();

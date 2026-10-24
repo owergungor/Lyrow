@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
 using Lyrow.Core.Modules;
@@ -10,11 +10,11 @@ namespace Lyrow.App.Tests;
 public class RateLimitUxTests
 {
     [Fact]
-    public async Task VerciModule_HandlesRateLimitCooldown_AndBroadcastsFailureEvent()
+    public async Task LyricsModule_HandlesRateLimitCooldown_AndBroadcastsFailureEvent()
     {
         var eventBus = new InMemoryEventBus();
         var client = new MockRateLimitedLyricsClient();
-        var verci = new VerciModule(
+        var lyrics = new LyricsModule(
             mediaSessionMonitor: null,
             lyricsClient: client,
             lyricsCache: null,
@@ -25,7 +25,7 @@ public class RateLimitUxTests
         using var sub = eventBus.Subscribe<LyricsFetchFailedEvent>(e => events.Add(e));
 
         var track1 = new MediaTrackInfo("Song 1", "Artist 1", "Album 1", TimeSpan.FromMinutes(3));
-        await verci.HandleTrackChangedAsync(track1);
+        await lyrics.HandleTrackChangedAsync(track1);
 
         events.Should().HaveCount(1);
         events[0].IsRateLimited.Should().BeTrue();
@@ -34,7 +34,7 @@ public class RateLimitUxTests
 
         // Second track during active cooldown should not storm the API
         var track2 = new MediaTrackInfo("Song 2", "Artist 2", "Album 2", TimeSpan.FromMinutes(4));
-        await verci.HandleTrackChangedAsync(track2);
+        await lyrics.HandleTrackChangedAsync(track2);
 
         events.Should().HaveCount(2);
         events[1].IsRateLimited.Should().BeTrue();

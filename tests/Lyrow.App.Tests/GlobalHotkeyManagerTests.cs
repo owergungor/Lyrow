@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Lyrow.App.Platform;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
@@ -18,15 +18,15 @@ public class GlobalHotkeyManagerTests
 
         var settings = new HotkeySettings
         {
-            ToggleLumn = "Ctrl+Shift+L",
-            ToggleVerci = "Ctrl+Shift+V",
+            ToggleGlow = "Ctrl+Shift+L",
+            ToggleLyrics = "Ctrl+Shift+V",
             ToggleClickThrough = "Ctrl+Shift+C"
         };
 
         bool ok = manager.RegisterHotkeys(
             settings,
-            onLumnToggle: () => glowHits++,
-            onVerciToggle: () => lyricsHits++,
+            onGlowToggle: () => glowHits++,
+            onLyricsToggle: () => lyricsHits++,
             onClickThroughToggle: () => clickThroughHits++);
 
         ok.Should().BeTrue();
@@ -37,17 +37,17 @@ public class GlobalHotkeyManagerTests
             s.State.Should().Be(HotkeyRegistrationState.Registered);
         });
 
-        manager.TriggerLumn();
+        manager.TriggerGlow();
         glowHits.Should().Be(1);
 
-        manager.TriggerVerci();
+        manager.TriggerLyrics();
         lyricsHits.Should().Be(1);
 
         manager.TriggerClickThrough();
         clickThroughHits.Should().Be(1);
 
         manager.UnregisterAll();
-        manager.TriggerLumn();
+        manager.TriggerGlow();
         glowHits.Should().Be(1); // No new hit after unregister
     }
 
@@ -58,8 +58,8 @@ public class GlobalHotkeyManagerTests
 
         var settings = new HotkeySettings
         {
-            ToggleLumn = "Ctrl+Shift+L",
-            ToggleVerci = "Ctrl+Shift+V",
+            ToggleGlow = "Ctrl+Shift+L",
+            ToggleLyrics = "Ctrl+Shift+V",
             ToggleClickThrough = "Ctrl+Shift+C"
         };
         bool ok = manager.RegisterHotkeys(settings, () => { }, () => { }, () => { });

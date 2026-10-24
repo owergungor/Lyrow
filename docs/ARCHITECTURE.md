@@ -1,4 +1,4 @@
-# Lyrow — Mimari Tasarım Belgesi (ARCHITECTURE.md)
+﻿# Lyrow — Mimari Tasarım Belgesi (ARCHITECTURE.md)
 
 Bu belge, **Lyrow** Windows masaüstü uygulamasının yüksek seviyeli mimarisini, bileşen sınırlarını, teknoloji seçimlerini ve temel tasarım kararlarını açıklar.
 
@@ -8,11 +8,11 @@ Bu belge, **Lyrow** Windows masaüstü uygulamasının yüksek seviyeli mimarisi
 
 **Lyrow**, iki bağımsız multimedya modülünü tek bir zarif Windows masaüstü uygulamasında birleştiren modern bir C#/.NET masaüstü yazılımıdır:
 
-- **Lumn:** Sistem sesini gerçek zamanlı analiz ederek müziğe tepki veren ışık efektleri ve masaüstü görselleştirmeleri sunan modül.
-- **Verci:** Müzik metadata bilgilerini (şarkı, sanatçı, albüm kapağı) ve senkronize şarkı sözlerini (LRC) yüzen overlay veya tam ekran pencerelerde sunan modül.
+- **Glow:** Sistem sesini gerçek zamanlı analiz ederek müziğe tepki veren ışık efektleri ve masaüstü görselleştirmeleri sunan modül.
+- **Lyrics:** Müzik metadata bilgilerini (şarkı, sanatçı, albüm kapağı) ve senkronize şarkı sözlerini (LRC) yüzen overlay veya tam ekran pencerelerde sunan modül.
 
 ### Temel Ürün İlkeleri (Architectural Invariants)
-1. **Bağımsızlık (Loose Coupling):** Lumn, Verci olmadan; Verci, Lumn olmadan çalışabilir. İki modül birbirine doğrudan referans veremez.
+1. **Bağımsızlık (Loose Coupling):** Glow, Lyrics olmadan; Lyrics, Glow olmadan çalışabilir. İki modül birbirine doğrudan referans veremez.
 2. **Eşzamanlılık:** İki modül aynı anda çalışabilir ve kullanıcı tercihine göre görsel olarak bütünleşebilir.
 3. **Tek Süreç İlkesi:** Modüller için ayrı arka plan süreçleri (processes) açılmaz; tüm modüller tek bir ana uygulama süreci içinde bağımsız servisler olarak yönetilir.
 4. **Hata İzolasyonu:** Bir modülde meydana gelen çökme veya istisna diğer modülü veya ana pencereyi durdurmamalıdır.
@@ -48,8 +48,8 @@ Lyrow/
 │   ├── Lyrow.Core/                # Temel arayüzler, Modül yaşam döngüsü, EventBus, Modeller, Ayarlar
 │   ├── Lyrow.Audio/               # WASAPI Loopback yakalama, FFT matematiksel analiz motoru
 │   ├── Lyrow.Music/               # GSMTC medya dinleme, LRCLIB istemcisi, LRC parser ve önbellek
-│   ├── Lyrow.Modules.Lumn/        # Lumn görselleştirme motoru ve ışık efekt kontrolleri
-│   ├── Lyrow.Modules.Verci/       # Verci şarkı sözü penceresi, zamanlama ve akış kontrolleri
+│   ├── Lyrow.Modules.Glow/        # Glow görselleştirme motoru ve ışık efekt kontrolleri
+│   ├── Lyrow.Modules.Lyrics/       # Lyrics şarkı sözü penceresi, zamanlama ve akış kontrolleri
 │   └── Lyrow.Platform.Windows/    # Windows'a özgü Win32 P/Invoke (Click-through, DWM, GSMTC adaptörleri)
 ├── tests/
 │   ├── Lyrow.Core.Tests/          # Modül yaşam döngüsü ve ayar testleri
@@ -64,15 +64,15 @@ Lyrow/
 ```mermaid
 graph TD
     App[Lyrow.App] --> Core[Lyrow.Core]
-    App --> Lumn[Lyrow.Modules.Lumn]
-    App --> Verci[Lyrow.Modules.Verci]
+    App --> Glow[Lyrow.Modules.Glow]
+    App --> Lyrics[Lyrow.Modules.Lyrics]
     App --> WinPlatform[Lyrow.Platform.Windows]
 
-    Lumn --> Core
-    Lumn --> Audio[Lyrow.Audio]
+    Glow --> Core
+    Glow --> Audio[Lyrow.Audio]
     
-    Verci --> Core
-    Verci --> Music[Lyrow.Music]
+    Lyrics --> Core
+    Lyrics --> Music[Lyrow.Music]
     
     Audio --> Core
     Music --> Core
@@ -80,11 +80,11 @@ graph TD
 
     style Core fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style App fill:#313244,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
-    style Lumn fill:#313244,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
-    style Verci fill:#313244,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Glow fill:#313244,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Lyrics fill:#313244,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 ```
 
-> **Önemli Kural:** `Lyrow.Modules.Lumn` ve `Lyrow.Modules.Verci` birbirine asla doğrudan bağımlı değildir. İki modül arasındaki koordinasyon (örneğin Verci'nin çalan şarkı temposunu veya durumunu yayınlaması), `Lyrow.Core` içindeki gevşek bağlı olay veri yolu (`IEventBus`) üzerinden sağlanır.
+> **Önemli Kural:** `Lyrow.Modules.Glow` ve `Lyrow.Modules.Lyrics` birbirine asla doğrudan bağımlı değildir. İki modül arasındaki koordinasyon (örneğin Lyrics'nin çalan şarkı temposunu veya durumunu yayınlaması), `Lyrow.Core` içindeki gevşek bağlı olay veri yolu (`IEventBus`) üzerinden sağlanır.
 
 ---
 
@@ -126,21 +126,21 @@ public enum ModuleState
 
 ## 5. Ses Yakalama ve Analiz Akışı (Audio Pipeline)
 
-Lumn modülünün ses işleme mimarisi aşağıdaki adımlarla işler:
+Glow modülünün ses işleme mimarisi aşağıdaki adımlarla işler:
 
 ```mermaid
 sequenceDiagram
     participant OS as Windows WASAPI
     participant Cap as Lyrow.Audio (WasapiCaptureService)
     participant FFT as Lyrow.Audio (FftAnalyzer)
-    participant Lumn as Lyrow.Modules.Lumn (Visualizer)
+    participant Glow as Lyrow.Modules.Glow (Visualizer)
 
     OS->>Cap: OnDataAvailable(byte[] buffer, int count)
     Note over Cap: IEEE 32-bit Float PCM stereo to mono conversion
     Cap->>FFT: PushSamples(ReadOnlySpan<float> samples)
     Note over FFT: Hanning Window + Radix-2 FFT (Zero-Alloc)
-    FFT-->>Lumn: OnSpectrumReady(FrequencySpectrum spectrum)
-    Note over Lumn: Canvas Render (SkiaSharp DrawingContext @ 60 FPS)
+    FFT-->>Glow: OnSpectrumReady(FrequencySpectrum spectrum)
+    Note over Glow: Canvas Render (SkiaSharp DrawingContext @ 60 FPS)
 ```
 
 ### Kritik Ses Riskleri ve Çözümleri:
@@ -151,7 +151,7 @@ sequenceDiagram
 
 ## 6. Müzik Metadata ve Şarkı Sözü Akışı (Music & Lyrics Pipeline)
 
-Verci modülünün bilgi akışı:
+Lyrics modülünün bilgi akışı:
 
 ```mermaid
 sequenceDiagram
@@ -159,22 +159,22 @@ sequenceDiagram
     participant Monitor as Lyrow.Music (MediaTrackMonitor)
     participant Cache as Lyrow.Music (LyricsCache)
     participant LRCLIB as LRCLIB API (Internet)
-    participant Verci as Lyrow.Modules.Verci (LyricsUI)
+    participant Lyrics as Lyrow.Modules.Lyrics (LyricsUI)
 
     GSMTC->>Monitor: MediaPropertiesChanged (Title, Artist, Album)
     Monitor->>Monitor: Normalize Metadata
     Monitor->>Cache: TryGetLyrics(artist, title)
     alt Önbellekte Mevcut
-        Cache-->>Verci: Return Cached LRC
+        Cache-->>Lyrics: Return Cached LRC
     else Önbellekte Yok
         Monitor->>LRCLIB: GET /api/get?artist_name=...&track_name=...
         LRCLIB-->>Cache: Save to local disk cache (%APPDATA%)
-        LRCLIB-->>Verci: Send Parsed Synced Lyrics
+        LRCLIB-->>Lyrics: Send Parsed Synced Lyrics
     end
     loop Oynatma Süresi Takibi
         GSMTC->>Monitor: PlaybackTimelineChanged (Position)
-        Monitor->>Verci: UpdateCurrentTime(Position)
-        Note over Verci: Smooth Scroll & Active Line Highlight
+        Monitor->>Lyrics: UpdateCurrentTime(Position)
+        Note over Lyrics: Smooth Scroll & Active Line Highlight
     end
 ```
 

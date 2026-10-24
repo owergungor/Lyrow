@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Lyrow.Core.Contracts;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -22,14 +22,14 @@ public sealed class ModuleManager : IModuleManager
     {
         get
         {
-            var lumnActive = IsModuleActive("lumn");
-            var verciActive = IsModuleActive("verci");
+            var glowActive = IsModuleActive("glow");
+            var lyricsActive = IsModuleActive("lyrics");
 
-            return (lumnActive, verciActive) switch
+            return (glowActive, lyricsActive) switch
             {
                 (false, false) => ModuleExecutionMode.BothDisabled,
-                (true, false) => ModuleExecutionMode.LumnOnly,
-                (false, true) => ModuleExecutionMode.VerciOnly,
+                (true, false) => ModuleExecutionMode.GlowOnly,
+                (false, true) => ModuleExecutionMode.LyricsOnly,
                 (true, true) => ModuleExecutionMode.BothEnabled
             };
         }
@@ -91,25 +91,25 @@ public sealed class ModuleManager : IModuleManager
         {
             _logger.LogInformation("Applying execution mode: {Mode}", mode);
 
-            var (lumnTarget, verciTarget) = mode switch
+            var (glowTarget, lyricsTarget) = mode switch
             {
                 ModuleExecutionMode.BothDisabled => (false, false),
-                ModuleExecutionMode.LumnOnly => (true, false),
-                ModuleExecutionMode.VerciOnly => (false, true),
+                ModuleExecutionMode.GlowOnly => (true, false),
+                ModuleExecutionMode.LyricsOnly => (false, true),
                 ModuleExecutionMode.BothEnabled => (true, true),
                 _ => (false, false)
             };
 
-            if (_modules.TryGetValue("lumn", out var lumn))
+            if (_modules.TryGetValue("glow", out var glow))
             {
-                if (lumnTarget) await StartSingleModuleAsync(lumn, cancellationToken).ConfigureAwait(false);
-                else await StopSingleModuleAsync(lumn, cancellationToken).ConfigureAwait(false);
+                if (glowTarget) await StartSingleModuleAsync(glow, cancellationToken).ConfigureAwait(false);
+                else await StopSingleModuleAsync(glow, cancellationToken).ConfigureAwait(false);
             }
 
-            if (_modules.TryGetValue("verci", out var verci))
+            if (_modules.TryGetValue("lyrics", out var lyrics))
             {
-                if (verciTarget) await StartSingleModuleAsync(verci, cancellationToken).ConfigureAwait(false);
-                else await StopSingleModuleAsync(verci, cancellationToken).ConfigureAwait(false);
+                if (lyricsTarget) await StartSingleModuleAsync(lyrics, cancellationToken).ConfigureAwait(false);
+                else await StopSingleModuleAsync(lyrics, cancellationToken).ConfigureAwait(false);
             }
         }
         finally

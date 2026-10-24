@@ -90,7 +90,8 @@ public sealed class LocalizationService
     {
         ["en"] = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["Nav_Dashboard"] = "Dashboard",
+            ["Nav_Home"] = "Home",
+            ["Nav_Playback"] = "Playback",
             ["Nav_Glow"] = "Glow",
             ["Nav_Lyrics"] = "Lyrics",
             ["Nav_Settings"] = "Settings",
@@ -170,7 +171,8 @@ public sealed class LocalizationService
 
         ["fr"] = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["Nav_Dashboard"] = "Tableau de bord",
+            ["Nav_Home"] = "Accueil",
+            ["Nav_Playback"] = "Lecture",
             ["Nav_Glow"] = "Lueur",
             ["Nav_Lyrics"] = "Paroles",
             ["Nav_Settings"] = "Paramètres",
@@ -250,7 +252,8 @@ public sealed class LocalizationService
 
         ["es"] = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["Nav_Dashboard"] = "Panel",
+            ["Nav_Home"] = "Inicio",
+            ["Nav_Playback"] = "Reproducción",
             ["Nav_Glow"] = "Resplandor",
             ["Nav_Lyrics"] = "Letras",
             ["Nav_Settings"] = "Ajustes",
@@ -330,7 +333,8 @@ public sealed class LocalizationService
 
         ["de"] = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["Nav_Dashboard"] = "Übersicht",
+            ["Nav_Home"] = "Startseite",
+            ["Nav_Playback"] = "Wiedergabe",
             ["Nav_Glow"] = "Glow",
             ["Nav_Lyrics"] = "Songtexte",
             ["Nav_Settings"] = "Einstellungen",
@@ -410,7 +414,8 @@ public sealed class LocalizationService
 
         ["tr"] = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["Nav_Dashboard"] = "Panel",
+            ["Nav_Home"] = "Ana Sayfa",
+            ["Nav_Playback"] = "Oynatma",
             ["Nav_Glow"] = "Işık (Glow)",
             ["Nav_Lyrics"] = "Şarkı Sözleri",
             ["Nav_Settings"] = "Ayarlar",

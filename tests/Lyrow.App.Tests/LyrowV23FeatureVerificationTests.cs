@@ -15,19 +15,19 @@ public sealed class LyrowV23FeatureVerificationTests
     [Fact]
     public void Versioning_IsStrictlyTwoPart_V23()
     {
-        Assert.Equal("2.3", GitHubUpdateService.AppVersion);
-        Assert.True(GitHubUpdateService.IsValidTwoPartVersionTag("v2.3"));
-        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.3.0"));
-        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("2.3.0"));
-        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.3.1"));
-        Assert.True(GitHubUpdateService.IsNewerVersion("2.2", "2.3"));
-        Assert.False(GitHubUpdateService.IsNewerVersion("2.3", "2.3"));
+        Assert.Equal("2.4", GitHubUpdateService.AppVersion);
+        Assert.True(GitHubUpdateService.IsValidTwoPartVersionTag("v2.4"));
+        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.4.0"));
+        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("2.4.0"));
+        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.4.1"));
+        Assert.True(GitHubUpdateService.IsNewerVersion("2.3", "2.4"));
+        Assert.False(GitHubUpdateService.IsNewerVersion("2.4", "2.4"));
     }
 
     [Fact]
-    public void AutoCenter_Property_RemovedFromVerciSettings()
+    public void AutoCenter_Property_RemovedFromLyricsModuleSettings()
     {
-        var prop = typeof(VerciSettings).GetProperty("AutoScroll", BindingFlags.Public | BindingFlags.Instance);
+        var prop = typeof(LyricsModuleSettings).GetProperty("AutoScroll", BindingFlags.Public | BindingFlags.Instance);
         Assert.Null(prop);
     }
 
@@ -45,7 +45,7 @@ public sealed class LyrowV23FeatureVerificationTests
 
         string[] coreKeys =
         {
-            "Nav_Dashboard", "Nav_Glow", "Nav_Lyrics", "Nav_Settings",
+            "Nav_Home", "Nav_Playback", "Nav_Glow", "Nav_Lyrics", "Nav_Settings",
             "Settings_Title", "Tab_General", "Tab_Playback", "Tab_Lyrics", "Tab_Glow", "Tab_Updates", "Tab_Shortcuts",
             "General_AppTheme", "General_Language", "General_Startup", "General_SystemTray",
             "Playback_Title", "Playback_ActiveSession", "Playback_SystemEndpoint",
@@ -75,8 +75,8 @@ public sealed class LyrowV23FeatureVerificationTests
         loc.SetLanguage("unknown_lang");
         Assert.Equal("en", loc.CurrentLanguage);
 
-        string dashboardText = loc.GetString("Nav_Dashboard");
-        Assert.Equal("Dashboard", dashboardText);
+        string homeText = loc.GetString("Nav_Home");
+        Assert.Equal("Home", homeText);
     }
 
     [Fact]
@@ -137,16 +137,16 @@ public sealed class LyrowV23FeatureVerificationTests
 
         var handler = new MockHttpMessageHandler(fakeExePayload);
         var httpClient = new HttpClient(handler);
-        var updateService = new GitHubUpdateService(httpClient, currentVersion: "2.3");
+        var updateService = new GitHubUpdateService(httpClient, currentVersion: "2.4");
 
-        string tempFile = Path.Combine(Path.GetTempPath(), "Lyrow_Test_Update", "Lyrow-2.3-Setup-x64.exe");
+        string tempFile = Path.Combine(Path.GetTempPath(), "Lyrow_Test_Update", "Lyrow-2.4-Setup-x64.exe");
         try
         {
             var progressList = new List<double>();
             var progress = new Progress<double>(pct => progressList.Add(pct));
 
             string downloaded = await updateService.DownloadUpdatePackageAsync(
-                "https://github.com/owergungor/Lyrow/releases/download/v2.3/Lyrow-2.3-Setup-x64.exe",
+                "https://github.com/owergungor/Lyrow/releases/download/v2.4/Lyrow-2.4-Setup-x64.exe",
                 tempFile,
                 progress);
 
