@@ -185,8 +185,17 @@ public sealed partial class LyricsWindow : Window
             new PointerEventHandler(OnLyricsPointerWheelChanged),
             handledEventsToo: true);
 
+        if (_mediaMonitor != null)
+        {
+            _mediaMonitor.TrackChanged += OnMediaMonitorTrackChanged;
+        }
+
         Closed += (_, _) =>
         {
+            if (_mediaMonitor != null)
+            {
+                _mediaMonitor.TrackChanged -= OnMediaMonitorTrackChanged;
+            }
             if (!_isShuttingDown)
             {
                 _uiTimer?.Stop();
@@ -242,6 +251,82 @@ public sealed partial class LyricsWindow : Window
         _settingsManager.Current.Lyrics.SyncOffsetMs = newOffset;
         _lyricsModule.SetSyncOffset(newOffset);
         TxtOffsetMs.Text = $"{newOffset:+0;-0;0} ms";
+    }
+
+    private void OnMediaMonitorTrackChanged(object? sender, MediaTrackInfo track)
+    {
+        DispatcherQueue?.TryEnqueue(() => ResetTrackState(track));
+    }
+
+    /// <summary>
+    /// Atomically wipes all previous track state, lyrics, time labels, and visual animations,
+    /// preventing any cross-track state leakage during automatic or manual track transitions.
+    /// </summary>
+    public void ResetTrackState(MediaTrackInfo newTrack)
+    {
+        long currentSeq = Interlocked.Increment(ref _windowTrackSequence);
+        _lastSongKey = $"{newTrack.Artist}_{newTrack.Title}";
+        _lastLyrics = SyncedLyrics.Empty;
+        _currentActiveIndex = -1;
+        _currentScrollOffsetY = 0;
+        _targetScrollOffsetY = 0;
+        _snapToCenterOnNextLayout = true;
+
+        // 1. Immediately wipe all lyric visual collections
+        LyricsPanel.Children.Clear();
+        _lineContainers.Clear();
+        _lineBlocks.Clear();
+        _overlayBlocks.Clear();
+        _lineClips.Clear();
+        _currentRenderedLines.Clear();
+        _currentOpacities.Clear();
+        _targetOpacities.Clear();
+        _currentScales.Clear();
+        _targetScales.Clear();
+
+        // 2. Reset scroll view and show searching/empty placeholder
+        LyricsScrollViewer.ChangeView(null, 0, null, disableAnimation: true);
+        LyricsScrollViewer.Visibility = Visibility.Collapsed;
+        TxtEmptyState.Text = newTrack.IsEmpty
+            ? "Play a song in Spotify, Apple Music, or your browser"
+            : "Searching for synchronized lyrics...";
+        PanelEmptyState.Visibility = Visibility.Visible;
+
+        // 3. Reset playback position and duration time labels strictly to clean initial state
+        ProgressTimeline.Value = 0;
+        ProgressTimelineImmersive.Value = 0;
+        TxtTimestamp.Text = newTrack.Duration > TimeSpan.Zero ? $"00:00 / {newTrack.Duration:mm\\:ss}" : "00:00 / 00:00";
+        TxtImmersiveElapsed.Text = "00:00";
+        TxtImmersiveRemaining.Text = newTrack.Duration > TimeSpan.Zero ? $"-{newTrack.Duration:mm\\:ss}" : "-00:00";
+
+        // 4. Invalidate and reset artwork
+        ImgTrackArtwork.Source = null;
+        IconArtworkPlaceholder.Visibility = Visibility.Visible;
+        ImgTrackArtworkImmersive.Source = null;
+        IconArtworkPlaceholderImmersive.Visibility = Visibility.Visible;
+        _targetAmbientPalette = AmbientBackgroundPalette.Default;
+
+        // 5. Update titles atomically
+        if (newTrack.IsEmpty)
+        {
+            TxtSongTitle.Text = "No active media session";
+            TxtArtistName.Text = "Play music in Spotify, Apple Music, or your browser";
+            TxtSongTitleImmersive.Text = "No active media session";
+            TxtArtistNameImmersive.Text = "Play music in Spotify, Apple Music, or your browser";
+        }
+        else
+        {
+            TxtSongTitle.Text = newTrack.Title;
+            string artistAlbum = string.IsNullOrWhiteSpace(newTrack.Album)
+                ? newTrack.Artist
+                : $"{newTrack.Artist} — {newTrack.Album}";
+            TxtArtistName.Text = artistAlbum;
+            TxtSongTitleImmersive.Text = newTrack.Title;
+            TxtArtistNameImmersive.Text = artistAlbum;
+
+            // Fetch Track B artwork with atomic sequence guard
+            _ = UpdateArtworkAsync(newTrack, currentSeq);
+        }
     }
 
     private void UpdateViewportPadding()
@@ -331,31 +416,19 @@ public sealed partial class LyricsWindow : Window
         double unfocusedSize = _settingsManager.Current.UnfocusedLyricFontSize > 0 ? _settingsManager.Current.UnfocusedLyricFontSize : 20.0;
         int fontScaleIndex = _settingsManager.Current.LyricsFontScaleIndex;
         string songKey = $"{track.Artist}_{track.Title}";
-
-        if (songKey != _lastSongKey || !ReferenceEquals(lyrics, _lastLyrics) || fontScaleIndex != _lastFontScaleIndex || Math.Abs(focusedSize - _lastFocusedSize) > 0.5 || Math.Abs(unfocusedSize - _lastUnfocusedSize) > 0.5)
+        if (songKey != _lastSongKey)
         {
-            bool trackChanged = songKey != _lastSongKey;
-            _lastSongKey = songKey;
+            ResetTrackState(track);
+            return; // Exit tick immediately so clean empty state is displayed before new lyrics render
+        }
+
+        if (!ReferenceEquals(lyrics, _lastLyrics) || fontScaleIndex != _lastFontScaleIndex || Math.Abs(focusedSize - _lastFocusedSize) > 0.5 || Math.Abs(unfocusedSize - _lastUnfocusedSize) > 0.5)
+        {
             _lastLyrics = lyrics;
             _lastFontScaleIndex = fontScaleIndex;
             _lastFocusedSize = focusedSize;
             _lastUnfocusedSize = unfocusedSize;
             RebuildLyricsUi(lyrics);
-
-            if (trackChanged)
-            {
-                long currentSeq = Interlocked.Increment(ref _windowTrackSequence);
-                _currentScrollOffsetY = 0;
-                _targetScrollOffsetY = 0;
-                LyricsScrollViewer.ChangeView(null, 0, null, disableAnimation: true);
-                _currentActiveIndex = -99;
-                _snapToCenterOnNextLayout = true;
-                ImgTrackArtwork.Source = null;
-                IconArtworkPlaceholder.Visibility = Visibility.Visible;
-                ImgTrackArtworkImmersive.Source = null;
-                IconArtworkPlaceholderImmersive.Visibility = Visibility.Visible;
-                await UpdateArtworkAsync(track, currentSeq);
-            }
         }
 
         // Active line synchronization

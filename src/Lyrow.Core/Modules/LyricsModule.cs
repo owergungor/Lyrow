@@ -255,6 +255,7 @@ public sealed class LyricsModule : ILyrowModule
         _activeLineIndex = -1;
         _currentTimeline = new MediaTimelineInfo(TimeSpan.Zero, track.Duration, MediaPlaybackStatus.Changing, DateTime.UtcNow);
         _synchronizer.Reset();
+        _synchronizer.SetLyrics(SyncedLyrics.Empty);
         _currentLyrics = SyncedLyrics.Empty;
 
         trackCts = _activeCts != null
@@ -266,6 +267,7 @@ public sealed class LyricsModule : ILyrowModule
 
         if (_eventBus != null)
         {
+            await _eventBus.PublishAsync(new MediaPlaybackStateChangedEvent(_currentTimeline), token).ConfigureAwait(false);
             await _eventBus.PublishAsync(new MediaTrackChangedEvent(track), token).ConfigureAwait(false);
         }
 
@@ -276,8 +278,10 @@ public sealed class LyricsModule : ILyrowModule
             return;
         }
 
-        // 1. Try local cache first
-        if (_lyricsCache != null)
+        try
+        {
+            // 1. Try local cache first
+            if (_lyricsCache != null)
         {
             var cached = await _lyricsCache.GetAsync(track.Title, track.Artist, token).ConfigureAwait(false);
             if (token.IsCancellationRequested || Interlocked.Read(ref _trackSequence) != currentSeq)
@@ -360,6 +364,11 @@ public sealed class LyricsModule : ILyrowModule
         {
             _currentLyrics = SyncedLyrics.Empty;
             _synchronizer.SetLyrics(SyncedLyrics.Empty);
+        }
+        }
+        catch (OperationCanceledException)
+        {
+            return;
         }
     }
 

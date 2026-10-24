@@ -15,7 +15,7 @@ public sealed class GitHubUpdateService : IUpdateService
 {
     public const string DefaultReleasesApiUrl = "https://api.github.com/repos/owergungor/Lyrow/releases/latest";
     public const string DefaultReleasesPageUrl = "https://github.com/owergungor/Lyrow/releases";
-    public const string AppVersion = "3.0";
+    public const string AppVersion = "3.1";
     public const string SilentInstallerArguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-";
 
     public static bool IsUpdateCheckDue(UpdateCheckFrequency frequency, DateTime? lastCheckUtc, DateTime? nowUtc = null)
@@ -247,7 +247,7 @@ public sealed class GitHubUpdateService : IUpdateService
     public async Task<string> DownloadUpdatePackageAsync(
         string downloadUrl,
         string destinationPath,
-        IProgress<double>? progress = null,
+        IProgress<UpdateDownloadProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(downloadUrl))
@@ -281,12 +281,33 @@ public sealed class GitHubUpdateService : IUpdateService
             if (totalBytes.HasValue && totalBytes.Value > 0)
             {
                 double pct = Math.Clamp((double)totalRead / totalBytes.Value * 100.0, 0.0, 100.0);
-                progress?.Report(pct);
+                progress?.Report(new UpdateDownloadProgress(pct, totalRead, totalBytes.Value));
+            }
+            else
+            {
+                // Indeterminate progress when Content-Length is unavailable. Never fake a percentage.
+                progress?.Report(new UpdateDownloadProgress(-1.0, totalRead, null));
             }
         }
 
-        progress?.Report(100.0);
+        progress?.Report(new UpdateDownloadProgress(100.0, totalRead, totalBytes ?? totalRead));
         return destinationPath;
+    }
+
+    public async Task<string> DownloadUpdatePackageAsync(
+        string downloadUrl,
+        string destinationPath,
+        IProgress<double>? progress,
+        CancellationToken cancellationToken = default)
+    {
+        var wrapped = progress == null ? null : new Progress<UpdateDownloadProgress>(p =>
+        {
+            if (p.Percent >= 0.0)
+            {
+                progress.Report(p.Percent);
+            }
+        });
+        return await DownloadUpdatePackageAsync(downloadUrl, destinationPath, wrapped, cancellationToken).ConfigureAwait(false);
     }
 
     public bool LaunchInstallerAndExit(string installerPath)

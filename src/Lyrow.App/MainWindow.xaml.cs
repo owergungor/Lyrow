@@ -1076,24 +1076,37 @@ public sealed partial class MainWindow : Window
                     onStartDownload: () => { });
             }
 
-            var progress = new Progress<double>(pct =>
+            var progress = new Progress<UpdateDownloadProgress>(p =>
             {
                 DispatcherQueue.TryEnqueue(() =>
                 {
-                    ProgressUpdateDownload.Value = pct;
-                    string progressText = $"{LocalizationService.Instance["Updates_Downloading"]} {pct:0}%";
-                    TxtUpdateDownloadProgress.Text = progressText;
-                    toastHandle?.ReportProgress(pct, progressText);
+                    if (p.IsIndeterminate)
+                    {
+                        ProgressUpdateDownload.IsIndeterminate = true;
+                        string progressText = $"{LocalizationService.Instance["Updates_Downloading"]} ({p.MegabytesRead:0.0} MB)";
+                        TxtUpdateDownloadProgress.Text = progressText;
+                        toastHandle?.ReportProgress(-1.0, p.BytesRead, null, progressText);
+                    }
+                    else
+                    {
+                        ProgressUpdateDownload.IsIndeterminate = false;
+                        ProgressUpdateDownload.Value = p.Percent;
+                        string progressText = $"{LocalizationService.Instance["Updates_Downloading"]} {p.Percent:0}%";
+                        TxtUpdateDownloadProgress.Text = progressText;
+                        toastHandle?.ReportProgress(p.Percent, p.BytesRead, p.TotalBytes, progressText);
+                    }
                 });
             });
 
             await _updateService.DownloadUpdatePackageAsync(downloadUrl, destFile, progress);
 
-            string prepText = LocalizationService.Instance["Updates_Preparing"];
-            TxtUpdateDownloadProgress.Text = prepText;
-            toastHandle?.SetState(UpdateToastState.Downloaded, prepText);
+            string verifyText = LocalizationService.Instance["Updates_Verifying"];
+            TxtUpdateDownloadProgress.Text = verifyText;
+            toastHandle?.SetState(UpdateToastState.Verifying, verifyText);
+            await Task.Delay(250);
 
             string installText = LocalizationService.Instance["Updates_Installing"];
+            TxtUpdateDownloadProgress.Text = installText;
             toastHandle?.SetState(UpdateToastState.Installing, installText);
 
             // Trigger silent installer execution and graceful restart

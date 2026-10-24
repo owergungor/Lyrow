@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "========================================"
-Write-Host "LYROW v3.0 WINDOWS SMOKE TEST HARNESS"
+Write-Host "LYROW v3.1 WINDOWS SMOKE TEST HARNESS"
 Write-Host "========================================"
 
 Add-Type -TypeDefinition @"
@@ -25,6 +25,10 @@ public static class SmokeWin32 {
     public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 }
 "@ -ErrorAction SilentlyContinue
+
+# Ensure no stale instance is holding single-instance mutex
+Get-Process -Name "Lyrow.App" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 300
 
 # A) Launch
 $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()

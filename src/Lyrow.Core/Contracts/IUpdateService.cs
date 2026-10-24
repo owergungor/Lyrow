@@ -20,6 +20,9 @@ public interface IUpdateService
     /// <summary>Downloads the update installer asset with progress reporting without opening a browser.</summary>
     Task<string> DownloadUpdatePackageAsync(string downloadUrl, string destinationPath, IProgress<double>? progress = null, CancellationToken cancellationToken = default);
 
+    /// <summary>Downloads the update installer asset with detailed progress reporting (bytes/total) without opening a browser.</summary>
+    Task<string> DownloadUpdatePackageAsync(string downloadUrl, string destinationPath, IProgress<UpdateDownloadProgress>? progress = null, CancellationToken cancellationToken = default);
+
     /// <summary>Launches the downloaded installer and terminates the application cleanly.</summary>
     bool LaunchInstallerAndExit(string installerPath);
 

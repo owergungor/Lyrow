@@ -39,3 +39,14 @@ public sealed record UpdateCheckResult(
 {
     public bool IsUpdateAvailable => Status == UpdateCheckStatus.UpdateAvailable && !string.IsNullOrWhiteSpace(LatestVersion);
 }
+
+/// <summary>
+/// Real-time progress snapshot for downloading self-update installer packages.
+/// Contains bounded percentage [0..100] (or negative if indeterminate), actual bytes downloaded, and total file length if known.
+/// </summary>
+public readonly record struct UpdateDownloadProgress(double Percent, long BytesRead, long? TotalBytes)
+{
+    public bool IsIndeterminate => Percent < 0.0 || !TotalBytes.HasValue || TotalBytes.Value <= 0;
+    public double MegabytesRead => BytesRead / (1024.0 * 1024.0);
+    public double? TotalMegabytes => TotalBytes.HasValue ? TotalBytes.Value / (1024.0 * 1024.0) : null;
+}
