@@ -246,7 +246,7 @@ public sealed class LyrowV31FeatureVerificationTests
 
     #endregion
 
-    #region 3. Strict Two-Part Versioning Compliance (3.1 / v3.1)
+    #region 3. Strict Two-Part Versioning Compliance (3.2 / v3.2)
 
     [Fact]
     public void Versioning_StrictTwoPartAcrossAllMetadata()
@@ -255,43 +255,43 @@ public sealed class LyrowV31FeatureVerificationTests
 
         // 1. Directory.Build.props
         string props = File.ReadAllText(Path.Combine(root, "Directory.Build.props"));
-        props.Should().Contain("<Version>3.1</Version>");
-        props.Should().Contain("<PackageVersion>3.1</PackageVersion>");
-        props.Should().Contain("<InformationalVersion>3.1</InformationalVersion>");
-        props.Should().Contain("<AssemblyVersion>3.1.0.0</AssemblyVersion>");
-        props.Should().Contain("<FileVersion>3.1.0.0</FileVersion>");
-        props.Should().NotContain("<Version>3.1.0</Version>");
-        props.Should().NotContain("<PackageVersion>3.1.0</PackageVersion>");
+        props.Should().Contain("<Version>3.2</Version>");
+        props.Should().Contain("<PackageVersion>3.2</PackageVersion>");
+        props.Should().Contain("<InformationalVersion>3.2</InformationalVersion>");
+        props.Should().Contain("<AssemblyVersion>3.2.0.0</AssemblyVersion>");
+        props.Should().Contain("<FileVersion>3.2.0.0</FileVersion>");
+        props.Should().NotContain("<Version>3.2.0</Version>");
+        props.Should().NotContain("<PackageVersion>3.2.0</PackageVersion>");
 
         // 2. Lyrow.App.csproj
         string csproj = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "Lyrow.App.csproj"));
-        csproj.Should().Contain("<Version>3.1</Version>");
-        csproj.Should().Contain("<PackageVersion>3.1</PackageVersion>");
-        csproj.Should().Contain("<InformationalVersion>3.1</InformationalVersion>");
-        csproj.Should().Contain("<AssemblyVersion>3.1.0.0</AssemblyVersion>");
-        csproj.Should().Contain("<FileVersion>3.1.0.0</FileVersion>");
-        csproj.Should().NotContain("<Version>3.1.0</Version>");
+        csproj.Should().Contain("<Version>3.2</Version>");
+        csproj.Should().Contain("<PackageVersion>3.2</PackageVersion>");
+        csproj.Should().Contain("<InformationalVersion>3.2</InformationalVersion>");
+        csproj.Should().Contain("<AssemblyVersion>3.2.0.0</AssemblyVersion>");
+        csproj.Should().Contain("<FileVersion>3.2.0.0</FileVersion>");
+        csproj.Should().NotContain("<Version>3.2.0</Version>");
 
         // 3. app.manifest
         string manifest = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "app.manifest"));
-        manifest.Should().Contain("version=\"3.1.0.0\"");
+        manifest.Should().Contain("version=\"3.2.0.0\"");
 
         // 4. Inno Setup installer
         string iss = File.ReadAllText(Path.Combine(root, "installer", "setup.iss"));
-        iss.Should().Contain("#define MyAppVersion \"3.1\"");
-        iss.Should().NotContain("#define MyAppVersion \"3.1.0\"");
+        iss.Should().Contain("#define MyAppVersion \"3.2\"");
+        iss.Should().NotContain("#define MyAppVersion \"3.2.0\"");
 
         // 5. GitHubUpdateService
-        GitHubUpdateService.AppVersion.Should().Be("3.1");
+        GitHubUpdateService.AppVersion.Should().Be("3.2");
 
         // 6. Workflow release.yml
         string releaseYml = File.ReadAllText(Path.Combine(root, ".github", "workflows", "release.yml"));
-        releaseYml.Should().Contain("default: 'v3.1'");
-        releaseYml.Should().NotContain("3.1.0");
+        releaseYml.Should().Contain("default: 'v3.2'");
+        releaseYml.Should().NotContain("3.2.0");
 
         // 7. Smoke test script
         string smoke = File.ReadAllText(Path.Combine(root, "test_smoke.ps1"));
-        smoke.Should().Contain("LYROW v3.1 WINDOWS SMOKE TEST HARNESS");
+        smoke.Should().Contain("LYROW v3.2 WINDOWS SMOKE TEST HARNESS");
     }
 
     [Fact]

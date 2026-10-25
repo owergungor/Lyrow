@@ -22,13 +22,13 @@
                     <GradientStop x:Name="StopBottomRight" Color="#08080C" Offset="1.0" />
                 </LinearGradientBrush>
             </Grid.Background>
-            <Rectangle Fill="#7A000000" />
+            <Rectangle Fill="#50000000" />
             <Rectangle>
                 <Rectangle.Fill>
-                    <RadialGradientBrush Center="0.5,0.5" RadiusX="0.75" RadiusY="0.75">
+                    <RadialGradientBrush Center="0.5,0.5" RadiusX="0.8" RadiusY="0.8">
                         <GradientStop Color="#00000000" Offset="0.0" />
-                        <GradientStop Color="#45000000" Offset="0.6" />
-                        <GradientStop Color="#90000000" Offset="1.0" />
+                        <GradientStop Color="#30000000" Offset="0.6" />
+                        <GradientStop Color="#70000000" Offset="1.0" />
                     </RadialGradientBrush>
                 </Rectangle.Fill>
             </Rectangle>

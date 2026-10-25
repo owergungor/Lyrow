@@ -1124,7 +1124,7 @@
 
                                     <StackPanel Spacing="2">
 
-                                        <TextBlock x:Name="TxtCurrentVersion" Text="Current Version: v3.1" FontWeight="SemiBold" FontSize="14" />
+                                        <TextBlock x:Name="TxtCurrentVersion" Text="Current Version: v3.2" FontWeight="SemiBold" FontSize="14" />
 
                                         <TextBlock x:Name="TxtUpdateStatusSummary" Text="Release channel: GitHub Releases (Stable)"
 
@@ -1210,7 +1210,7 @@
 
                             <StackPanel Spacing="10">
 
-                                <TextBlock Text="Lyrow v3.1" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="Lyrow v3.2" FontWeight="SemiBold" FontSize="14" />
 
                                 <TextBlock Text="Windows 11 Native Ambient Edge Lighting &amp; Apple Music-Style Synchronized Lyrics"
 

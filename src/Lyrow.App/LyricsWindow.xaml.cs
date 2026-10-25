@@ -563,7 +563,8 @@ public sealed partial class LyricsWindow : Window
                 TextAlignment = TextAlignment.Center,
                 LineHeight = target.FontSize * 1.32,
                 Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)),
-                Clip = overlayClip
+                Clip = overlayClip,
+                Visibility = Visibility.Collapsed
             };
 
             var textGrid = new Grid
@@ -636,16 +637,29 @@ public sealed partial class LyricsWindow : Window
                 overlay.LineHeight = target.FontSize * 1.32;
                 overlay.FontWeight = FontWeights.Bold;
 
-                if (i < _lineClips.Count && i < _currentRenderedLines.Count)
+                if (target.IsActive)
                 {
-                    var renderLine = _currentRenderedLines[i];
-                    var tline = _lyricsModule.CurrentTimeline;
-                    var cPos = tline.GetInterpolatedPosition();
-                    TimeSpan? nTs = (i + 1 < _currentRenderedLines.Count) ? _currentRenderedLines[i + 1].Timestamp : null;
-                    double lp = LyricsFillProgressCalculator.CalculateLineProgress(renderLine, cPos, nTs);
-                    double clipW = lp * (overlay.ActualWidth > 0 ? overlay.ActualWidth : 2000.0);
-                    double clipH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
-                    _lineClips[i].Rect = new Windows.Foundation.Rect(0, 0, clipW, clipH);
+                    overlay.Visibility = Visibility.Visible;
+                    if (i < _lineClips.Count && i < _currentRenderedLines.Count)
+                    {
+                        var renderLine = _currentRenderedLines[i];
+                        var tline = _lyricsModule.CurrentTimeline;
+                        var cPos = tline.GetInterpolatedPosition();
+                        TimeSpan? nTs = (i + 1 < _currentRenderedLines.Count) ? _currentRenderedLines[i + 1].Timestamp : null;
+                        double lp = LyricsFillProgressCalculator.CalculateLineProgress(renderLine, cPos, nTs);
+                        double clipW = lp * (overlay.ActualWidth > 0 ? overlay.ActualWidth : 2000.0);
+                        double clipH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
+                        _lineClips[i].Rect = new Windows.Foundation.Rect(0, 0, clipW, clipH);
+                    }
+                }
+                else
+                {
+                    // Inactive surrounding lines have ZERO active overlay: single canonical visual text
+                    overlay.Visibility = Visibility.Collapsed;
+                    if (i < _lineClips.Count)
+                    {
+                        _lineClips[i].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
+                    }
                 }
             }
 
@@ -752,9 +766,27 @@ public sealed partial class LyricsWindow : Window
             {
                 var overlay = _overlayBlocks[i];
                 var clip = _lineClips[i];
+
+                if (i != _currentActiveIndex)
+                {
+                    if (overlay.Visibility != Visibility.Collapsed)
+                    {
+                        overlay.Visibility = Visibility.Collapsed;
+                    }
+                    if (clip.Rect.Width > 0 || clip.Rect.Height > 0)
+                    {
+                        clip.Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
+                    }
+                    continue;
+                }
+
+                if (overlay.Visibility != Visibility.Visible)
+                {
+                    overlay.Visibility = Visibility.Visible;
+                }
+
                 double actualW = overlay.ActualWidth;
                 double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
-
                 if (actualW <= 0) continue;
 
                 var line = lyrics.Lines[i];
@@ -809,7 +841,7 @@ public sealed partial class LyricsWindow : Window
         }
 
         // 3. Ambient dynamic artwork background 60 FPS cross-fade
-        _currentAmbientPalette = AmbientBackgroundPalette.Lerp(_currentAmbientPalette, _targetAmbientPalette, 0.08f);
+        _currentAmbientPalette = AmbientBackgroundPalette.Lerp(_currentAmbientPalette, _targetAmbientPalette, 0.065f);
         StopTopLeft.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Dominant.R, _currentAmbientPalette.Dominant.G, _currentAmbientPalette.Dominant.B);
         StopCenter.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Secondary.R, _currentAmbientPalette.Secondary.G, _currentAmbientPalette.Secondary.B);
         StopBottomRight.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Tertiary.R, _currentAmbientPalette.Tertiary.G, _currentAmbientPalette.Tertiary.B);

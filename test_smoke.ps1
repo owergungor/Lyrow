@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "========================================"
-Write-Host "LYROW v3.1 WINDOWS SMOKE TEST HARNESS"
+Write-Host "LYROW v3.2 WINDOWS SMOKE TEST HARNESS"
 Write-Host "========================================"
 
 Add-Type -TypeDefinition @"

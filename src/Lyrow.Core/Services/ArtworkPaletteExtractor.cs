@@ -64,10 +64,18 @@ public static class ArtworkPaletteExtractor
         }
 
         double scale = maxLuminance / lum;
-        byte r = (byte)Math.Clamp((int)Math.Round(input.R * scale), 0, 255);
-        byte g = (byte)Math.Clamp((int)Math.Round(input.G * scale), 0, 255);
-        byte b = (byte)Math.Clamp((int)Math.Round(input.B * scale), 0, 255);
-        return GlowColor.FromRgb(r, g, b);
+        byte r = (byte)Math.Clamp((int)Math.Floor(input.R * scale), 0, 255);
+        byte g = (byte)Math.Clamp((int)Math.Floor(input.G * scale), 0, 255);
+        byte b = (byte)Math.Clamp((int)Math.Floor(input.B * scale), 0, 255);
+        var result = GlowColor.FromRgb(r, g, b);
+        while (CalculateLuminance(result) > maxLuminance)
+        {
+            if (r > 0) r--;
+            if (g > 0) g--;
+            if (b > 0) b--;
+            result = GlowColor.FromRgb(r, g, b);
+        }
+        return result;
     }
 
     public static double CalculateLuminance(GlowColor color)
