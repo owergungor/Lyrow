@@ -1,4 +1,5 @@
 using Lyrow.Core.Contracts;
+using Lyrow.Core.Models;
 
 namespace Lyrow.Audio.Control;
 
@@ -52,6 +53,9 @@ public sealed class SyntheticAudioVolumeService : IAudioVolumeService
     public string ActiveTargetName => !string.IsNullOrWhiteSpace(_preferredAppId) ? _preferredAppId! : "System Output";
     public string PlaybackTargetName => HasActiveMediaSession ? ActiveTargetName : "Playback Session";
     public string SystemTargetName => "System Master";
+
+    public string OutputDeviceFriendlyName { get; set; } = "Speakers (Realtek Audio)";
+    public AudioDeviceCategory OutputDeviceCategory { get; set; } = AudioDeviceCategory.Speakers;
 
     public int GetVolumePercent()
     {

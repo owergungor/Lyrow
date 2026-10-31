@@ -329,7 +329,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             {
                 dur = CurrentTrack.Duration;
             }
-            if (dur > TimeSpan.Zero && CurrentTrack.Duration != dur)
+            if (CurrentTrack.Duration <= TimeSpan.Zero && dur > TimeSpan.Zero && !CurrentTrack.IsEmpty)
             {
                 CurrentTrack = CurrentTrack with { Duration = dur };
                 TrackChanged?.Invoke(this, CurrentTrack);

@@ -1,3 +1,5 @@
+using Lyrow.Core.Models;
+
 namespace Lyrow.Core.Contracts;
 
 /// <summary>
@@ -71,6 +73,12 @@ public interface IAudioVolumeService : IDisposable
 
     /// <summary>Gets a human-readable label for the system master endpoint target.</summary>
     string SystemTargetName { get; }
+
+    /// <summary>Gets the human-readable friendly name of the active audio output endpoint (e.g., "Speakers (Realtek Audio)").</summary>
+    string OutputDeviceFriendlyName { get; }
+
+    /// <summary>Gets the detected hardware category of the active audio output endpoint for UI iconography.</summary>
+    AudioDeviceCategory OutputDeviceCategory { get; }
 
     /// <summary>Updates the preferred media player identifier (e.g., GSMTC SourceAppUserModelId) and reconnects to its audio session.</summary>
     void SetPreferredAppId(string? appUserModelId);

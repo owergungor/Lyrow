@@ -81,6 +81,17 @@ public sealed class AudioDataAvailableEventArgs : EventArgs
 }
 
 /// <summary>
+/// High-level categorization of audio output endpoint types for UI icon binding.
+/// </summary>
+public enum AudioDeviceCategory
+{
+    Speakers,
+    Headphones,
+    Bluetooth,
+    Other
+}
+
+/// <summary>
 /// Event arguments when the active playback audio endpoint has changed.
 /// </summary>
 public sealed class AudioDeviceChangedEventArgs : EventArgs

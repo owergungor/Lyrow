@@ -27,6 +27,8 @@ public sealed class LyricsModule : ILyrowModule
     private int _activeLineIndex = -1;
     private bool _isDisposed;
     private DateTime _rateLimitUntilUtc = DateTime.MinValue;
+    private DateTime _lastTrackSwitchUtc = DateTime.MinValue;
+    private TimeSpan _previousTrackDuration = TimeSpan.Zero;
 
     public LyricsModule(
         IMediaSessionMonitor? mediaSessionMonitor = null,
@@ -222,6 +224,19 @@ public sealed class LyricsModule : ILyrowModule
     private void OnTimelineChanged(object? sender, MediaTimelineInfo timeline)
     {
         if (State != ModuleState.Running) return;
+
+        // Guard against stale timeline events from previous track during automatic track transition
+        if (DateTime.UtcNow - _lastTrackSwitchUtc < TimeSpan.FromMilliseconds(1500) && _previousTrackDuration > TimeSpan.Zero)
+        {
+            // If incoming timeline carries the previous track's duration or position near previous track's end
+            bool isPreviousDuration = Math.Abs((timeline.Duration - _previousTrackDuration).TotalMilliseconds) < 500;
+            bool isDifferentFromCurrent = _currentTrack.Duration > TimeSpan.Zero && Math.Abs((timeline.Duration - _currentTrack.Duration).TotalMilliseconds) > 500;
+            if (isPreviousDuration && isDifferentFromCurrent)
+            {
+                return; // Discard stale timeline belonging to previous track
+            }
+        }
+
         var dur = _currentTrack.Duration > TimeSpan.Zero ? _currentTrack.Duration : timeline.Duration;
         var pos = timeline.Position;
         if (dur > TimeSpan.Zero && pos > dur) pos = dur;
@@ -251,11 +266,14 @@ public sealed class LyricsModule : ILyrowModule
 
         currentSeq = Interlocked.Increment(ref _trackSequence);
 
+        _lastTrackSwitchUtc = DateTime.UtcNow;
+        _previousTrackDuration = _currentTrack.Duration;
         _currentTrack = track;
         _activeLineIndex = -1;
         _currentTimeline = new MediaTimelineInfo(TimeSpan.Zero, track.Duration, MediaPlaybackStatus.Changing, DateTime.UtcNow);
         _synchronizer.Reset();
         _synchronizer.SetLyrics(SyncedLyrics.Empty);
+        _synchronizer.UpdateTimeline(_currentTimeline);
         _currentLyrics = SyncedLyrics.Empty;
 
         trackCts = _activeCts != null

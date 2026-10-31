@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using Lyrow.Core.Contracts;
+using Lyrow.Core.Models;
 using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
 
@@ -107,6 +108,43 @@ public sealed class WindowsAudioVolumeService : IAudioVolumeService
     public string ActiveTargetName => _activeTargetName;
     public string PlaybackTargetName => _hasActiveMediaSession ? _activeTargetName : "Playback Session";
     public string SystemTargetName => "System Master";
+
+    public string OutputDeviceFriendlyName
+    {
+        get
+        {
+            if (!OperatingSystem.IsWindows() || _isDisposed) return "Speakers";
+            lock (_lock)
+            {
+                try
+                {
+                    EnsureDeviceConnected();
+                    return _currentDevice?.FriendlyName ?? "Speakers";
+                }
+                catch
+                {
+                    return "Speakers";
+                }
+            }
+        }
+    }
+
+    public AudioDeviceCategory OutputDeviceCategory
+    {
+        get
+        {
+            string name = OutputDeviceFriendlyName.ToLowerInvariant();
+            if (name.Contains("headphone") || name.Contains("headset") || name.Contains("earphone") || name.Contains("airpod") || name.Contains("buds"))
+            {
+                return AudioDeviceCategory.Headphones;
+            }
+            if (name.Contains("bluetooth") || name.Contains("wireless"))
+            {
+                return AudioDeviceCategory.Bluetooth;
+            }
+            return AudioDeviceCategory.Speakers;
+        }
+    }
 
     public int GetVolumePercent()
     {

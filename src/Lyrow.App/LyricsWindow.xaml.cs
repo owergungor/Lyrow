@@ -17,9 +17,18 @@ using Lyrow.Core.Services;
 namespace Lyrow.App;
 
 /// <summary>
-/// Apple Music-inspired 60 FPS fluid lyrics experience for Windows 11.
-/// Keeps the active lyric line vertically centered at all times with smooth interpolated
-/// scrolling, hierarchical opacity/scale transitions, interactive seek-on-click, and media volume control.
+/// Operational display modes for the Lyrics and Compact Player Window.
+/// </summary>
+public enum LyricsWindowMode
+{
+    Horizontal,
+    Compact
+}
+
+/// <summary>
+/// Lyrow v3.3 Apple Music-inspired fluid lyrics and compact player experience for Windows 11.
+/// Features a 50/50 horizontal split (player on left, lyrics on right), dynamic artwork-derived background,
+/// Apple Music-style compact Dar Mod player, instant track synchronization, and zero duplicate text rendering.
 /// </summary>
 public sealed partial class LyricsWindow : Window
 {
@@ -38,11 +47,11 @@ public sealed partial class LyricsWindow : Window
     private readonly List<RectangleGeometry> _lineClips = new();
     private readonly List<LyricLine> _currentRenderedLines = new();
     private readonly List<double> _currentOpacities = new();
-    private long _windowTrackSequence = 0;
     private readonly List<double> _targetOpacities = new();
     private readonly List<double> _currentScales = new();
     private readonly List<double> _targetScales = new();
 
+    private long _windowTrackSequence = 0;
     private int _currentActiveIndex = -99;
     private int _lastFontScaleIndex = -1;
     private double _lastFocusedSize = -1;
@@ -55,8 +64,17 @@ public sealed partial class LyricsWindow : Window
     private bool _userIsInteracting = false;
     private DateTime _lastUserInteractionUtc = DateTime.MinValue;
     private bool _isShuttingDown = false;
+
+    // View state
+    private LyricsWindowMode _currentMode = LyricsWindowMode.Horizontal;
+    private bool _isLyricsEnabled = true;
+
+    // Preserved Ambient Dynamic Artwork Background Engine
     private AmbientBackgroundPalette _currentAmbientPalette = AmbientBackgroundPalette.Default;
     private AmbientBackgroundPalette _targetAmbientPalette = AmbientBackgroundPalette.Default;
+
+    public LyricsWindowMode CurrentMode => _currentMode;
+    public bool IsLyricsEnabled => _isLyricsEnabled;
 
     public LyricsWindow(
         LyricsModule lyricsModule,
@@ -76,17 +94,55 @@ public sealed partial class LyricsWindow : Window
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(LyricsTitleBar);
-        ResizeForCurrentDpi(500, 720);
+        ResizeForCurrentDpi(960, 640);
 
         TxtOffsetMs.Text = $"{_settingsManager.Current.Lyrics.SyncOffsetMs:+0;-0;0} ms";
         BtnOffsetMinus.Click += (_, _) => AdjustOffset(-250);
         BtnOffsetPlus.Click += (_, _) => AdjustOffset(250);
 
-        // Media Playback Volume slider & mute
+        // Mode Switching: Dar Mod <-> Horizontal
+        BtnDarMod.Click += (_, _) => SetWindowMode(LyricsWindowMode.Compact);
+        BtnExpandFromCompact.Click += (_, _) => SetWindowMode(LyricsWindowMode.Horizontal);
+
+        // Lyrics Toggle (Active -> 50/50, Inactive -> Player Centered)
+        BtnToggleLyrics.Click += (_, _) => ToggleLyricsPanel();
+
+        // Fullscreen Toggle
+        BtnFullscreen.Click += (_, _) => ToggleFullscreen();
+
+        // Media Transport Controls: Horizontal View
+        BtnPrev.Click += async (_, _) =>
+        {
+            if (_mediaMonitor != null) await _mediaMonitor.TrySkipPreviousAsync();
+        };
+        BtnPlayPause.Click += async (_, _) =>
+        {
+            if (_mediaMonitor != null) await _mediaMonitor.TryTogglePlayPauseAsync();
+        };
+        BtnNext.Click += async (_, _) =>
+        {
+            if (_mediaMonitor != null) await _mediaMonitor.TrySkipNextAsync();
+        };
+
+        // Media Transport Controls: Compact Dar Mod View
+        BtnPrevCompact.Click += async (_, _) =>
+        {
+            if (_mediaMonitor != null) await _mediaMonitor.TrySkipPreviousAsync();
+        };
+        BtnPlayPauseCompact.Click += async (_, _) =>
+        {
+            if (_mediaMonitor != null) await _mediaMonitor.TryTogglePlayPauseAsync();
+        };
+        BtnNextCompact.Click += async (_, _) =>
+        {
+            if (_mediaMonitor != null) await _mediaMonitor.TrySkipNextAsync();
+        };
+
+        // Volume Controls
         if (_volumeService != null)
         {
             SyncVolumeUi();
-            SliderLyricsVolume.ValueChanged += (_, e) =>
+            SliderVolume.ValueChanged += (_, e) =>
             {
                 if (_isUpdatingVolumeUi) return;
                 _isUpdatingVolumeUi = true;
@@ -94,76 +150,35 @@ public sealed partial class LyricsWindow : Window
                 {
                     int val = Math.Clamp((int)Math.Round(e.NewValue), 0, 100);
                     _volumeService.SetPlaybackVolumePercent(val);
-                    TxtLyricsVolumePercent.Text = $"{val}%";
-                    IconLyricsVolumeMute.Glyph = (val == 0 || _volumeService.IsPlaybackMuted) ? "\uE74F" : "\uE767";
+                    TxtVolumePercent.Text = $"{val}%";
+                    IconVolumeMute.Glyph = (val == 0 || _volumeService.IsPlaybackMuted) ? "\uE74F" : "\uE767";
+                    IconVolumeCompact.Glyph = (val == 0 || _volumeService.IsPlaybackMuted) ? "\uE74F" : "\uE767";
                 }
                 finally
                 {
                     _isUpdatingVolumeUi = false;
                 }
             };
-            BtnLyricsVolumeMute.Click += (_, _) =>
+
+            BtnVolumeMute.Click += (_, _) =>
             {
                 _volumeService.TogglePlaybackMute();
                 SyncVolumeUi();
             };
-            BtnImmersiveVolumeMute.Click += (_, _) =>
+
+            BtnVolumeCompact.Click += (_, _) =>
             {
                 _volumeService.TogglePlaybackMute();
                 SyncVolumeUi();
             };
-            SliderImmersiveVolume.ValueChanged += (_, e) =>
-            {
-                if (_isUpdatingVolumeUi) return;
-                _isUpdatingVolumeUi = true;
-                try
-                {
-                    int val = Math.Clamp((int)Math.Round(e.NewValue), 0, 100);
-                    _volumeService.SetPlaybackVolumePercent(val);
-                    TxtImmersiveVolumePercent.Text = $"{val}%";
-                    IconImmersiveVolumeMute.Glyph = (val == 0 || _volumeService.IsPlaybackMuted) ? "\uE74F" : "\uE767";
-                    SliderLyricsVolume.Value = val;
-                    TxtLyricsVolumePercent.Text = $"{val}%";
-                }
-                finally
-                {
-                    _isUpdatingVolumeUi = false;
-                }
-            };
+
             _volumeService.VolumeChanged += (_, _) =>
             {
                 DispatcherQueue?.TryEnqueue(SyncVolumeUi);
             };
         }
 
-        BtnLyricsPrev.Click += async (_, _) =>
-        {
-            if (_mediaMonitor != null) await _mediaMonitor.TrySkipPreviousAsync();
-        };
-        BtnLyricsPlayPause.Click += async (_, _) =>
-        {
-            if (_mediaMonitor != null) await _mediaMonitor.TryTogglePlayPauseAsync();
-        };
-        BtnLyricsNext.Click += async (_, _) =>
-        {
-            if (_mediaMonitor != null) await _mediaMonitor.TrySkipNextAsync();
-        };
-
-        BtnImmersivePrev.Click += async (_, _) =>
-        {
-            if (_mediaMonitor != null) await _mediaMonitor.TrySkipPreviousAsync();
-        };
-        BtnImmersivePlayPause.Click += async (_, _) =>
-        {
-            if (_mediaMonitor != null) await _mediaMonitor.TryTogglePlayPauseAsync();
-        };
-        BtnImmersiveNext.Click += async (_, _) =>
-        {
-            if (_mediaMonitor != null) await _mediaMonitor.TrySkipNextAsync();
-        };
-
-        BtnToggleFullscreen.Click += (_, _) => ToggleFullscreen();
-        BtnTopLeftExitFullscreen.Click += (_, _) => ToggleFullscreen();
+        // Layout and Keyboard Listeners
         RootLayout.SizeChanged += (_, _) => UpdateLayoutForCurrentSize();
         RootLayout.KeyDown += (_, e) =>
         {
@@ -204,10 +219,59 @@ public sealed partial class LyricsWindow : Window
 
         _uiTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromMilliseconds(16) // 60 FPS smooth Apple Music animation & centering loop
+            Interval = TimeSpan.FromMilliseconds(16) // 60 FPS smooth animation and centering loop
         };
         _uiTimer.Tick += OnUiTimerTick;
         _uiTimer.Start();
+    }
+
+    /// <summary>
+    /// Switches between Dar Mod (compact player) and Horizontal 50/50 lyrics window.
+    /// </summary>
+    public void SetWindowMode(LyricsWindowMode mode)
+    {
+        _currentMode = mode;
+        if (mode == LyricsWindowMode.Compact)
+        {
+            HorizontalView.Visibility = Visibility.Collapsed;
+            CompactPlayerView.Visibility = Visibility.Visible;
+            LyricsTitleBar.Title = "Lyrow — Mini Player";
+            ResizeForCurrentDpi(480, 180);
+        }
+        else
+        {
+            CompactPlayerView.Visibility = Visibility.Collapsed;
+            HorizontalView.Visibility = Visibility.Visible;
+            LyricsTitleBar.Title = "Lyrow — Synchronized Lyrics";
+            ResizeForCurrentDpi(960, 640);
+            UpdateViewportPadding();
+            _snapToCenterOnNextLayout = true;
+        }
+    }
+
+    /// <summary>
+    /// Toggles lyrics visibility. When inactive, the player centers horizontally in the entire window.
+    /// When active, the 50/50 layout is smoothly restored.
+    /// </summary>
+    public void ToggleLyricsPanel()
+    {
+        _isLyricsEnabled = !_isLyricsEnabled;
+        if (_isLyricsEnabled)
+        {
+            ColLyrics.Width = new GridLength(1, GridUnitType.Star);
+            LyricsColumnContainer.Visibility = Visibility.Visible;
+            IconToggleLyrics.Glyph = "\uEC4F";
+            ToolTipService.SetToolTip(BtnToggleLyrics, "Hide Lyrics (Center Player)");
+            UpdateViewportPadding();
+            _snapToCenterOnNextLayout = true;
+        }
+        else
+        {
+            ColLyrics.Width = new GridLength(0);
+            LyricsColumnContainer.Visibility = Visibility.Collapsed;
+            IconToggleLyrics.Glyph = "\uE8D6";
+            ToolTipService.SetToolTip(BtnToggleLyrics, "Show Lyrics (50/50 Split)");
+        }
     }
 
     private void ResizeForCurrentDpi(int logicalWidth, int logicalHeight)
@@ -259,8 +323,8 @@ public sealed partial class LyricsWindow : Window
     }
 
     /// <summary>
-    /// Atomically wipes all previous track state, lyrics, time labels, and visual animations,
-    /// preventing any cross-track state leakage during automatic or manual track transitions.
+    /// Atomically wipes previous track state, lyrics, timestamps, and animation targets.
+    /// Prevents cross-track leakage when automatically transitioning from Track A to Track B.
     /// </summary>
     public void ResetTrackState(MediaTrackInfo newTrack)
     {
@@ -272,7 +336,7 @@ public sealed partial class LyricsWindow : Window
         _targetScrollOffsetY = 0;
         _snapToCenterOnNextLayout = true;
 
-        // 1. Immediately wipe all lyric visual collections
+        // 1. Clear rendered lyric line visual representations immediately
         LyricsPanel.Children.Clear();
         _lineContainers.Clear();
         _lineBlocks.Clear();
@@ -284,7 +348,7 @@ public sealed partial class LyricsWindow : Window
         _currentScales.Clear();
         _targetScales.Clear();
 
-        // 2. Reset scroll view and show searching/empty placeholder
+        // 2. Reset scroll view
         LyricsScrollViewer.ChangeView(null, 0, null, disableAnimation: true);
         LyricsScrollViewer.Visibility = Visibility.Collapsed;
         TxtEmptyState.Text = newTrack.IsEmpty
@@ -292,27 +356,28 @@ public sealed partial class LyricsWindow : Window
             : "Searching for synchronized lyrics...";
         PanelEmptyState.Visibility = Visibility.Visible;
 
-        // 3. Reset playback position and duration time labels strictly to clean initial state
+        // 3. Reset progress bars and time labels strictly to 0:00 / clean state
         ProgressTimeline.Value = 0;
-        ProgressTimelineImmersive.Value = 0;
-        TxtTimestamp.Text = newTrack.Duration > TimeSpan.Zero ? $"00:00 / {newTrack.Duration:mm\\:ss}" : "00:00 / 00:00";
-        TxtImmersiveElapsed.Text = "00:00";
-        TxtImmersiveRemaining.Text = newTrack.Duration > TimeSpan.Zero ? $"-{newTrack.Duration:mm\\:ss}" : "-00:00";
+        ProgressTimelineCompact.Value = 0;
+        TxtElapsed.Text = "0:00";
+        TxtElapsedCompact.Text = "0:00";
+        TxtRemaining.Text = newTrack.Duration > TimeSpan.Zero ? $"-{newTrack.Duration:mm\\:ss}" : "-0:00";
+        TxtRemainingCompact.Text = newTrack.Duration > TimeSpan.Zero ? $"-{newTrack.Duration:mm\\:ss}" : "-0:00";
 
-        // 4. Invalidate and reset artwork
+        // 4. Invalidate artwork and reset ambient target
         ImgTrackArtwork.Source = null;
         IconArtworkPlaceholder.Visibility = Visibility.Visible;
-        ImgTrackArtworkImmersive.Source = null;
-        IconArtworkPlaceholderImmersive.Visibility = Visibility.Visible;
+        ImgTrackArtworkCompact.Source = null;
+        IconArtworkPlaceholderCompact.Visibility = Visibility.Visible;
         _targetAmbientPalette = AmbientBackgroundPalette.Default;
 
-        // 5. Update titles atomically
+        // 5. Update song titles and artist metadata
         if (newTrack.IsEmpty)
         {
             TxtSongTitle.Text = "No active media session";
-            TxtArtistName.Text = "Play music in Spotify, Apple Music, or your browser";
-            TxtSongTitleImmersive.Text = "No active media session";
-            TxtArtistNameImmersive.Text = "Play music in Spotify, Apple Music, or your browser";
+            TxtArtistAlbum.Text = "Play music in Spotify, Apple Music, or your browser";
+            TxtSongTitleCompact.Text = "No active media session";
+            TxtArtistAlbumCompact.Text = "Play music in Spotify, Apple Music, or your browser";
         }
         else
         {
@@ -320,11 +385,10 @@ public sealed partial class LyricsWindow : Window
             string artistAlbum = string.IsNullOrWhiteSpace(newTrack.Album)
                 ? newTrack.Artist
                 : $"{newTrack.Artist} — {newTrack.Album}";
-            TxtArtistName.Text = artistAlbum;
-            TxtSongTitleImmersive.Text = newTrack.Title;
-            TxtArtistNameImmersive.Text = artistAlbum;
+            TxtArtistAlbum.Text = artistAlbum;
+            TxtSongTitleCompact.Text = newTrack.Title;
+            TxtArtistAlbumCompact.Text = artistAlbum;
 
-            // Fetch Track B artwork with atomic sequence guard
             _ = UpdateArtworkAsync(newTrack, currentSeq);
         }
     }
@@ -334,13 +398,11 @@ public sealed partial class LyricsWindow : Window
         double viewportH = LyricsScrollViewer.ActualHeight;
         if (viewportH <= 0) return;
 
-        // Top and bottom padding equal to half the viewport height so even line 0 and the last line
-        // can sit at the exact vertical center of the viewport!
         double halfPadding = Math.Max(60.0, (viewportH / 2.0) - 24.0);
         LyricsPanel.Padding = new Thickness(28, halfPadding, 28, halfPadding);
     }
 
-    private async void OnUiTimerTick(object? sender, object e)
+    private void OnUiTimerTick(object? sender, object e)
     {
         var track = !_lyricsModule.CurrentTrack.IsEmpty
             ? _lyricsModule.CurrentTrack
@@ -355,74 +417,92 @@ public sealed partial class LyricsWindow : Window
         if (track.IsEmpty)
         {
             TxtSongTitle.Text = "No active media session";
-            TxtArtistName.Text = "Play music in Spotify, Apple Music, or your browser";
-            TxtSongTitleImmersive.Text = "No active media session";
-            TxtArtistNameImmersive.Text = "Play music in Spotify, Apple Music, or your browser";
+            TxtArtistAlbum.Text = "Play music in Spotify, Apple Music, or your browser";
+            TxtSongTitleCompact.Text = "No active media session";
+            TxtArtistAlbumCompact.Text = "Play music in Spotify, Apple Music, or your browser";
             ProgressTimeline.Value = 0;
-            TxtTimestamp.Text = "00:00 / 00:00";
+            ProgressTimelineCompact.Value = 0;
+            TxtElapsed.Text = "0:00";
+            TxtRemaining.Text = "-0:00";
+            TxtElapsedCompact.Text = "0:00";
+            TxtRemainingCompact.Text = "-0:00";
             TxtEmptyState.Text = "Play a song in Spotify, Apple Music, or your browser";
             PanelEmptyState.Visibility = Visibility.Visible;
             LyricsScrollViewer.Visibility = Visibility.Collapsed;
             IconArtworkPlaceholder.Visibility = Visibility.Visible;
             ImgTrackArtwork.Source = null;
-            IconArtworkPlaceholderImmersive.Visibility = Visibility.Visible;
-            ImgTrackArtworkImmersive.Source = null;
+            IconArtworkPlaceholderCompact.Visibility = Visibility.Visible;
+            ImgTrackArtworkCompact.Source = null;
             _targetAmbientPalette = AmbientBackgroundPalette.Default;
             return;
         }
 
+        string songKey = $"{track.Artist}_{track.Title}";
+        if (songKey != _lastSongKey)
+        {
+            ResetTrackState(track);
+            return;
+        }
+
+        // Title and Metadata
         TxtSongTitle.Text = track.Title;
         string artistAlbum = string.IsNullOrWhiteSpace(track.Album)
             ? track.Artist
             : $"{track.Artist} — {track.Album}";
-        TxtArtistName.Text = artistAlbum;
-        TxtSongTitleImmersive.Text = track.Title;
-        TxtArtistNameImmersive.Text = artistAlbum;
+        TxtArtistAlbum.Text = artistAlbum;
+        TxtSongTitleCompact.Text = track.Title;
+        TxtArtistAlbumCompact.Text = artistAlbum;
 
+        // Position and Durations
         var pos = timeline.GetInterpolatedPosition();
         var dur = track.Duration > TimeSpan.Zero ? track.Duration : timeline.Duration;
-        TxtTimestamp.Text = $"{pos:mm\\:ss} / {dur:mm\\:ss}";
+
+        if (dur > TimeSpan.Zero && pos > dur) pos = dur;
+        if (pos < TimeSpan.Zero) pos = TimeSpan.Zero;
+
+        TxtElapsed.Text = $"{pos:m\\:ss}";
+        TxtElapsedCompact.Text = $"{pos:m\\:ss}";
+        TxtRemaining.Text = dur > pos ? $"-{(dur - pos):m\\:ss}" : "-0:00";
+        TxtRemainingCompact.Text = dur > pos ? $"-{(dur - pos):m\\:ss}" : "-0:00";
 
         if (dur.TotalSeconds > 0)
         {
             double progressPct = Math.Clamp((pos.TotalSeconds / dur.TotalSeconds) * 100.0, 0, 100);
             ProgressTimeline.Value = progressPct;
-            ProgressTimelineImmersive.Value = progressPct;
+            ProgressTimelineCompact.Value = progressPct;
         }
         else
         {
             ProgressTimeline.Value = 0;
-            ProgressTimelineImmersive.Value = 0;
+            ProgressTimelineCompact.Value = 0;
         }
 
-        TxtImmersiveElapsed.Text = $"{pos:mm\\:ss}";
-        TxtImmersiveRemaining.Text = dur > pos ? $"-{(dur - pos):mm\\:ss}" : "-00:00";
+        // Hardware Output Device Info
+        UpdateOutputDeviceUi();
 
+        // Media Transport Controls
         bool hasTrack = !track.IsEmpty;
-        BtnLyricsPrev.IsEnabled = hasTrack;
-        BtnLyricsPlayPause.IsEnabled = hasTrack;
-        BtnLyricsNext.IsEnabled = hasTrack;
-        BtnImmersivePrev.IsEnabled = hasTrack;
-        BtnImmersivePlayPause.IsEnabled = hasTrack;
-        BtnImmersiveNext.IsEnabled = hasTrack;
-        var playGlyph = (timeline.Status == MediaPlaybackStatus.Playing) ? "\uE769" : "\uE768";
-        IconLyricsPlayPause.Glyph = playGlyph;
-        IconImmersivePlayPause.Glyph = playGlyph;
+        BtnPrev.IsEnabled = hasTrack;
+        BtnPlayPause.IsEnabled = hasTrack;
+        BtnNext.IsEnabled = hasTrack;
+        BtnPrevCompact.IsEnabled = hasTrack;
+        BtnPlayPauseCompact.IsEnabled = hasTrack;
+        BtnNextCompact.IsEnabled = hasTrack;
 
-        // Ensure synchronizer evaluates latest interpolated position
+        var playGlyph = (timeline.Status == MediaPlaybackStatus.Playing) ? "\uE769" : "\uE768";
+        IconPlayPause.Glyph = playGlyph;
+        IconPlayPauseCompact.Glyph = playGlyph;
+
+        // Synchronizer position evaluation
         _lyricsModule.Synchronizer.EvaluatePosition(pos);
 
+        // Font scaling and dynamic lyrics rebuilding
         double focusedSize = _settingsManager.Current.FocusedLyricFontSize > 0 ? _settingsManager.Current.FocusedLyricFontSize : 28.0;
         double unfocusedSize = _settingsManager.Current.UnfocusedLyricFontSize > 0 ? _settingsManager.Current.UnfocusedLyricFontSize : 20.0;
         int fontScaleIndex = _settingsManager.Current.LyricsFontScaleIndex;
-        string songKey = $"{track.Artist}_{track.Title}";
-        if (songKey != _lastSongKey)
-        {
-            ResetTrackState(track);
-            return; // Exit tick immediately so clean empty state is displayed before new lyrics render
-        }
 
-        if (!ReferenceEquals(lyrics, _lastLyrics) || fontScaleIndex != _lastFontScaleIndex || Math.Abs(focusedSize - _lastFocusedSize) > 0.5 || Math.Abs(unfocusedSize - _lastUnfocusedSize) > 0.5)
+        if (!ReferenceEquals(lyrics, _lastLyrics) || fontScaleIndex != _lastFontScaleIndex ||
+            Math.Abs(focusedSize - _lastFocusedSize) > 0.5 || Math.Abs(unfocusedSize - _lastUnfocusedSize) > 0.5)
         {
             _lastLyrics = lyrics;
             _lastFontScaleIndex = fontScaleIndex;
@@ -438,8 +518,26 @@ public sealed partial class LyricsWindow : Window
             UpdateActiveLineTargets(activeIdx, immediate: _currentActiveIndex == -99);
         }
 
-        // 60 FPS smooth visual interpolation (opacity, scale, and vertical centering)
+        // 60 FPS smooth visual interpolation
         StepSmoothAnimations();
+    }
+
+    private void UpdateOutputDeviceUi()
+    {
+        string deviceName = _volumeService?.OutputDeviceFriendlyName ?? "Speakers";
+        var category = _volumeService?.OutputDeviceCategory ?? AudioDeviceCategory.Speakers;
+
+        string glyph = category switch
+        {
+            AudioDeviceCategory.Headphones => "\uE7F6",
+            AudioDeviceCategory.Bluetooth => "\uE702",
+            _ => "\uE767"
+        };
+
+        IconDevice.Glyph = glyph;
+        TxtDevice.Text = deviceName;
+        IconDeviceCompact.Glyph = glyph;
+        TxtDeviceCompact.Text = deviceName;
     }
 
     private async Task UpdateArtworkAsync(MediaTrackInfo track, long sequenceId = 0)
@@ -454,15 +552,15 @@ public sealed partial class LyricsWindow : Window
             {
                 ImgTrackArtwork.Source = bitmap;
                 IconArtworkPlaceholder.Visibility = Visibility.Collapsed;
-                ImgTrackArtworkImmersive.Source = bitmap;
-                IconArtworkPlaceholderImmersive.Visibility = Visibility.Collapsed;
+                ImgTrackArtworkCompact.Source = bitmap;
+                IconArtworkPlaceholderCompact.Visibility = Visibility.Collapsed;
             }
             else
             {
                 ImgTrackArtwork.Source = null;
                 IconArtworkPlaceholder.Visibility = Visibility.Visible;
-                ImgTrackArtworkImmersive.Source = null;
-                IconArtworkPlaceholderImmersive.Visibility = Visibility.Visible;
+                ImgTrackArtworkCompact.Source = null;
+                IconArtworkPlaceholderCompact.Visibility = Visibility.Visible;
             }
 
             var palette = await _artworkBitmapManager.ExtractArtworkPaletteAsync(track);
@@ -474,8 +572,8 @@ public sealed partial class LyricsWindow : Window
             if (sequenceId > 0 && Interlocked.Read(ref _windowTrackSequence) != sequenceId) return;
             ImgTrackArtwork.Source = null;
             IconArtworkPlaceholder.Visibility = Visibility.Visible;
-            ImgTrackArtworkImmersive.Source = null;
-            IconArtworkPlaceholderImmersive.Visibility = Visibility.Visible;
+            ImgTrackArtworkCompact.Source = null;
+            IconArtworkPlaceholderCompact.Visibility = Visibility.Visible;
             _targetAmbientPalette = AmbientBackgroundPalette.Default;
         }
     }
@@ -551,7 +649,7 @@ public sealed partial class LyricsWindow : Window
                 Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(200, 190, 190, 205))
             };
 
-            // Overlay TextBlock (active/accent bright white clipped by dynamic RectangleGeometry)
+            // Overlay TextBlock: Active highlight clipped by RectangleGeometry
             var overlayClip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, 0, 0) };
             var overlayBlock = new TextBlock
             {
@@ -586,7 +684,6 @@ public sealed partial class LyricsWindow : Window
                 Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0))
             };
 
-            // Robust click-to-seek: Capture actual LyricLine model reference rather than volatile UI index
             var targetModelLine = line;
             container.PointerPressed += async (_, _) =>
             {
@@ -654,7 +751,7 @@ public sealed partial class LyricsWindow : Window
                 }
                 else
                 {
-                    // Inactive surrounding lines have ZERO active overlay: single canonical visual text
+                    // Single canonical visual text: overlay collapsed for all inactive surrounding lines
                     overlay.Visibility = Visibility.Collapsed;
                     if (i < _lineClips.Count)
                     {
@@ -721,6 +818,12 @@ public sealed partial class LyricsWindow : Window
     {
         if (_lineContainers.Count == 0) return;
 
+        // Auto-center snap check as soon as layout measures first container
+        if (_snapToCenterOnNextLayout && _lineContainers[0].ActualHeight > 0)
+        {
+            RecalculateCenterScrollTarget(immediate: true);
+        }
+
         // 1. Smoothly interpolate each lyric line's opacity and scale at 60 FPS
         for (int i = 0; i < _lineContainers.Count; i++)
         {
@@ -747,8 +850,7 @@ public sealed partial class LyricsWindow : Window
             }
         }
 
-        // 1b. Real-time Apple Music-style karaoke fill clipping across all lyric lines
-        // Every line maintains its own strictly independent timeline, start/end bounds, and fill progress
+        // 2. Real-time Apple Music-style karaoke fill clipping on the active line
         var lyrics = _lyricsModule.CurrentLyrics;
         var timeline = _lyricsModule.CurrentTimeline.Duration > TimeSpan.Zero || _lyricsModule.CurrentTimeline.Status != MediaPlaybackStatus.Stopped
             ? _lyricsModule.CurrentTimeline
@@ -811,7 +913,7 @@ public sealed partial class LyricsWindow : Window
             }
         }
 
-        // 2. Continuously keep active line centered in viewport with smooth 60 FPS easing (always enabled)
+        // 3. Keep active line centered with smooth 60 FPS easing
         if (_userIsInteracting)
         {
             if ((DateTime.UtcNow - _lastUserInteractionUtc).TotalSeconds < 2.8)
@@ -840,7 +942,7 @@ public sealed partial class LyricsWindow : Window
             LyricsScrollViewer.ChangeView(null, _currentScrollOffsetY, null, disableAnimation: true);
         }
 
-        // 3. Ambient dynamic artwork background 60 FPS cross-fade
+        // 4. Preserved ambient dynamic artwork background 60 FPS cross-fade
         _currentAmbientPalette = AmbientBackgroundPalette.Lerp(_currentAmbientPalette, _targetAmbientPalette, 0.065f);
         StopTopLeft.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Dominant.R, _currentAmbientPalette.Dominant.G, _currentAmbientPalette.Dominant.B);
         StopCenter.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Secondary.R, _currentAmbientPalette.Secondary.G, _currentAmbientPalette.Secondary.B);
@@ -850,15 +952,15 @@ public sealed partial class LyricsWindow : Window
     private void UpdateLayoutForCurrentSize()
     {
         double w = RootLayout.ActualWidth;
-        bool isImmersive = w >= 820 || (AppWindow?.Presenter?.Kind == Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen);
+        double h = RootLayout.ActualHeight;
 
-        PanelImmersiveSidebar.Visibility = isImmersive ? Visibility.Visible : Visibility.Collapsed;
-        CompactHeaderCard.Visibility = isImmersive ? Visibility.Collapsed : Visibility.Visible;
-        BottomControlsBar.Visibility = isImmersive ? Visibility.Collapsed : Visibility.Visible;
-        ImmersiveTopOverlay.Visibility = isImmersive ? Visibility.Visible : Visibility.Collapsed;
-        PillBottomRightUtility.Visibility = isImmersive ? Visibility.Visible : Visibility.Collapsed;
-        ColImmersiveSidebar.Width = isImmersive ? new GridLength(4, GridUnitType.Star) : new GridLength(0);
-        IconFullscreen.Glyph = isImmersive ? "\uE73F" : "\uE740";
+        // Auto-detect small window dimensions to switch to compact Dar Mod if user resized manually
+        if (_currentMode == LyricsWindowMode.Horizontal && w < 540 && h < 260)
+        {
+            SetWindowMode(LyricsWindowMode.Compact);
+            return;
+        }
+
         UpdateViewportPadding();
     }
 
@@ -869,10 +971,12 @@ public sealed partial class LyricsWindow : Window
             if (AppWindow.Presenter.Kind == Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen)
             {
                 AppWindow.SetPresenter(Microsoft.UI.Windowing.AppWindowPresenterKind.Default);
+                IconFullscreen.Glyph = "\uE740";
             }
             else
             {
                 AppWindow.SetPresenter(Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen);
+                IconFullscreen.Glyph = "\uE73F";
             }
             UpdateLayoutForCurrentSize();
         }
@@ -887,12 +991,11 @@ public sealed partial class LyricsWindow : Window
         {
             int vol = _volumeService.GetPlaybackVolumePercent();
             bool muted = _volumeService.IsPlaybackMuted;
-            SliderLyricsVolume.Value = vol;
-            TxtLyricsVolumePercent.Text = muted ? "Muted" : $"{vol}%";
-            IconLyricsVolumeMute.Glyph = (muted || vol == 0) ? "\uE74F" : "\uE767";
-            SliderImmersiveVolume.Value = vol;
-            TxtImmersiveVolumePercent.Text = muted ? "Muted" : $"{vol}%";
-            IconImmersiveVolumeMute.Glyph = (muted || vol == 0) ? "\uE74F" : "\uE767";
+            SliderVolume.Value = vol;
+            TxtVolumePercent.Text = muted ? "Muted" : $"{vol}%";
+            string muteGlyph = (muted || vol == 0) ? "\uE74F" : "\uE767";
+            IconVolumeMute.Glyph = muteGlyph;
+            IconVolumeCompact.Glyph = muteGlyph;
         }
         finally
         {
