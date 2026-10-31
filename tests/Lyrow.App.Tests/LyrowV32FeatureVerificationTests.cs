@@ -181,18 +181,18 @@ public class LyrowV32FeatureVerificationTests
     [Fact]
     public void TwoPartVersioning_v32_Enforced()
     {
-        GitHubUpdateService.AppVersion.Should().Be("3.4");
-        GitHubUpdateService.IsValidTwoPartVersionTag("v3.4").Should().BeTrue();
-        GitHubUpdateService.IsValidTwoPartVersionTag("v3.4.0").Should().BeFalse();
-        GitHubUpdateService.IsValidTwoPartVersionTag("3.4.0").Should().BeFalse();
-        GitHubUpdateService.IsValidTwoPartVersionTag("v3.4.1").Should().BeFalse();
-        GitHubUpdateService.IsNewerVersion("3.3", "3.4").Should().BeTrue();
-        GitHubUpdateService.IsNewerVersion("3.4", "3.4").Should().BeFalse();
+        GitHubUpdateService.AppVersion.Should().Be("3.5");
+        GitHubUpdateService.IsValidTwoPartVersionTag("v3.5").Should().BeTrue();
+        GitHubUpdateService.IsValidTwoPartVersionTag("v3.5.0").Should().BeFalse();
+        GitHubUpdateService.IsValidTwoPartVersionTag("3.5.0").Should().BeFalse();
+        GitHubUpdateService.IsValidTwoPartVersionTag("v3.5.1").Should().BeFalse();
+        GitHubUpdateService.IsNewerVersion("3.4", "3.5").Should().BeTrue();
+        GitHubUpdateService.IsNewerVersion("3.5", "3.5").Should().BeFalse();
 
         var repoRoot = FindRepoRoot();
-        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<Version>3.4</Version>");
-        File.ReadAllText(Path.Combine(repoRoot, "installer", "setup.iss")).Should().Contain("#define MyAppVersion \"3.4\"");
-        File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "app.manifest")).Should().Contain("version=\"3.4.0.0\"");
+        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<Version>3.5</Version>");
+        File.ReadAllText(Path.Combine(repoRoot, "installer", "setup.iss")).Should().Contain("#define MyAppVersion \"3.5\"");
+        File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "app.manifest")).Should().Contain("version=\"3.5.0.0\"");
     }
 
     [Fact]

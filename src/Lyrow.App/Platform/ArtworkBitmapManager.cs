@@ -37,8 +37,16 @@ public sealed class ArtworkBitmapManager
         byte[]? rawBytes = track.ThumbnailData;
         if (rawBytes != null && rawBytes.Length > 0 && ArtworkService.IsValidImageData(rawBytes))
         {
-            _rawBytesCache[key] = rawBytes;
-            _artworkService.CacheArtwork(track.Artist, track.Title, rawBytes);
+            // If we have a cached version with greater or equal byte size, avoid overwriting with a lower-res thumbnail
+            if (!_rawBytesCache.TryGetValue(key, out var existing) || existing == null || existing.Length <= rawBytes.Length)
+            {
+                _rawBytesCache[key] = rawBytes;
+                _artworkService.CacheArtwork(track.Artist, track.Title, rawBytes);
+            }
+            else
+            {
+                rawBytes = existing;
+            }
         }
         else if (!_rawBytesCache.TryGetValue(key, out rawBytes))
         {
@@ -64,7 +72,10 @@ public sealed class ArtworkBitmapManager
             }
             stream.Seek(0);
 
-            var image = new BitmapImage();
+            var image = new BitmapImage
+            {
+                AutoPlay = true
+            };
             await image.SetSourceAsync(stream);
             return image;
         }
@@ -81,8 +92,12 @@ public sealed class ArtworkBitmapManager
         string key = ArtworkService.CreateCacheKey(track.Artist, track.Title);
         if (track.ThumbnailData != null && track.ThumbnailData.Length > 0 && ArtworkService.IsValidImageData(track.ThumbnailData))
         {
-            _rawBytesCache[key] = track.ThumbnailData;
-            return track.ThumbnailData;
+            if (!_rawBytesCache.TryGetValue(key, out var existing) || existing == null || existing.Length <= track.ThumbnailData.Length)
+            {
+                _rawBytesCache[key] = track.ThumbnailData;
+                return track.ThumbnailData;
+            }
+            return existing;
         }
 
         if (_rawBytesCache.TryGetValue(key, out var cached))

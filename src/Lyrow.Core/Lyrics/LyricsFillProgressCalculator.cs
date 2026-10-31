@@ -219,13 +219,33 @@ public static class LyricsFillProgressCalculator
             var words = expLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length <= 1)
             {
-                result.Add(expLine);
+                // Single huge unbroken word or token: chunk by maxCharsPerSubLine so it never overflows viewport
+                for (int c = 0; c < expLine.Length; c += maxCharsPerSubLine)
+                {
+                    int len = Math.Min(maxCharsPerSubLine, expLine.Length - c);
+                    result.Add(expLine.Substring(c, len));
+                }
                 continue;
             }
 
             var currentBuilder = new System.Text.StringBuilder();
             foreach (var w in words)
             {
+                if (w.Length > maxCharsPerSubLine)
+                {
+                    if (currentBuilder.Length > 0)
+                    {
+                        result.Add(currentBuilder.ToString());
+                        currentBuilder.Clear();
+                    }
+                    for (int c = 0; c < w.Length; c += maxCharsPerSubLine)
+                    {
+                        int len = Math.Min(maxCharsPerSubLine, w.Length - c);
+                        result.Add(w.Substring(c, len));
+                    }
+                    continue;
+                }
+
                 if (currentBuilder.Length == 0)
                 {
                     currentBuilder.Append(w);

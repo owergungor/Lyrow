@@ -114,6 +114,43 @@ public sealed class LrclibClient : ILyricsClient
                     }
                 }
 
+                // Fallback 3: Broad search using /api/search?q={query} if exact get failed
+                string broadQ = $"{primaryArtist} {strippedTrack}".Trim();
+                if (!string.IsNullOrWhiteSpace(broadQ))
+                {
+                    var searchUrl = $"https://lrclib.net/api/search?q={Uri.EscapeDataString(broadQ)}";
+                    using var searchResp = await _httpClient.GetAsync(new Uri(searchUrl), HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    if (searchResp.IsSuccessStatusCode)
+                    {
+                        var searchStream = await searchResp.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                        var searchList = await JsonSerializer.DeserializeAsync<List<LrclibResponse>>(searchStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+                        if (searchList != null && searchList.Count > 0)
+                        {
+                            // Prefer synced lyrics first, then plain
+                            var candidate = searchList.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.SyncedLyrics))
+                                         ?? searchList.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.PlainLyrics));
+                            if (candidate != null)
+                            {
+                                if (!string.IsNullOrWhiteSpace(candidate.SyncedLyrics))
+                                {
+                                    var parsed = LrcParser.Parse(candidate.SyncedLyrics, candidate.TrackName ?? cleanTrack, candidate.ArtistName ?? cleanArtist);
+                                    return new LyricsSearchResult(true, parsed, "LRCLIB");
+                                }
+                                if (!string.IsNullOrWhiteSpace(candidate.PlainLyrics))
+                                {
+                                    var plain = new SyncedLyrics(
+                                        title: candidate.TrackName ?? cleanTrack,
+                                        artist: candidate.ArtistName ?? cleanArtist,
+                                        isSynced: false,
+                                        lines: Array.Empty<LyricLine>(),
+                                        plainLyrics: candidate.PlainLyrics);
+                                    return new LyricsSearchResult(true, plain, "LRCLIB");
+                                }
+                            }
+                        }
+                    }
+                }
+
                 return new LyricsSearchResult(false, null, "LRCLIB", "Lyrics not found for track.");
             }
 

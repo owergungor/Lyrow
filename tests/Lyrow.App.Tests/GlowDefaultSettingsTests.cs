@@ -13,8 +13,8 @@ public class GlowDefaultSettingsTests
         // Brightness = 80%
         Assert.Equal(80, settings.GlowIntensity);
 
-        // Thickness = 48px
-        Assert.Equal(48, settings.GlowThickness);
+        // Thickness = 24px (v3.5 standard)
+        Assert.Equal(24, settings.GlowThickness);
 
         // Reactivity = 250% (Sensitivity = 2.5f)
         Assert.Equal(2.5f, settings.Glow.Sensitivity);

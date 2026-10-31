@@ -313,7 +313,7 @@ public sealed class GlowOverlayWindow : IDisposable
         ClearBuffer();
 
         int userIntensityPct = _settingsManager?.Current.GlowIntensity ?? 80;
-        int userThicknessPx = _settingsManager?.Current.GlowThickness ?? 48;
+        int userThicknessPx = _settingsManager?.Current.GlowThickness ?? 24;
 
         float effectiveScale = Math.Clamp((userIntensityPct / 100.0f) * _fadeMultiplier, 0.0f, 1.0f);
         if (effectiveScale < 0.005f)

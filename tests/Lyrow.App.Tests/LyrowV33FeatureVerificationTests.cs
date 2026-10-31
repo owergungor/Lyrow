@@ -137,17 +137,17 @@ public class LyrowV33FeatureVerificationTests
     [Fact]
     public void Versioning_V33_StrictlyEnforcedAcrossRepository()
     {
-        GitHubUpdateService.AppVersion.Should().Be("3.4");
-        GitHubUpdateService.IsValidTwoPartVersionTag("v3.4").Should().BeTrue();
-        GitHubUpdateService.IsValidTwoPartVersionTag("v3.4.0").Should().BeFalse();
-        GitHubUpdateService.IsNewerVersion("3.3", "3.4").Should().BeTrue();
+        GitHubUpdateService.AppVersion.Should().Be("3.5");
+        GitHubUpdateService.IsValidTwoPartVersionTag("v3.5").Should().BeTrue();
+        GitHubUpdateService.IsValidTwoPartVersionTag("v3.5.0").Should().BeFalse();
+        GitHubUpdateService.IsNewerVersion("3.4", "3.5").Should().BeTrue();
 
         string repoRoot = FindRepoRoot();
-        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<Version>3.4</Version>");
-        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<FileVersion>3.4.0.0</FileVersion>");
-        File.ReadAllText(Path.Combine(repoRoot, "installer", "setup.iss")).Should().Contain("#define MyAppVersion \"3.4\"");
-        File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "app.manifest")).Should().Contain("version=\"3.4.0.0\"");
-        File.ReadAllText(Path.Combine(repoRoot, ".github", "workflows", "release.yml")).Should().Contain("default: 'v3.4'");
+        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<Version>3.5</Version>");
+        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<FileVersion>3.5.0.0</FileVersion>");
+        File.ReadAllText(Path.Combine(repoRoot, "installer", "setup.iss")).Should().Contain("#define MyAppVersion \"3.5\"");
+        File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "app.manifest")).Should().Contain("version=\"3.5.0.0\"");
+        File.ReadAllText(Path.Combine(repoRoot, ".github", "workflows", "release.yml")).Should().Contain("default: 'v3.5'");
     }
 
     private static string FindRepoRoot()

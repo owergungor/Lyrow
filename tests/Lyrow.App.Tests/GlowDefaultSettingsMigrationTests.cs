@@ -15,7 +15,7 @@ public class GlowDefaultSettingsMigrationTests
 
         Assert.NotNull(settings);
         Assert.Equal(80, settings.GlowIntensity);
-        Assert.Equal(48, settings.GlowThickness);
+        Assert.Equal(24, settings.GlowThickness);
         Assert.Equal(2.5f, settings.Glow.Sensitivity);
     }
 

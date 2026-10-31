@@ -15,7 +15,7 @@ public class LyrowV34CoreVerificationTests
     public void UpdateAutoRelaunchAfterInstallTests_VerifiesPackageAndBuildsRelaunchScript()
     {
         var service = new GitHubUpdateService();
-        service.CurrentVersion.Should().Be("3.4");
+        service.CurrentVersion.Should().Be("3.5");
 
         // 1. Non-existent or non-PE file must fail verification
         service.VerifyDownloadedPackage("").Should().BeFalse();

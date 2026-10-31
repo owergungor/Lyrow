@@ -511,10 +511,12 @@ public sealed partial class LyricsWindow : Window
     private void UpdateViewportPadding()
     {
         double viewportH = LyricsScrollViewer.ActualHeight;
+        double viewportW = LyricsScrollViewer.ActualWidth;
         if (viewportH <= 0) return;
 
         double halfPadding = Math.Max(60.0, (viewportH / 2.0) - 24.0);
-        LyricsPanel.Padding = new Thickness(28, halfPadding, 28, halfPadding);
+        double horizPadding = Math.Clamp(viewportW * 0.05, 24.0, 56.0);
+        LyricsPanel.Padding = new Thickness(horizPadding, halfPadding, horizPadding, halfPadding);
     }
 
     private void OnUiTimerTick(object? sender, object e)
@@ -784,7 +786,7 @@ public sealed partial class LyricsWindow : Window
                     Text = subText,
                     FontSize = target.FontSize,
                     FontWeight = FontWeights.Medium,
-                    TextWrapping = TextWrapping.NoWrap,
+                    TextWrapping = TextWrapping.Wrap,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     TextAlignment = TextAlignment.Center,
                     LineHeight = target.FontSize * 1.32,
@@ -798,7 +800,7 @@ public sealed partial class LyricsWindow : Window
                     Text = subText,
                     FontSize = target.FontSize,
                     FontWeight = FontWeights.Bold,
-                    TextWrapping = TextWrapping.NoWrap,
+                    TextWrapping = TextWrapping.Wrap,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     TextAlignment = TextAlignment.Center,
                     LineHeight = target.FontSize * 1.32,
@@ -828,7 +830,7 @@ public sealed partial class LyricsWindow : Window
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Opacity = target.TargetOpacity,
                 RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5),
-                RenderTransform = new ScaleTransform { ScaleX = target.TargetScale, ScaleY = target.TargetScale },
+                RenderTransform = new ScaleTransform { ScaleX = 1.0, ScaleY = 1.0 },
                 Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0))
             };
 
@@ -935,8 +937,8 @@ public sealed partial class LyricsWindow : Window
                 _lineContainers[i].Opacity = target.TargetOpacity;
                 if (_lineContainers[i].RenderTransform is ScaleTransform st)
                 {
-                    st.ScaleX = target.TargetScale;
-                    st.ScaleY = target.TargetScale;
+                    st.ScaleX = 1.0;
+                    st.ScaleY = 1.0;
                 }
             }
         }
@@ -1012,8 +1014,8 @@ public sealed partial class LyricsWindow : Window
                 _currentScales[i] = nextSc;
                 if (_lineContainers[i].RenderTransform is ScaleTransform st)
                 {
-                    st.ScaleX = nextSc;
-                    st.ScaleY = nextSc;
+                    st.ScaleX = 1.0;
+                    st.ScaleY = 1.0;
                 }
             }
         }
