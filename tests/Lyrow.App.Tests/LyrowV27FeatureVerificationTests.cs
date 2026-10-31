@@ -19,13 +19,13 @@ public class LyrowV27FeatureVerificationTests
     [Fact]
     public void Versioning_IsStrictlyTwoPart_V27()
     {
-        Assert.Equal("3.3", GitHubUpdateService.AppVersion);
-        Assert.True(GitHubUpdateService.IsValidTwoPartVersionTag("v3.3"));
-        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v3.3.0"));
-        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("3.3.0"));
-        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v3.3.1"));
-        Assert.True(GitHubUpdateService.IsNewerVersion("3.0", "3.3"));
-        Assert.False(GitHubUpdateService.IsNewerVersion("3.3", "3.3"));
+        Assert.Equal("3.4", GitHubUpdateService.AppVersion);
+        Assert.True(GitHubUpdateService.IsValidTwoPartVersionTag("v3.4"));
+        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v3.4.0"));
+        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("3.4.0"));
+        Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v3.4.1"));
+        Assert.True(GitHubUpdateService.IsNewerVersion("3.3", "3.4"));
+        Assert.False(GitHubUpdateService.IsNewerVersion("3.4", "3.4"));
     }
 
     [Fact]
@@ -33,30 +33,30 @@ public class LyrowV27FeatureVerificationTests
     {
         string root = GetSolutionRoot();
         string props = File.ReadAllText(Path.Combine(root, "Directory.Build.props"));
-        props.Should().Contain("<Version>3.3</Version>");
-        props.Should().Contain("<PackageVersion>3.3</PackageVersion>");
-        props.Should().Contain("<InformationalVersion>3.3</InformationalVersion>");
-        props.Should().NotContain("<Version>3.3.0</Version>");
-        props.Should().NotContain("<PackageVersion>3.3.0</PackageVersion>");
-        props.Should().NotContain("<InformationalVersion>3.3.0</InformationalVersion>");
+        props.Should().Contain("<Version>3.4</Version>");
+        props.Should().Contain("<PackageVersion>3.4</PackageVersion>");
+        props.Should().Contain("<InformationalVersion>3.4</InformationalVersion>");
+        props.Should().NotContain("<Version>3.4.0</Version>");
+        props.Should().NotContain("<PackageVersion>3.4.0</PackageVersion>");
+        props.Should().NotContain("<InformationalVersion>3.4.0</InformationalVersion>");
 
         string appCsproj = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "Lyrow.App.csproj"));
-        appCsproj.Should().Contain("<Version>3.3</Version>");
-        appCsproj.Should().Contain("<PackageVersion>3.3</PackageVersion>");
-        appCsproj.Should().Contain("<InformationalVersion>3.3</InformationalVersion>");
-        appCsproj.Should().NotContain("<Version>3.3.0</Version>");
-        appCsproj.Should().NotContain("<PackageVersion>3.3.0</PackageVersion>");
-        appCsproj.Should().NotContain("<InformationalVersion>3.3.0</InformationalVersion>");
+        appCsproj.Should().Contain("<Version>3.4</Version>");
+        appCsproj.Should().Contain("<PackageVersion>3.4</PackageVersion>");
+        appCsproj.Should().Contain("<InformationalVersion>3.4</InformationalVersion>");
+        appCsproj.Should().NotContain("<Version>3.4.0</Version>");
+        appCsproj.Should().NotContain("<PackageVersion>3.4.0</PackageVersion>");
+        appCsproj.Should().NotContain("<InformationalVersion>3.4.0</InformationalVersion>");
 
         string setupIss = File.ReadAllText(Path.Combine(root, "installer", "setup.iss"));
-        setupIss.Should().Contain("#define MyAppVersion \"3.3\"");
-        setupIss.Should().NotContain("#define MyAppVersion \"3.3.0\"");
+        setupIss.Should().Contain("#define MyAppVersion \"3.4\"");
+        setupIss.Should().NotContain("#define MyAppVersion \"3.4.0\"");
 
         string manifest = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "app.manifest"));
-        manifest.Should().Contain("version=\"3.3.0.0\"");
+        manifest.Should().Contain("version=\"3.4.0.0\"");
 
         string mainXaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "MainWindow.xaml"));
-        mainXaml.Should().Contain("Current Version: v3.3");
+        mainXaml.Should().Contain("Current Version: v3.4");
     }
 
     [Fact]

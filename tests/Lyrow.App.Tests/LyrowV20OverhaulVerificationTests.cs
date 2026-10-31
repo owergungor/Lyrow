@@ -133,9 +133,10 @@ public class LyrowV20OverhaulVerificationTests
         string root = GetSolutionRoot();
 
         string buildProps = File.ReadAllText(Path.Combine(root, "Directory.Build.props"));
-        buildProps.Should().Contain("<Version>3.3</Version>");
-        buildProps.Should().Contain("<PackageVersion>3.3</PackageVersion>");
-        buildProps.Should().Contain("<InformationalVersion>3.3</InformationalVersion>");
+        buildProps.Should().Contain("<Version>3.4</Version>");
+        buildProps.Should().Contain("<PackageVersion>3.4</PackageVersion>");
+        buildProps.Should().Contain("<InformationalVersion>3.4</InformationalVersion>");
+        buildProps.Should().NotContain("3.4.0</Version>");
         buildProps.Should().NotContain("3.3.0</Version>");
         buildProps.Should().NotContain("2.8.0</Version>");
         buildProps.Should().NotContain("2.7.0</Version>");
@@ -147,7 +148,8 @@ public class LyrowV20OverhaulVerificationTests
         buildProps.Should().NotContain("2.0.0</Version>");
 
         string setupIss = File.ReadAllText(Path.Combine(root, "installer", "setup.iss"));
-        setupIss.Should().Contain("#define MyAppVersion \"3.3\"");
+        setupIss.Should().Contain("#define MyAppVersion \"3.4\"");
+        setupIss.Should().NotContain("3.4.0");
         setupIss.Should().NotContain("3.3.0");
         setupIss.Should().NotContain("2.8.0");
         setupIss.Should().NotContain("2.7.0");
@@ -159,6 +161,7 @@ public class LyrowV20OverhaulVerificationTests
         setupIss.Should().NotContain("2.0.0");
 
         string releaseYml = File.ReadAllText(Path.Combine(root, ".github", "workflows", "release.yml"));
+        releaseYml.Should().NotContain("3.4.0");
         releaseYml.Should().NotContain("3.3.0");
         releaseYml.Should().NotContain("2.8.0");
         releaseYml.Should().NotContain("2.7.0");
@@ -171,9 +174,10 @@ public class LyrowV20OverhaulVerificationTests
         releaseYml.Should().NotContain("v1.3.0");
 
         string readme = File.ReadAllText(Path.Combine(root, "README.md"));
-        readme.Should().Contain("Lyrow v3.3");
-        readme.Should().Contain("Lyrow-3.3-Setup-x64.exe");
-        readme.Should().Contain("Lyrow-v3.3-win-x64-portable.zip");
+        readme.Should().Contain("Lyrow v3.4");
+        readme.Should().Contain("Lyrow-3.4-Setup-x64.exe");
+        readme.Should().Contain("Lyrow-v3.4-win-x64-portable.zip");
+        readme.Should().NotContain("v3.4.0");
         readme.Should().NotContain("v3.3.0");
         readme.Should().NotContain("v2.8.0");
         readme.Should().NotContain("v2.7.0");

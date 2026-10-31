@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
@@ -100,6 +100,17 @@ public sealed class GlowOverlayManager : IDisposable
             foreach (var overlay in _activeOverlays)
             {
                 overlay.SetPalette(_currentPalette, immediate: false);
+            }
+        }
+    }
+
+    public void ResetBeatEngines()
+    {
+        lock (_lock)
+        {
+            foreach (var overlay in _activeOverlays)
+            {
+                overlay.BeatEngine.Reset();
             }
         }
     }

@@ -181,7 +181,13 @@ public sealed class SpectrumAnalyzer : ISpectrumAnalyzer
                 bass: bass,
                 mid: mid,
                 treble: treble,
-                levels: levels);
+                levels: levels,
+                lowMid: _bandProcessor.LatestLowMid,
+                highMid: _bandProcessor.LatestHighMid,
+                spectralFlux: _bandProcessor.LatestSpectralFlux,
+                bassFlux: _bandProcessor.LatestBassFlux,
+                midFlux: _bandProcessor.LatestMidFlux,
+                trebleFlux: _bandProcessor.LatestTrebleFlux);
         }
     }
 

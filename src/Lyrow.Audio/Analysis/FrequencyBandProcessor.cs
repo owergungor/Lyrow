@@ -7,6 +7,7 @@ namespace Lyrow.Audio.Analysis;
 public sealed class FrequencyBandProcessor
 {
     private float[] _smoothedBands = [];
+    private float[] _prevMagnitudes = [];
     private int _barCount;
 
     public FrequencyBandProcessor(int barCount = 32)
@@ -15,6 +16,12 @@ public sealed class FrequencyBandProcessor
     }
 
     public int BarCount => _barCount;
+    public float LatestLowMid { get; private set; }
+    public float LatestHighMid { get; private set; }
+    public float LatestSpectralFlux { get; private set; }
+    public float LatestBassFlux { get; private set; }
+    public float LatestMidFlux { get; private set; }
+    public float LatestTrebleFlux { get; private set; }
 
     public void SetBarCount(int barCount)
     {
@@ -26,17 +33,8 @@ public sealed class FrequencyBandProcessor
     }
 
     /// <summary>
-    /// Processes FFT magnitudes into logarithmic bars and 4 main frequency ranges with smoothing.
+    /// Processes FFT magnitudes into logarithmic bars and 5 musical frequency ranges with spectral flux and smoothing.
     /// </summary>
-    /// <param name="magnitudes">Positive frequency bin magnitudes from FFT [0 .. FftSize/2 - 1].</param>
-    /// <param name="sampleRate">Audio sampling rate (e.g. 44100, 48000 Hz).</param>
-    /// <param name="targetBands">Destination buffer of length BarCount.</param>
-    /// <param name="subBass">Out: 20 - 60 Hz normalized energy.</param>
-    /// <param name="bass">Out: 60 - 250 Hz normalized energy.</param>
-    /// <param name="mid">Out: 250 - 4000 Hz normalized energy.</param>
-    /// <param name="treble">Out: 4000 - 20000 Hz normalized energy.</param>
-    /// <param name="smoothing">Smoothing decay factor [0.0 - 0.95].</param>
-    /// <param name="sensitivity">Sensitivity boost multiplier.</param>
     public void Process(
         ReadOnlySpan<float> magnitudes,
         int sampleRate,
@@ -57,21 +55,79 @@ public sealed class FrequencyBandProcessor
         if (binCount == 0 || sampleRate <= 0)
         {
             subBass = bass = mid = treble = 0f;
+            LatestLowMid = LatestHighMid = LatestSpectralFlux = LatestBassFlux = LatestMidFlux = LatestTrebleFlux = 0f;
             for (int i = 0; i < _barCount; i++)
             {
                 _smoothedBands[i] *= smoothing;
                 targetBands[i] = _smoothedBands[i];
             }
+            if (_prevMagnitudes.Length > 0)
+            {
+                Array.Clear(_prevMagnitudes);
+            }
             return;
+        }
+
+        if (_prevMagnitudes.Length != binCount)
+        {
+            _prevMagnitudes = new float[binCount];
         }
 
         float binWidth = (sampleRate / 2.0f) / binCount;
 
-        // 1. Calculate specific standard audio frequency ranges
-        subBass = CalculateRangeEnergy(magnitudes, binWidth, 20f, 60f) * sensitivity * 1.5f;
-        bass = CalculateRangeEnergy(magnitudes, binWidth, 60f, 250f) * sensitivity * 1.3f;
-        mid = CalculateRangeEnergy(magnitudes, binWidth, 250f, 4000f) * sensitivity;
-        treble = CalculateRangeEnergy(magnitudes, binWidth, 4000f, 20000f) * sensitivity * 1.2f;
+        // 1. Calculate 5 musical frequency bands (Sub/Bass: 20-160Hz, Low-Mid: 160-500Hz, Mid: 500-2000Hz, High-Mid: 2000-6000Hz, Treble: 6000-16000Hz)
+        // Also retain standard SubBass/Bass/Mid/Treble outputs for compatibility
+        subBass = CalculateRangeEnergy(magnitudes, binWidth, 20f, 65f) * sensitivity * 1.5f;
+        bass = CalculateRangeEnergy(magnitudes, binWidth, 55f, 220f) * sensitivity * 1.35f;
+        LatestLowMid = CalculateRangeEnergy(magnitudes, binWidth, 160f, 500f) * sensitivity * 1.2f;
+        mid = CalculateRangeEnergy(magnitudes, binWidth, 250f, 3500f) * sensitivity;
+        LatestHighMid = CalculateRangeEnergy(magnitudes, binWidth, 2000f, 6000f) * sensitivity * 1.15f;
+        treble = CalculateRangeEnergy(magnitudes, binWidth, 4000f, 18000f) * sensitivity * 1.25f;
+
+        // 2. Calculate half-wave rectified Spectral Flux: SF(t) = sum(max(0, X(t,k) - X(t-1,k)))
+        float totalFlux = 0f;
+        float bassFlux = 0f;
+        float midFlux = 0f;
+        float trebleFlux = 0f;
+        int bassEndBin = Math.Clamp((int)MathF.Ceiling(200f / binWidth), 1, binCount);
+        int midEndBin = Math.Clamp((int)MathF.Ceiling(3500f / binWidth), bassEndBin + 1, binCount);
+        int trebleEndBin = Math.Clamp((int)MathF.Ceiling(16000f / binWidth), midEndBin + 1, binCount);
+
+        for (int k = 1; k < trebleEndBin; k++)
+        {
+            float curr = magnitudes[k];
+            float prev = _prevMagnitudes[k];
+            float diff = curr - prev;
+            _prevMagnitudes[k] = curr;
+
+            if (diff > 0f)
+            {
+                totalFlux += diff;
+                if (k < bassEndBin)
+                {
+                    bassFlux += diff * 1.8f; // Strong weight on kick/bass onsets
+                }
+                else if (k < midEndBin)
+                {
+                    midFlux += diff * 1.2f; // Snare/clap/vocal transients
+                }
+                else
+                {
+                    trebleFlux += diff * 1.4f; // Hi-hat/cymbal transients
+                }
+            }
+        }
+
+        // Copy remaining bins if any
+        for (int k = trebleEndBin; k < binCount; k++)
+        {
+            _prevMagnitudes[k] = magnitudes[k];
+        }
+
+        LatestSpectralFlux = Math.Clamp(totalFlux * sensitivity * 0.45f, 0f, 4.0f);
+        LatestBassFlux = Math.Clamp(bassFlux * sensitivity * 0.65f, 0f, 4.0f);
+        LatestMidFlux = Math.Clamp(midFlux * sensitivity * 0.45f, 0f, 4.0f);
+        LatestTrebleFlux = Math.Clamp(trebleFlux * sensitivity * 0.55f, 0f, 4.0f);
 
         // 2. Map to logarithmic visualization bars (from minFreq = 20Hz to maxFreq = min(sampleRate/2, 20000Hz))
         float minFreq = 25f;
@@ -145,5 +201,7 @@ public sealed class FrequencyBandProcessor
     public void Reset()
     {
         Array.Clear(_smoothedBands);
+        Array.Clear(_prevMagnitudes);
+        LatestLowMid = LatestHighMid = LatestSpectralFlux = LatestBassFlux = LatestMidFlux = LatestTrebleFlux = 0f;
     }
 }

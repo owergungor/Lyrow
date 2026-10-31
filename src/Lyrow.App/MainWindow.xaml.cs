@@ -45,6 +45,8 @@ public sealed partial class MainWindow : Window
     private ToastNotificationManager? _toastManager;
     private LyricsWindow? _lyricsWindow;
     private string _lastTrackCacheKey = string.Empty;
+    private int _lastArtworkSignature = 0;
+    private long _mainTrackSequence = 0;
     private string? _latestUpdateReleaseUrl;
     private string? _latestInstallerDownloadUrl;
     private bool _isExplicitExit = false;
@@ -1105,12 +1107,34 @@ public sealed partial class MainWindow : Window
             toastHandle?.SetState(UpdateToastState.Verifying, verifyText);
             await Task.Delay(250);
 
+            if (!_updateService.VerifyDownloadedPackage(destFile))
+            {
+                throw new InvalidOperationException("Downloaded update package failed integrity verification.");
+            }
+
             string installText = LocalizationService.Instance["Updates_Installing"];
             TxtUpdateDownloadProgress.Text = installText;
             toastHandle?.SetState(UpdateToastState.Installing, installText);
+            await Task.Delay(150);
 
-            // Trigger silent installer execution and graceful restart
-            _updateService.LaunchInstallerAndExit(destFile);
+            string completedText = LocalizationService.Instance["Updates_Completed"];
+            TxtUpdateDownloadProgress.Text = completedText;
+            toastHandle?.SetState(UpdateToastState.Completed, completedText);
+
+            // Trigger silent installer execution and graceful restart with single-instance lock release
+            bool launched = _updateService.LaunchSilentUpdateAndRestart(
+                destFile,
+                appExecutablePath: Environment.ProcessPath,
+                onBeforeExit: () =>
+                {
+                    App.ReleaseSingleInstanceLock();
+                    App.ShutdownApp();
+                });
+
+            if (!launched)
+            {
+                throw new InvalidOperationException("Could not start update installer process.");
+            }
         }
         catch (Exception ex)
         {
@@ -1387,17 +1411,32 @@ public sealed partial class MainWindow : Window
     {
         if (_artworkBitmapManager == null) return;
 
+        long currentSeq = Interlocked.Increment(ref _mainTrackSequence);
         string newKey = ArtworkService.CreateCacheKey(track.Artist, track.Title);
-        if (!string.IsNullOrEmpty(_lastTrackCacheKey) && !string.Equals(_lastTrackCacheKey, newKey, StringComparison.OrdinalIgnoreCase))
+        int newArtSig = ArtworkBitmapManager.ComputeArtworkSignature(track);
+
+        bool isTrackSwitch = !string.Equals(_lastTrackCacheKey, newKey, StringComparison.OrdinalIgnoreCase);
+        bool isArtworkUpdated = newArtSig != _lastArtworkSignature;
+
+        if (isTrackSwitch || isArtworkUpdated)
         {
             _artworkBitmapManager.Invalidate(track.Artist, track.Title);
         }
+
+        if (isTrackSwitch)
+        {
+            _glowOverlayManager?.ResetBeatEngines();
+        }
+
         _lastTrackCacheKey = newKey;
+        _lastArtworkSignature = newArtSig;
 
         // Decode BitmapImage on UI thread
         DispatcherQueue.TryEnqueue(async () =>
         {
             var bitmap = await _artworkBitmapManager.GetArtworkBitmapAsync(track);
+            if (Interlocked.Read(ref _mainTrackSequence) != currentSeq) return;
+
             if (bitmap != null)
             {
                 HomeTrackArtwork.Source = bitmap;
@@ -1414,6 +1453,8 @@ public sealed partial class MainWindow : Window
         if (_settingsManager.Current.SyncWithAlbumArt)
         {
             var palette = await _artworkBitmapManager.ExtractArtworkPaletteAsync(track);
+            if (Interlocked.Read(ref _mainTrackSequence) != currentSeq) return;
+
             _glowOverlayManager?.SetCustomPalette(palette);
             DispatcherQueue.TryEnqueue(() => UpdatePaletteSwatches(palette));
         }

@@ -27,5 +27,8 @@ public interface IUpdateService
     bool LaunchInstallerAndExit(string installerPath);
 
     /// <summary>Applies update silently in-app without wizard prompts, replaces binaries, and restarts the application.</summary>
-    bool LaunchSilentUpdateAndRestart(string installerPath, string? appExecutablePath = null);
+    bool LaunchSilentUpdateAndRestart(string installerPath, string? appExecutablePath = null, Action? onBeforeExit = null);
+
+    /// <summary>Verifies that a downloaded update package exists, is non-empty, and has a valid Windows PE signature.</summary>
+    bool VerifyDownloadedPackage(string packagePath);
 }

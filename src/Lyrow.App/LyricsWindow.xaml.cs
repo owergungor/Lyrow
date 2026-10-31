@@ -42,9 +42,10 @@ public sealed partial class LyricsWindow : Window
     private bool _isUpdatingVolumeUi = false;
 
     private readonly List<Border> _lineContainers = new();
-    private readonly List<TextBlock> _lineBlocks = new();
-    private readonly List<TextBlock> _overlayBlocks = new();
-    private readonly List<RectangleGeometry> _lineClips = new();
+    private readonly List<List<TextBlock>> _lineSubBaseBlocks = new();
+    private readonly List<List<TextBlock>> _lineSubOverlayBlocks = new();
+    private readonly List<List<RectangleGeometry>> _lineSubClips = new();
+    private readonly List<IReadOnlyList<string>> _lineSubStrings = new();
     private readonly List<LyricLine> _currentRenderedLines = new();
     private readonly List<double> _currentOpacities = new();
     private readonly List<double> _targetOpacities = new();
@@ -52,16 +53,21 @@ public sealed partial class LyricsWindow : Window
     private readonly List<double> _targetScales = new();
 
     private long _windowTrackSequence = 0;
+    private int _lastArtworkSignature = 0;
     private int _currentActiveIndex = -99;
     private int _lastFontScaleIndex = -1;
     private double _lastFocusedSize = -1;
     private double _lastUnfocusedSize = -1;
+    private double _lastAppliedResponsiveArtworkSize = -1;
+    private double _lastResponsiveFocusedSize = 28.0;
+    private double _lastResponsiveUnfocusedSize = 20.0;
     private string _lastSongKey = string.Empty;
     private SyncedLyrics? _lastLyrics;
     private double _currentScrollOffsetY = 0.0;
     private double _targetScrollOffsetY = 0.0;
     private bool _snapToCenterOnNextLayout = false;
     private bool _userIsInteracting = false;
+    private bool _isDraggingProgressBar = false;
     private DateTime _lastUserInteractionUtc = DateTime.MinValue;
     private bool _isShuttingDown = false;
 
@@ -102,7 +108,12 @@ public sealed partial class LyricsWindow : Window
 
         // Mode Switching: Dar Mod <-> Horizontal
         BtnDarMod.Click += (_, _) => SetWindowMode(LyricsWindowMode.Compact);
+        BtnNormalModeCompact.Click += (_, _) => SetWindowMode(LyricsWindowMode.Horizontal);
         BtnExpandFromCompact.Click += (_, _) => SetWindowMode(LyricsWindowMode.Horizontal);
+
+        // Interactive Progress Bar Click & Drag Seeking
+        WireInteractiveProgressScrubber(GridProgressHitBox, ProgressTimeline);
+        WireInteractiveProgressScrubber(GridProgressCompactHitBox, ProgressTimelineCompact);
 
         // Lyrics Toggle (Active -> 50/50, Inactive -> Player Centered)
         BtnToggleLyrics.Click += (_, _) => ToggleLyricsPanel();
@@ -152,7 +163,6 @@ public sealed partial class LyricsWindow : Window
                     _volumeService.SetPlaybackVolumePercent(val);
                     TxtVolumePercent.Text = $"{val}%";
                     IconVolumeMute.Glyph = (val == 0 || _volumeService.IsPlaybackMuted) ? "\uE74F" : "\uE767";
-                    IconVolumeCompact.Glyph = (val == 0 || _volumeService.IsPlaybackMuted) ? "\uE74F" : "\uE767";
                 }
                 finally
                 {
@@ -161,12 +171,6 @@ public sealed partial class LyricsWindow : Window
             };
 
             BtnVolumeMute.Click += (_, _) =>
-            {
-                _volumeService.TogglePlaybackMute();
-                SyncVolumeUi();
-            };
-
-            BtnVolumeCompact.Click += (_, _) =>
             {
                 _volumeService.TogglePlaybackMute();
                 SyncVolumeUi();
@@ -228,7 +232,7 @@ public sealed partial class LyricsWindow : Window
     /// <summary>
     /// Switches between Dar Mod (compact player) and Horizontal 50/50 lyrics window.
     /// </summary>
-    public void SetWindowMode(LyricsWindowMode mode)
+    public void SetWindowMode(LyricsWindowMode mode, bool resizeWindow = true)
     {
         _currentMode = mode;
         if (mode == LyricsWindowMode.Compact)
@@ -236,14 +240,21 @@ public sealed partial class LyricsWindow : Window
             HorizontalView.Visibility = Visibility.Collapsed;
             CompactPlayerView.Visibility = Visibility.Visible;
             LyricsTitleBar.Title = "Lyrow — Mini Player";
-            ResizeForCurrentDpi(480, 180);
+            if (resizeWindow)
+            {
+                ResizeForCurrentDpi(500, 232);
+            }
         }
         else
         {
             CompactPlayerView.Visibility = Visibility.Collapsed;
             HorizontalView.Visibility = Visibility.Visible;
             LyricsTitleBar.Title = "Lyrow — Synchronized Lyrics";
-            ResizeForCurrentDpi(960, 640);
+            if (resizeWindow)
+            {
+                ResizeForCurrentDpi(960, 640);
+            }
+            ApplyResponsiveScaling(RootLayout.ActualWidth > 0 ? RootLayout.ActualWidth : 960, RootLayout.ActualHeight > 0 ? RootLayout.ActualHeight : 640);
             UpdateViewportPadding();
             _snapToCenterOnNextLayout = true;
         }
@@ -319,7 +330,105 @@ public sealed partial class LyricsWindow : Window
 
     private void OnMediaMonitorTrackChanged(object? sender, MediaTrackInfo track)
     {
-        DispatcherQueue?.TryEnqueue(() => ResetTrackState(track));
+        DispatcherQueue?.TryEnqueue(() =>
+        {
+            string songKey = $"{track.Artist}_{track.Title}";
+            int artSig = ArtworkBitmapManager.ComputeArtworkSignature(track);
+            if (!string.Equals(songKey, _lastSongKey, StringComparison.OrdinalIgnoreCase))
+            {
+                ResetTrackState(track);
+            }
+            else if (artSig != _lastArtworkSignature && !track.IsEmpty)
+            {
+                _lastArtworkSignature = artSig;
+                _artworkBitmapManager?.Invalidate(track.Artist, track.Title);
+                _ = UpdateArtworkAsync(track, Interlocked.Read(ref _windowTrackSequence));
+            }
+        });
+    }
+
+    private void WireInteractiveProgressScrubber(Grid hitBox, ProgressBar progressBar)
+    {
+        bool isPointerCaptured = false;
+
+        TimeSpan ResolveActiveTrackDuration()
+        {
+            var track = !_lyricsModule.CurrentTrack.IsEmpty
+                ? _lyricsModule.CurrentTrack
+                : (_mediaMonitor?.CurrentTrack ?? MediaTrackInfo.Empty);
+            var timeline = _lyricsModule.CurrentTimeline.Duration > TimeSpan.Zero
+                ? _lyricsModule.CurrentTimeline
+                : (_mediaMonitor?.CurrentTimeline ?? MediaTimelineInfo.Zero);
+            return track.Duration > TimeSpan.Zero ? track.Duration : timeline.Duration;
+        }
+
+        void UpdatePreviewFromPoint(Windows.Foundation.Point pt)
+        {
+            double w = hitBox.ActualWidth > 0 ? hitBox.ActualWidth : progressBar.ActualWidth;
+            var dur = ResolveActiveTrackDuration();
+            if (w <= 0 || dur <= TimeSpan.Zero) return;
+
+            var targetTime = LyricsFillProgressCalculator.CalculateSeekTimeFromPointer(pt.X, w, dur);
+            double pct = Math.Clamp((targetTime.TotalMilliseconds / dur.TotalMilliseconds) * 100.0, 0.0, 100.0);
+            ProgressTimeline.Value = pct;
+            ProgressTimelineCompact.Value = pct;
+            TxtElapsed.Text = $"{targetTime:m\\:ss}";
+            TxtElapsedCompact.Text = $"{targetTime:m\\:ss}";
+            TxtRemaining.Text = dur > targetTime ? $"-{(dur - targetTime):m\\:ss}" : "-0:00";
+            TxtRemainingCompact.Text = dur > targetTime ? $"-{(dur - targetTime):m\\:ss}" : "-0:00";
+            _lyricsModule.Synchronizer.EvaluatePosition(targetTime);
+        }
+
+        hitBox.PointerPressed += (s, e) =>
+        {
+            var dur = ResolveActiveTrackDuration();
+            if (dur <= TimeSpan.Zero) return;
+
+            isPointerCaptured = hitBox.CapturePointer(e.Pointer);
+            _isDraggingProgressBar = true;
+            var pt = e.GetCurrentPoint(hitBox).Position;
+            UpdatePreviewFromPoint(pt);
+            e.Handled = true;
+        };
+
+        hitBox.PointerMoved += (s, e) =>
+        {
+            if (!_isDraggingProgressBar || !isPointerCaptured) return;
+            var pt = e.GetCurrentPoint(hitBox).Position;
+            UpdatePreviewFromPoint(pt);
+            e.Handled = true;
+        };
+
+        hitBox.PointerReleased += async (s, e) =>
+        {
+            if (!_isDraggingProgressBar) return;
+            _isDraggingProgressBar = false;
+            if (isPointerCaptured)
+            {
+                hitBox.ReleasePointerCapture(e.Pointer);
+                isPointerCaptured = false;
+            }
+
+            double w = hitBox.ActualWidth > 0 ? hitBox.ActualWidth : progressBar.ActualWidth;
+            var dur = ResolveActiveTrackDuration();
+            if (w > 0 && dur > TimeSpan.Zero)
+            {
+                var pt = e.GetCurrentPoint(hitBox).Position;
+                var targetTime = LyricsFillProgressCalculator.CalculateSeekTimeFromPointer(pt.X, w, dur);
+                await SeekToLyricLineAsync(targetTime);
+            }
+            e.Handled = true;
+        };
+
+        hitBox.PointerCanceled += (s, e) =>
+        {
+            _isDraggingProgressBar = false;
+            if (isPointerCaptured)
+            {
+                hitBox.ReleasePointerCapture(e.Pointer);
+                isPointerCaptured = false;
+            }
+        };
     }
 
     /// <summary>
@@ -330,6 +439,7 @@ public sealed partial class LyricsWindow : Window
     {
         long currentSeq = Interlocked.Increment(ref _windowTrackSequence);
         _lastSongKey = $"{newTrack.Artist}_{newTrack.Title}";
+        _lastArtworkSignature = ArtworkBitmapManager.ComputeArtworkSignature(newTrack);
         _lastLyrics = SyncedLyrics.Empty;
         _currentActiveIndex = -1;
         _currentScrollOffsetY = 0;
@@ -339,9 +449,10 @@ public sealed partial class LyricsWindow : Window
         // 1. Clear rendered lyric line visual representations immediately
         LyricsPanel.Children.Clear();
         _lineContainers.Clear();
-        _lineBlocks.Clear();
-        _overlayBlocks.Clear();
-        _lineClips.Clear();
+        _lineSubBaseBlocks.Clear();
+        _lineSubOverlayBlocks.Clear();
+        _lineSubClips.Clear();
+        _lineSubStrings.Clear();
         _currentRenderedLines.Clear();
         _currentOpacities.Clear();
         _targetOpacities.Clear();
@@ -365,6 +476,10 @@ public sealed partial class LyricsWindow : Window
         TxtRemainingCompact.Text = newTrack.Duration > TimeSpan.Zero ? $"-{newTrack.Duration:mm\\:ss}" : "-0:00";
 
         // 4. Invalidate artwork and reset ambient target
+        if (!newTrack.IsEmpty)
+        {
+            _artworkBitmapManager?.Invalidate(newTrack.Artist, newTrack.Title);
+        }
         ImgTrackArtwork.Source = null;
         IconArtworkPlaceholder.Visibility = Visibility.Visible;
         ImgTrackArtworkCompact.Source = null;
@@ -444,6 +559,14 @@ public sealed partial class LyricsWindow : Window
             return;
         }
 
+        int currentArtSig = ArtworkBitmapManager.ComputeArtworkSignature(track);
+        if (currentArtSig != _lastArtworkSignature)
+        {
+            _lastArtworkSignature = currentArtSig;
+            _artworkBitmapManager?.Invalidate(track.Artist, track.Title);
+            _ = UpdateArtworkAsync(track, Interlocked.Read(ref _windowTrackSequence));
+        }
+
         // Title and Metadata
         TxtSongTitle.Text = track.Title;
         string artistAlbum = string.IsNullOrWhiteSpace(track.Album)
@@ -460,21 +583,24 @@ public sealed partial class LyricsWindow : Window
         if (dur > TimeSpan.Zero && pos > dur) pos = dur;
         if (pos < TimeSpan.Zero) pos = TimeSpan.Zero;
 
-        TxtElapsed.Text = $"{pos:m\\:ss}";
-        TxtElapsedCompact.Text = $"{pos:m\\:ss}";
-        TxtRemaining.Text = dur > pos ? $"-{(dur - pos):m\\:ss}" : "-0:00";
-        TxtRemainingCompact.Text = dur > pos ? $"-{(dur - pos):m\\:ss}" : "-0:00";
+        if (!_isDraggingProgressBar)
+        {
+            TxtElapsed.Text = $"{pos:m\\:ss}";
+            TxtElapsedCompact.Text = $"{pos:m\\:ss}";
+            TxtRemaining.Text = dur > pos ? $"-{(dur - pos):m\\:ss}" : "-0:00";
+            TxtRemainingCompact.Text = dur > pos ? $"-{(dur - pos):m\\:ss}" : "-0:00";
 
-        if (dur.TotalSeconds > 0)
-        {
-            double progressPct = Math.Clamp((pos.TotalSeconds / dur.TotalSeconds) * 100.0, 0, 100);
-            ProgressTimeline.Value = progressPct;
-            ProgressTimelineCompact.Value = progressPct;
-        }
-        else
-        {
-            ProgressTimeline.Value = 0;
-            ProgressTimelineCompact.Value = 0;
+            if (dur.TotalSeconds > 0)
+            {
+                double progressPct = Math.Clamp((pos.TotalSeconds / dur.TotalSeconds) * 100.0, 0, 100);
+                ProgressTimeline.Value = progressPct;
+                ProgressTimelineCompact.Value = progressPct;
+            }
+            else
+            {
+                ProgressTimeline.Value = 0;
+                ProgressTimelineCompact.Value = 0;
+            }
         }
 
         // Hardware Output Device Info
@@ -582,9 +708,10 @@ public sealed partial class LyricsWindow : Window
     {
         LyricsPanel.Children.Clear();
         _lineContainers.Clear();
-        _lineBlocks.Clear();
-        _overlayBlocks.Clear();
-        _lineClips.Clear();
+        _lineSubBaseBlocks.Clear();
+        _lineSubOverlayBlocks.Clear();
+        _lineSubClips.Clear();
+        _lineSubStrings.Clear();
         _currentRenderedLines.Clear();
         _currentOpacities.Clear();
         _targetOpacities.Clear();
@@ -625,10 +752,10 @@ public sealed partial class LyricsWindow : Window
         PanelEmptyState.Visibility = Visibility.Collapsed;
         LyricsScrollViewer.Visibility = Visibility.Visible;
 
-        double focusedSize = _settingsManager.Current.FocusedLyricFontSize;
-        double unfocusedSize = _settingsManager.Current.UnfocusedLyricFontSize;
-        _lastFocusedSize = focusedSize;
-        _lastUnfocusedSize = unfocusedSize;
+        double focusedSize = _lastResponsiveFocusedSize > 0 ? _lastResponsiveFocusedSize : (_settingsManager.Current.FocusedLyricFontSize > 0 ? _settingsManager.Current.FocusedLyricFontSize : 28.0);
+        double unfocusedSize = _lastResponsiveUnfocusedSize > 0 ? _lastResponsiveUnfocusedSize : (_settingsManager.Current.UnfocusedLyricFontSize > 0 ? _settingsManager.Current.UnfocusedLyricFontSize : 20.0);
+        _lastFocusedSize = _settingsManager.Current.FocusedLyricFontSize > 0 ? _settingsManager.Current.FocusedLyricFontSize : 28.0;
+        _lastUnfocusedSize = _settingsManager.Current.UnfocusedLyricFontSize > 0 ? _settingsManager.Current.UnfocusedLyricFontSize : 20.0;
 
         for (int i = 0; i < lyrics.Lines.Count; i++)
         {
@@ -636,45 +763,66 @@ public sealed partial class LyricsWindow : Window
             var target = LyricsViewportCalculator.GetLineVisualTarget(i, -1, focusedSize, unfocusedSize);
             string lineText = string.IsNullOrWhiteSpace(line.Text) ? "♪" : line.Text;
 
-            // Base TextBlock (dim/secondary inactive color)
-            var baseBlock = new TextBlock
-            {
-                Text = lineText,
-                FontSize = target.FontSize,
-                FontWeight = FontWeights.Medium,
-                TextWrapping = TextWrapping.Wrap,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                TextAlignment = TextAlignment.Center,
-                LineHeight = target.FontSize * 1.32,
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(200, 190, 190, 205))
-            };
+            // Split into sequential sub-lines (either explicit \n or long multi-clause lyric lines > 46 chars)
+            var subLines = LyricsFillProgressCalculator.SplitIntoSequentialSubLines(lineText, maxCharsPerSubLine: 46);
+            var subBaseList = new List<TextBlock>(subLines.Count);
+            var subOverlayList = new List<TextBlock>(subLines.Count);
+            var subClipList = new List<RectangleGeometry>(subLines.Count);
 
-            // Overlay TextBlock: Active highlight clipped by RectangleGeometry
-            var overlayClip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, 0, 0) };
-            var overlayBlock = new TextBlock
+            var lineStack = new StackPanel
             {
-                Text = lineText,
-                FontSize = target.FontSize,
-                FontWeight = FontWeights.Bold,
-                TextWrapping = TextWrapping.Wrap,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                TextAlignment = TextAlignment.Center,
-                LineHeight = target.FontSize * 1.32,
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)),
-                Clip = overlayClip,
-                Visibility = Visibility.Collapsed
-            };
-
-            var textGrid = new Grid
-            {
+                Orientation = Orientation.Vertical,
+                Spacing = 2,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
-            textGrid.Children.Add(baseBlock);
-            textGrid.Children.Add(overlayBlock);
+
+            foreach (var subText in subLines)
+            {
+                // Base TextBlock (dim/secondary inactive color)
+                var baseBlock = new TextBlock
+                {
+                    Text = subText,
+                    FontSize = target.FontSize,
+                    FontWeight = FontWeights.Medium,
+                    TextWrapping = TextWrapping.NoWrap,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    TextAlignment = TextAlignment.Center,
+                    LineHeight = target.FontSize * 1.32,
+                    Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(200, 190, 190, 205))
+                };
+
+                // Overlay TextBlock: Active highlight clipped by RectangleGeometry sequentially per sub-line
+                var overlayClip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, 0, 0) };
+                var overlayBlock = new TextBlock
+                {
+                    Text = subText,
+                    FontSize = target.FontSize,
+                    FontWeight = FontWeights.Bold,
+                    TextWrapping = TextWrapping.NoWrap,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    TextAlignment = TextAlignment.Center,
+                    LineHeight = target.FontSize * 1.32,
+                    Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)),
+                    Clip = overlayClip,
+                    Visibility = Visibility.Collapsed
+                };
+
+                var subGrid = new Grid
+                {
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+                subGrid.Children.Add(baseBlock);
+                subGrid.Children.Add(overlayBlock);
+                lineStack.Children.Add(subGrid);
+
+                subBaseList.Add(baseBlock);
+                subOverlayList.Add(overlayBlock);
+                subClipList.Add(overlayClip);
+            }
 
             var container = new Border
             {
-                Child = textGrid,
+                Child = lineStack,
                 Padding = new Thickness(12, 6, 12, 6),
                 CornerRadius = new CornerRadius(10),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -690,9 +838,10 @@ public sealed partial class LyricsWindow : Window
                 await SeekToLyricLineAsync(targetModelLine.Timestamp);
             };
 
-            _lineBlocks.Add(baseBlock);
-            _overlayBlocks.Add(overlayBlock);
-            _lineClips.Add(overlayClip);
+            _lineSubBaseBlocks.Add(subBaseList);
+            _lineSubOverlayBlocks.Add(subOverlayList);
+            _lineSubClips.Add(subClipList);
+            _lineSubStrings.Add(subLines);
             _currentRenderedLines.Add(line);
             _lineContainers.Add(container);
             _currentOpacities.Add(target.TargetOpacity);
@@ -704,6 +853,11 @@ public sealed partial class LyricsWindow : Window
         }
 
         _snapToCenterOnNextLayout = true;
+
+        // Immediately evaluate current playback position so if lyrics loaded mid-track, active line resolves immediately
+        var tline = _lyricsModule.CurrentTimeline;
+        _lyricsModule.Synchronizer.EvaluatePosition(tline.GetInterpolatedPosition());
+        UpdateActiveLineTargets(_lyricsModule.ActiveLineIndex, immediate: true);
     }
 
     private void UpdateActiveLineTargets(int activeIdx, bool immediate)
@@ -711,8 +865,8 @@ public sealed partial class LyricsWindow : Window
         if (_lineContainers.Count == 0) return;
 
         _currentActiveIndex = activeIdx;
-        double focusedSize = _settingsManager.Current.FocusedLyricFontSize;
-        double unfocusedSize = _settingsManager.Current.UnfocusedLyricFontSize;
+        double focusedSize = _lastResponsiveFocusedSize > 0 ? _lastResponsiveFocusedSize : (_settingsManager.Current.FocusedLyricFontSize > 0 ? _settingsManager.Current.FocusedLyricFontSize : 28.0);
+        double unfocusedSize = _lastResponsiveUnfocusedSize > 0 ? _lastResponsiveUnfocusedSize : (_settingsManager.Current.UnfocusedLyricFontSize > 0 ? _settingsManager.Current.UnfocusedLyricFontSize : 20.0);
 
         for (int i = 0; i < _lineContainers.Count; i++)
         {
@@ -720,42 +874,56 @@ public sealed partial class LyricsWindow : Window
             _targetOpacities[i] = target.TargetOpacity;
             _targetScales[i] = target.TargetScale;
 
-            var block = _lineBlocks[i];
-            block.FontSize = target.FontSize;
-            block.LineHeight = target.FontSize * 1.32;
-            block.FontWeight = target.IsActive
-                ? FontWeights.Bold
-                : (target.Distance == 1 ? FontWeights.SemiBold : FontWeights.Normal);
-
-            if (i < _overlayBlocks.Count)
+            var baseList = _lineSubBaseBlocks[i];
+            for (int s = 0; s < baseList.Count; s++)
             {
-                var overlay = _overlayBlocks[i];
-                overlay.FontSize = target.FontSize;
-                overlay.LineHeight = target.FontSize * 1.32;
-                overlay.FontWeight = FontWeights.Bold;
+                var block = baseList[s];
+                block.FontSize = target.FontSize;
+                block.LineHeight = target.FontSize * 1.32;
+                block.FontWeight = target.IsActive
+                    ? FontWeights.Bold
+                    : (target.Distance == 1 ? FontWeights.SemiBold : FontWeights.Normal);
+            }
 
-                if (target.IsActive)
+            if (i < _lineSubOverlayBlocks.Count)
+            {
+                var overlayList = _lineSubOverlayBlocks[i];
+                var clipList = _lineSubClips[i];
+                var subStrings = _lineSubStrings[i];
+
+                if (target.IsActive && i < _currentRenderedLines.Count)
                 {
-                    overlay.Visibility = Visibility.Visible;
-                    if (i < _lineClips.Count && i < _currentRenderedLines.Count)
+                    var renderLine = _currentRenderedLines[i];
+                    var tline = _lyricsModule.CurrentTimeline;
+                    var cPos = tline.GetInterpolatedPosition();
+                    TimeSpan? nTs = (i + 1 < _currentRenderedLines.Count) ? _currentRenderedLines[i + 1].Timestamp : null;
+                    var subProgresses = LyricsFillProgressCalculator.CalculateSequentialSubLineProgresses(renderLine, subStrings, cPos, nTs);
+
+                    for (int s = 0; s < overlayList.Count; s++)
                     {
-                        var renderLine = _currentRenderedLines[i];
-                        var tline = _lyricsModule.CurrentTimeline;
-                        var cPos = tline.GetInterpolatedPosition();
-                        TimeSpan? nTs = (i + 1 < _currentRenderedLines.Count) ? _currentRenderedLines[i + 1].Timestamp : null;
-                        double lp = LyricsFillProgressCalculator.CalculateLineProgress(renderLine, cPos, nTs);
-                        double clipW = lp * (overlay.ActualWidth > 0 ? overlay.ActualWidth : 2000.0);
+                        var overlay = overlayList[s];
+                        overlay.FontSize = target.FontSize;
+                        overlay.LineHeight = target.FontSize * 1.32;
+                        overlay.FontWeight = FontWeights.Bold;
+                        overlay.Visibility = Visibility.Visible;
+
+                        double sp = (s < subProgresses.Count) ? subProgresses[s] : 0.0;
+                        double clipW = sp * (overlay.ActualWidth > 0 ? overlay.ActualWidth : 2000.0);
                         double clipH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
-                        _lineClips[i].Rect = new Windows.Foundation.Rect(0, 0, clipW, clipH);
+                        clipList[s].Rect = new Windows.Foundation.Rect(0, 0, clipW, clipH);
                     }
                 }
                 else
                 {
                     // Single canonical visual text: overlay collapsed for all inactive surrounding lines
-                    overlay.Visibility = Visibility.Collapsed;
-                    if (i < _lineClips.Count)
+                    for (int s = 0; s < overlayList.Count; s++)
                     {
-                        _lineClips[i].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
+                        var overlay = overlayList[s];
+                        overlay.FontSize = target.FontSize;
+                        overlay.LineHeight = target.FontSize * 1.32;
+                        overlay.FontWeight = FontWeights.Bold;
+                        overlay.Visibility = Visibility.Collapsed;
+                        clipList[s].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
                     }
                 }
             }
@@ -863,53 +1031,72 @@ public sealed partial class LyricsWindow : Window
 
         if (lyrics != null && lyrics.Lines.Count > 0)
         {
-            int lineLimit = Math.Min(_lineClips.Count, Math.Min(_overlayBlocks.Count, lyrics.Lines.Count));
+            int lineLimit = Math.Min(_lineSubClips.Count, Math.Min(_lineSubOverlayBlocks.Count, lyrics.Lines.Count));
             for (int i = 0; i < lineLimit; i++)
             {
-                var overlay = _overlayBlocks[i];
-                var clip = _lineClips[i];
+                var overlayList = _lineSubOverlayBlocks[i];
+                var clipList = _lineSubClips[i];
+                var subStrings = _lineSubStrings[i];
 
                 if (i != _currentActiveIndex)
                 {
-                    if (overlay.Visibility != Visibility.Collapsed)
+                    for (int s = 0; s < overlayList.Count; s++)
                     {
-                        overlay.Visibility = Visibility.Collapsed;
-                    }
-                    if (clip.Rect.Width > 0 || clip.Rect.Height > 0)
-                    {
-                        clip.Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
+                        if (overlayList[s].Visibility != Visibility.Collapsed)
+                        {
+                            overlayList[s].Visibility = Visibility.Collapsed;
+                        }
+                        if (clipList[s].Rect.Width > 0 || clipList[s].Rect.Height > 0)
+                        {
+                            clipList[s].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
+                        }
                     }
                     continue;
                 }
 
-                if (overlay.Visibility != Visibility.Visible)
-                {
-                    overlay.Visibility = Visibility.Visible;
-                }
-
-                double actualW = overlay.ActualWidth;
-                double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
-                if (actualW <= 0) continue;
-
                 var line = lyrics.Lines[i];
                 TimeSpan? nextTimestamp = (i + 1 < lyrics.Lines.Count) ? lyrics.Lines[i + 1].Timestamp : null;
 
-                double progress = LyricsFillProgressCalculator.CalculateLineProgress(
+                if (overlayList.Count == 1 && line.Words != null && line.Words.Count > 0)
+                {
+                    var overlay = overlayList[0];
+                    if (overlay.Visibility != Visibility.Visible) overlay.Visibility = Visibility.Visible;
+                    double actualW = overlay.ActualWidth;
+                    double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
+                    if (actualW > 0)
+                    {
+                        double progress = LyricsFillProgressCalculator.CalculateWordTimingProgress(
+                            currentPos,
+                            line.StartTime,
+                            nextTimestamp,
+                            line.Words);
+                        clipList[0].Rect = new Windows.Foundation.Rect(0, 0, progress * actualW, actualH);
+                    }
+                    continue;
+                }
+
+                var subProgresses = LyricsFillProgressCalculator.CalculateSequentialSubLineProgresses(
                     line,
+                    subStrings,
                     currentPos,
                     nextTimestamp,
                     trackDur);
 
-                if (line.Words != null && line.Words.Count > 0)
+                for (int s = 0; s < overlayList.Count; s++)
                 {
-                    progress = LyricsFillProgressCalculator.CalculateWordTimingProgress(
-                        currentPos,
-                        line.StartTime,
-                        nextTimestamp,
-                        line.Words);
-                }
+                    var overlay = overlayList[s];
+                    if (overlay.Visibility != Visibility.Visible)
+                    {
+                        overlay.Visibility = Visibility.Visible;
+                    }
 
-                clip.Rect = new Windows.Foundation.Rect(0, 0, progress * actualW, actualH);
+                    double actualW = overlay.ActualWidth;
+                    double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
+                    if (actualW <= 0) continue;
+
+                    double sp = (s < subProgresses.Count) ? subProgresses[s] : 0.0;
+                    clipList[s].Rect = new Windows.Foundation.Rect(0, 0, sp * actualW, actualH);
+                }
             }
         }
 
@@ -953,15 +1140,96 @@ public sealed partial class LyricsWindow : Window
     {
         double w = RootLayout.ActualWidth;
         double h = RootLayout.ActualHeight;
+        if (w <= 0 || h <= 0) return;
 
-        // Auto-detect small window dimensions to switch to compact Dar Mod if user resized manually
-        if (_currentMode == LyricsWindowMode.Horizontal && w < 540 && h < 260)
+        // Hysteresis transition: When in Compact mode and user widens window >= CompactToNormalWidthThreshold,
+        // automatically switch back to Horizontal normal mode while preserving user's resized window dimensions.
+        if (_currentMode == LyricsWindowMode.Compact)
         {
-            SetWindowMode(LyricsWindowMode.Compact);
+            if (w >= LyricsViewportCalculator.CompactToNormalWidthThreshold && h >= 320.0)
+            {
+                SetWindowMode(LyricsWindowMode.Horizontal, resizeWindow: false);
+            }
             return;
         }
 
+        // Responsive proportional scaling for Horizontal mode
+        ApplyResponsiveScaling(w, h);
         UpdateViewportPadding();
+    }
+
+    private void ApplyResponsiveScaling(double windowWidth, double windowHeight)
+    {
+        double baseFocused = _settingsManager.Current.FocusedLyricFontSize > 0 ? _settingsManager.Current.FocusedLyricFontSize : 28.0;
+        double baseUnfocused = _settingsManager.Current.UnfocusedLyricFontSize > 0 ? _settingsManager.Current.UnfocusedLyricFontSize : 20.0;
+
+        var metrics = LyricsViewportCalculator.CalculateResponsiveMetrics(
+            windowWidth,
+            windowHeight,
+            _isLyricsEnabled,
+            baseFocused,
+            baseUnfocused);
+
+        if (Math.Abs(metrics.ArtworkSize - _lastAppliedResponsiveArtworkSize) >= 2.0)
+        {
+            _lastAppliedResponsiveArtworkSize = metrics.ArtworkSize;
+
+            PlayerInnerPanel.Width = metrics.PlayerColumnWidth;
+            BorderTrackArtwork.Width = metrics.ArtworkSize;
+            BorderTrackArtwork.Height = metrics.ArtworkSize;
+
+            TxtSongTitle.Width = metrics.PlayerColumnWidth;
+            TxtSongTitle.FontSize = metrics.SongTitleFontSize;
+
+            TxtArtistAlbum.Width = metrics.PlayerColumnWidth;
+            TxtArtistAlbum.FontSize = metrics.ArtistAlbumFontSize;
+
+            GridProgressHitBox.Width = metrics.ProgressBarWidth;
+            ProgressTimeline.Width = metrics.ProgressBarWidth;
+
+            GridTimestamps.Width = metrics.ProgressBarWidth;
+            TxtElapsed.FontSize = metrics.TimestampFontSize;
+            TxtRemaining.FontSize = metrics.TimestampFontSize;
+
+            TxtDevice.FontSize = metrics.DeviceFontSize;
+            TxtDevice.MaxWidth = Math.Max(160.0, metrics.PlayerColumnWidth - 36.0);
+
+            GridControlsRow.Width = metrics.PlayerColumnWidth;
+            BtnPlayPause.Width = metrics.PlayPauseButtonSize;
+            BtnPlayPause.Height = metrics.PlayPauseButtonSize;
+            BtnPlayPause.CornerRadius = new CornerRadius(metrics.PlayPauseButtonSize / 2.0);
+
+            BtnPrev.Width = metrics.SkipButtonSize;
+            BtnPrev.Height = metrics.SkipButtonSize;
+            BtnPrev.CornerRadius = new CornerRadius(metrics.SkipButtonSize / 2.0);
+
+            BtnNext.Width = metrics.SkipButtonSize;
+            BtnNext.Height = metrics.SkipButtonSize;
+            BtnNext.CornerRadius = new CornerRadius(metrics.SkipButtonSize / 2.0);
+
+            BtnDarMod.Width = metrics.UtilityButtonSize;
+            BtnDarMod.Height = metrics.UtilityButtonSize;
+            BtnFullscreen.Width = metrics.UtilityButtonSize;
+            BtnFullscreen.Height = metrics.UtilityButtonSize;
+            BtnToggleLyrics.Width = metrics.UtilityButtonSize;
+            BtnToggleLyrics.Height = metrics.UtilityButtonSize;
+
+            GridVolumeRow.Width = metrics.VolumeBarWidth;
+            GridOffsetRow.Width = metrics.PlayerColumnWidth;
+
+            LyricsPanel.Spacing = metrics.LyricLineSpacing;
+        }
+
+        if (Math.Abs(metrics.FocusedLyricFontSize - _lastResponsiveFocusedSize) >= 0.5 ||
+            Math.Abs(metrics.UnfocusedLyricFontSize - _lastResponsiveUnfocusedSize) >= 0.5)
+        {
+            _lastResponsiveFocusedSize = metrics.FocusedLyricFontSize;
+            _lastResponsiveUnfocusedSize = metrics.UnfocusedLyricFontSize;
+            if (_lineContainers.Count > 0)
+            {
+                UpdateActiveLineTargets(_currentActiveIndex, immediate: false);
+            }
+        }
     }
 
     private void ToggleFullscreen()
@@ -995,7 +1263,6 @@ public sealed partial class LyricsWindow : Window
             TxtVolumePercent.Text = muted ? "Muted" : $"{vol}%";
             string muteGlyph = (muted || vol == 0) ? "\uE74F" : "\uE767";
             IconVolumeMute.Glyph = muteGlyph;
-            IconVolumeCompact.Glyph = muteGlyph;
         }
         finally
         {

@@ -179,6 +179,200 @@ public static class LyricsFillProgressCalculator
 
         return 1.0;
     }
+
+    /// <summary>
+    /// Splits a lyric line text into individual sub-lines (by explicit newline or logical wrapping threshold).
+    /// Guarantees at least one non-empty sub-line.
+    /// </summary>
+    public static IReadOnlyList<string> SplitIntoSequentialSubLines(string? text, int maxCharsPerSubLine = 0)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return new[] { "♪" };
+        }
+
+        string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        var explicitLines = normalized
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToList();
+
+        if (explicitLines.Count == 0)
+        {
+            return new[] { text.Trim() };
+        }
+
+        if (maxCharsPerSubLine <= 0)
+        {
+            return explicitLines;
+        }
+
+        var result = new List<string>();
+        foreach (var expLine in explicitLines)
+        {
+            if (expLine.Length <= maxCharsPerSubLine)
+            {
+                result.Add(expLine);
+                continue;
+            }
+
+            var words = expLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length <= 1)
+            {
+                result.Add(expLine);
+                continue;
+            }
+
+            var currentBuilder = new System.Text.StringBuilder();
+            foreach (var w in words)
+            {
+                if (currentBuilder.Length == 0)
+                {
+                    currentBuilder.Append(w);
+                }
+                else if (currentBuilder.Length + 1 + w.Length <= maxCharsPerSubLine)
+                {
+                    currentBuilder.Append(' ').Append(w);
+                }
+                else
+                {
+                    result.Add(currentBuilder.ToString());
+                    currentBuilder.Clear();
+                    currentBuilder.Append(w);
+                }
+            }
+
+            if (currentBuilder.Length > 0)
+            {
+                result.Add(currentBuilder.ToString());
+            }
+        }
+
+        return result.Count > 0 ? result : new[] { text.Trim() };
+    }
+
+    /// <summary>
+    /// Computes sequential per-subline highlight progress [0.0, 1.0] for a multi-line lyric segment.
+    /// Sub-line 0 highlights from 0.0 to 1.0 first; only after sub-line 0 reaches 1.0 does sub-line 1 start
+    /// highlighting from 0.0 to 1.0, and so on, weighted proportionally by character length.
+    /// </summary>
+    public static IReadOnlyList<double> CalculateSequentialSubLineProgresses(
+        IReadOnlyList<string> subLines,
+        TimeSpan currentPosition,
+        TimeSpan segmentStartTime,
+        TimeSpan segmentEndTime)
+    {
+        if (subLines == null || subLines.Count == 0)
+        {
+            return Array.Empty<double>();
+        }
+
+        int count = subLines.Count;
+        var results = new double[count];
+
+        if (currentPosition < segmentStartTime)
+        {
+            return results;
+        }
+
+        if (currentPosition >= segmentEndTime || segmentEndTime <= segmentStartTime)
+        {
+            Array.Fill(results, 1.0);
+            return results;
+        }
+
+        if (count == 1)
+        {
+            results[0] = CalculateLineProgress(currentPosition, segmentStartTime, segmentEndTime);
+            return results;
+        }
+
+        int totalChars = 0;
+        for (int i = 0; i < count; i++)
+        {
+            totalChars += Math.Max(1, subLines[i]?.Trim().Length ?? 1);
+        }
+
+        double totalDurationMs = (segmentEndTime - segmentStartTime).TotalMilliseconds;
+        double elapsedMs = (currentPosition - segmentStartTime).TotalMilliseconds;
+
+        double cumulativeStartMs = 0.0;
+        for (int i = 0; i < count; i++)
+        {
+            int charWeight = Math.Max(1, subLines[i]?.Trim().Length ?? 1);
+            double subDurationMs = totalDurationMs * ((double)charWeight / totalChars);
+            double subEndMs = (i == count - 1) ? totalDurationMs : (cumulativeStartMs + subDurationMs);
+
+            if (elapsedMs <= cumulativeStartMs)
+            {
+                results[i] = 0.0;
+            }
+            else if (elapsedMs >= subEndMs || subDurationMs <= 0.0001)
+            {
+                results[i] = 1.0;
+            }
+            else
+            {
+                results[i] = Math.Clamp((elapsedMs - cumulativeStartMs) / subDurationMs, 0.0, 1.0);
+            }
+
+            cumulativeStartMs = subEndMs;
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Computes sequential per-subline highlight progress [0.0, 1.0] for a LyricLine.
+    /// </summary>
+    public static IReadOnlyList<double> CalculateSequentialSubLineProgresses(
+        LyricLine? line,
+        IReadOnlyList<string> subLines,
+        TimeSpan currentPosition,
+        TimeSpan? nextLineTimestamp = null,
+        TimeSpan? trackDuration = null)
+    {
+        if (line == null || subLines == null || subLines.Count == 0)
+        {
+            return Array.Empty<double>();
+        }
+
+        TimeSpan endTime;
+        if (line.EndTime.HasValue && line.EndTime.Value > line.StartTime)
+        {
+            endTime = line.EndTime.Value;
+        }
+        else if (nextLineTimestamp.HasValue && nextLineTimestamp.Value > line.StartTime)
+        {
+            endTime = nextLineTimestamp.Value;
+        }
+        else if (trackDuration.HasValue && trackDuration.Value > line.StartTime)
+        {
+            var rem = trackDuration.Value - line.StartTime;
+            endTime = line.StartTime + (rem < DefaultFallbackLineDuration ? rem : DefaultFallbackLineDuration);
+        }
+        else
+        {
+            endTime = line.ResolvedEndTime;
+        }
+
+        return CalculateSequentialSubLineProgresses(subLines, currentPosition, line.StartTime, endTime);
+    }
+
+    /// <summary>
+    /// Calculates the target playback seek TimeSpan from a pointer horizontal click/drag coordinate on a progress bar.
+    /// Clamps ratio strictly to [0.0, 1.0].
+    /// </summary>
+    public static TimeSpan CalculateSeekTimeFromPointer(double pointerX, double barActualWidth, TimeSpan trackDuration)
+    {
+        if (barActualWidth <= 0.0 || trackDuration <= TimeSpan.Zero)
+        {
+            return TimeSpan.Zero;
+        }
+
+        double ratio = Math.Clamp(pointerX / barActualWidth, 0.0, 1.0);
+        return TimeSpan.FromMilliseconds(trackDuration.TotalMilliseconds * ratio);
+    }
 }
 
 /// <summary>

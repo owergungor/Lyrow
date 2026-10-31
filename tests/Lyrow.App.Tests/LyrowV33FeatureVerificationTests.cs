@@ -67,7 +67,7 @@ public class LyrowV33FeatureVerificationTests
         xaml.Should().Contain("x:Name=\"BtnPrevCompact\"");
         xaml.Should().Contain("x:Name=\"BtnPlayPauseCompact\"");
         xaml.Should().Contain("x:Name=\"BtnNextCompact\"");
-        xaml.Should().Contain("x:Name=\"BtnVolumeCompact\"");
+        xaml.Should().Contain("x:Name=\"BtnNormalModeCompact\"");
         xaml.Should().Contain("x:Name=\"BtnExpandFromCompact\"");
     }
 
@@ -137,17 +137,17 @@ public class LyrowV33FeatureVerificationTests
     [Fact]
     public void Versioning_V33_StrictlyEnforcedAcrossRepository()
     {
-        GitHubUpdateService.AppVersion.Should().Be("3.3");
-        GitHubUpdateService.IsValidTwoPartVersionTag("v3.3").Should().BeTrue();
-        GitHubUpdateService.IsValidTwoPartVersionTag("v3.3.0").Should().BeFalse();
-        GitHubUpdateService.IsNewerVersion("3.2", "3.3").Should().BeTrue();
+        GitHubUpdateService.AppVersion.Should().Be("3.4");
+        GitHubUpdateService.IsValidTwoPartVersionTag("v3.4").Should().BeTrue();
+        GitHubUpdateService.IsValidTwoPartVersionTag("v3.4.0").Should().BeFalse();
+        GitHubUpdateService.IsNewerVersion("3.3", "3.4").Should().BeTrue();
 
         string repoRoot = FindRepoRoot();
-        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<Version>3.3</Version>");
-        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<FileVersion>3.3.0.0</FileVersion>");
-        File.ReadAllText(Path.Combine(repoRoot, "installer", "setup.iss")).Should().Contain("#define MyAppVersion \"3.3\"");
-        File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "app.manifest")).Should().Contain("version=\"3.3.0.0\"");
-        File.ReadAllText(Path.Combine(repoRoot, ".github", "workflows", "release.yml")).Should().Contain("default: 'v3.3'");
+        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<Version>3.4</Version>");
+        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<FileVersion>3.4.0.0</FileVersion>");
+        File.ReadAllText(Path.Combine(repoRoot, "installer", "setup.iss")).Should().Contain("#define MyAppVersion \"3.4\"");
+        File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "app.manifest")).Should().Contain("version=\"3.4.0.0\"");
+        File.ReadAllText(Path.Combine(repoRoot, ".github", "workflows", "release.yml")).Should().Contain("default: 'v3.4'");
     }
 
     private static string FindRepoRoot()

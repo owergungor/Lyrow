@@ -144,11 +144,33 @@ public partial class App : Application
         }
     }
 
+    public static void ReleaseSingleInstanceLock()
+    {
+        try
+        {
+            _instanceMutex?.ReleaseMutex();
+        }
+        catch { }
+        try
+        {
+            _instanceMutex?.Dispose();
+            _instanceMutex = null;
+        }
+        catch { }
+        try
+        {
+            _wakeEvent?.Dispose();
+            _wakeEvent = null;
+        }
+        catch { }
+    }
+
     public static void ShutdownApp()
     {
         try
         {
             LocalDiagnosticLogger.LogInfo("Application shutdown requested, performing cleanup...");
+            ReleaseSingleInstanceLock();
             var glowOverlay = Services?.GetService<GlowOverlayManager>();
             glowOverlay?.Dispose();
 

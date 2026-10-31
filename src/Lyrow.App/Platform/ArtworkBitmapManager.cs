@@ -102,6 +102,12 @@ public sealed class ArtworkBitmapManager
         if (track.IsEmpty) return GlowPalette.Default;
 
         string key = ArtworkService.CreateCacheKey(track.Artist, track.Title);
+        if (track.ThumbnailData != null && track.ThumbnailData.Length > 0 && ArtworkService.IsValidImageData(track.ThumbnailData))
+        {
+            _rawBytesCache[key] = track.ThumbnailData;
+            _artworkService.CacheArtwork(track.Artist, track.Title, track.ThumbnailData);
+        }
+
         if (_paletteCache.TryGetValue(key, out var cachedPalette))
         {
             return cachedPalette;
@@ -154,8 +160,20 @@ public sealed class ArtworkBitmapManager
             return ArtworkColorExtractor.ExtractPalette(rawBytes);
         }, ct).ConfigureAwait(false);
 
-        _paletteCache[key] = palette;
+        if (palette != GlowPalette.Default)
+        {
+            _paletteCache[key] = palette;
+        }
         return palette;
+    }
+
+    public static int ComputeArtworkSignature(MediaTrackInfo track)
+    {
+        if (track.IsEmpty) return 0;
+        int len = track.ThumbnailData?.Length ?? 0;
+        int firstByte = (len > 0) ? track.ThumbnailData![0] : 0;
+        int lastByte = (len > 1) ? track.ThumbnailData![len - 1] : 0;
+        return HashCode.Combine(len, firstByte, lastByte, track.AlbumArtUri ?? string.Empty);
     }
 
     public void Invalidate(string artist, string title)

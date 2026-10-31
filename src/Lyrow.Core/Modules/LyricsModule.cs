@@ -261,6 +261,42 @@ public sealed class LyricsModule : ILyrowModule
         long currentSeq;
         CancellationTokenSource trackCts;
 
+        string incomingTitle = (track.Title ?? string.Empty).Trim();
+        string incomingArtist = (track.Artist ?? string.Empty).Trim();
+        string currentTitle = (_currentTrack.Title ?? string.Empty).Trim();
+        string currentArtist = (_currentTrack.Artist ?? string.Empty).Trim();
+
+        bool isSameTitleAndArtist = !track.IsEmpty &&
+                                    string.Equals(incomingTitle, currentTitle, StringComparison.OrdinalIgnoreCase) &&
+                                    string.Equals(incomingArtist, currentArtist, StringComparison.OrdinalIgnoreCase);
+
+        // If GSMTC emits a secondary property update for the exact same track (e.g. ThumbnailData or Album or Duration arrived 50ms later)
+        // and we are already fetching or have already loaded lyrics for this track, update metadata in-place without aborting the active fetch!
+        if (isSameTitleAndArtist && (_currentLyrics.Lines.Count > 0 || !string.IsNullOrWhiteSpace(_currentLyrics.PlainLyrics) || (_currentTrackCts != null && !_currentTrackCts.IsCancellationRequested)))
+        {
+            var updatedDur = track.Duration > TimeSpan.Zero ? track.Duration : _currentTrack.Duration;
+            var updatedThumb = (track.ThumbnailData != null && track.ThumbnailData.Length > 0) ? track.ThumbnailData : _currentTrack.ThumbnailData;
+            var updatedAlbum = !string.IsNullOrWhiteSpace(track.Album) ? track.Album : _currentTrack.Album;
+            _currentTrack = track with
+            {
+                Duration = updatedDur,
+                ThumbnailData = updatedThumb,
+                Album = updatedAlbum
+            };
+
+            if (updatedDur > TimeSpan.Zero && _currentTimeline.Duration <= TimeSpan.Zero)
+            {
+                _currentTimeline = _currentTimeline with { Duration = updatedDur };
+                _synchronizer.UpdateTimeline(_currentTimeline);
+            }
+
+            if (_eventBus != null)
+            {
+                await _eventBus.PublishAsync(new MediaTrackChangedEvent(_currentTrack), ct).ConfigureAwait(false);
+            }
+            return;
+        }
+
         _currentTrackCts?.Cancel();
         _currentTrackCts?.Dispose();
 
@@ -289,7 +325,7 @@ public sealed class LyricsModule : ILyrowModule
             await _eventBus.PublishAsync(new MediaTrackChangedEvent(track), token).ConfigureAwait(false);
         }
 
-        if (track.IsEmpty)
+        if (track.IsEmpty || string.IsNullOrWhiteSpace(incomingTitle) || string.IsNullOrWhiteSpace(incomingArtist))
         {
             _currentLyrics = SyncedLyrics.Empty;
             _synchronizer.SetLyrics(SyncedLyrics.Empty);
@@ -301,7 +337,7 @@ public sealed class LyricsModule : ILyrowModule
             // 1. Try local cache first
             if (_lyricsCache != null)
         {
-            var cached = await _lyricsCache.GetAsync(track.Title, track.Artist, token).ConfigureAwait(false);
+            var cached = await _lyricsCache.GetAsync(incomingTitle, incomingArtist, token).ConfigureAwait(false);
             if (token.IsCancellationRequested || Interlocked.Read(ref _trackSequence) != currentSeq)
             {
                 return;
@@ -339,7 +375,7 @@ public sealed class LyricsModule : ILyrowModule
                 return;
             }
 
-            var result = await _lyricsClient.FetchLyricsAsync(track.Title, track.Artist, track.Duration, token).ConfigureAwait(false);
+            var result = await _lyricsClient.FetchLyricsAsync(incomingTitle, incomingArtist, track.Duration, token).ConfigureAwait(false);
             if (token.IsCancellationRequested || Interlocked.Read(ref _trackSequence) != currentSeq)
             {
                 return;
@@ -353,7 +389,7 @@ public sealed class LyricsModule : ILyrowModule
 
                 if (_lyricsCache != null && (_settingsManager?.Current.Lyrics.CacheLyricsLocally ?? true))
                 {
-                    await _lyricsCache.SaveAsync(track.Title, track.Artist, result.Lyrics, token).ConfigureAwait(false);
+                    await _lyricsCache.SaveAsync(incomingTitle, incomingArtist, result.Lyrics, token).ConfigureAwait(false);
                 }
 
                 if (_eventBus != null)

@@ -34,7 +34,10 @@ public sealed class LrclibClient : ILyricsClient
         TimeSpan? duration = null,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(trackName) || string.IsNullOrWhiteSpace(artistName))
+        string cleanTrack = (trackName ?? string.Empty).Trim();
+        string cleanArtist = (artistName ?? string.Empty).Trim();
+
+        if (string.IsNullOrWhiteSpace(cleanTrack) || string.IsNullOrWhiteSpace(cleanArtist))
         {
             return new LyricsSearchResult(false, null, "LRCLIB", "Track name or artist name is empty.");
         }
@@ -42,7 +45,7 @@ public sealed class LrclibClient : ILyricsClient
         try
         {
             // Build query parameters with safe URL encoding
-            var query = $"?track_name={Uri.EscapeDataString(trackName)}&artist_name={Uri.EscapeDataString(artistName)}";
+            var query = $"?track_name={Uri.EscapeDataString(cleanTrack)}&artist_name={Uri.EscapeDataString(cleanArtist)}";
             if (duration.HasValue && duration.Value.TotalSeconds > 1.0)
             {
                 query += $"&duration={(int)Math.Round(duration.Value.TotalSeconds)}";
@@ -53,11 +56,11 @@ public sealed class LrclibClient : ILyricsClient
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                // Fallback: If duration was included in query and failed with 404, retry without duration filter
+                // Fallback 1: If duration was included in query and failed with 404, retry without duration filter
                 // in case streaming service/GSMTC duration differs slightly from LRCLIB database entry.
                 if (duration.HasValue && duration.Value.TotalSeconds > 1.0)
                 {
-                    var fallbackQuery = $"?track_name={Uri.EscapeDataString(trackName)}&artist_name={Uri.EscapeDataString(artistName)}";
+                    var fallbackQuery = $"?track_name={Uri.EscapeDataString(cleanTrack)}&artist_name={Uri.EscapeDataString(cleanArtist)}";
                     using var fallbackResp = await _httpClient.GetAsync(new Uri(BaseApiUrl + fallbackQuery), HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     if (fallbackResp.IsSuccessStatusCode)
                     {
@@ -65,14 +68,14 @@ public sealed class LrclibClient : ILyricsClient
                         var fallbackModel = await JsonSerializer.DeserializeAsync<LrclibResponse>(fallbackStream, cancellationToken: cancellationToken).ConfigureAwait(false);
                         if (fallbackModel != null && !string.IsNullOrWhiteSpace(fallbackModel.SyncedLyrics))
                         {
-                            var parsed = LrcParser.Parse(fallbackModel.SyncedLyrics, fallbackModel.TrackName ?? trackName, fallbackModel.ArtistName ?? artistName);
+                            var parsed = LrcParser.Parse(fallbackModel.SyncedLyrics, fallbackModel.TrackName ?? cleanTrack, fallbackModel.ArtistName ?? cleanArtist);
                             return new LyricsSearchResult(true, parsed, "LRCLIB");
                         }
                         if (fallbackModel != null && !string.IsNullOrWhiteSpace(fallbackModel.PlainLyrics))
                         {
                             var plain = new SyncedLyrics(
-                                title: fallbackModel.TrackName ?? trackName,
-                                artist: fallbackModel.ArtistName ?? artistName,
+                                title: fallbackModel.TrackName ?? cleanTrack,
+                                artist: fallbackModel.ArtistName ?? cleanArtist,
                                 isSynced: false,
                                 lines: Array.Empty<LyricLine>(),
                                 plainLyrics: fallbackModel.PlainLyrics);
@@ -80,6 +83,37 @@ public sealed class LrclibClient : ILyricsClient
                         }
                     }
                 }
+
+                // Fallback 2: Strip common streaming suffixes (e.g. " - Remastered", " (feat. ...)") if present
+                string strippedTrack = StripTrackSuffixes(cleanTrack);
+                string primaryArtist = ExtractPrimaryArtist(cleanArtist);
+                if (!string.Equals(strippedTrack, cleanTrack, StringComparison.OrdinalIgnoreCase) ||
+                    !string.Equals(primaryArtist, cleanArtist, StringComparison.OrdinalIgnoreCase))
+                {
+                    var normQuery = $"?track_name={Uri.EscapeDataString(strippedTrack)}&artist_name={Uri.EscapeDataString(primaryArtist)}";
+                    using var normResp = await _httpClient.GetAsync(new Uri(BaseApiUrl + normQuery), HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    if (normResp.IsSuccessStatusCode)
+                    {
+                        var normStream = await normResp.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                        var normModel = await JsonSerializer.DeserializeAsync<LrclibResponse>(normStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+                        if (normModel != null && !string.IsNullOrWhiteSpace(normModel.SyncedLyrics))
+                        {
+                            var parsed = LrcParser.Parse(normModel.SyncedLyrics, normModel.TrackName ?? cleanTrack, normModel.ArtistName ?? cleanArtist);
+                            return new LyricsSearchResult(true, parsed, "LRCLIB");
+                        }
+                        if (normModel != null && !string.IsNullOrWhiteSpace(normModel.PlainLyrics))
+                        {
+                            var plain = new SyncedLyrics(
+                                title: normModel.TrackName ?? cleanTrack,
+                                artist: normModel.ArtistName ?? cleanArtist,
+                                isSynced: false,
+                                lines: Array.Empty<LyricLine>(),
+                                plainLyrics: normModel.PlainLyrics);
+                            return new LyricsSearchResult(true, plain, "LRCLIB");
+                        }
+                    }
+                }
+
                 return new LyricsSearchResult(false, null, "LRCLIB", "Lyrics not found for track.");
             }
 
@@ -123,7 +157,7 @@ public sealed class LrclibClient : ILyricsClient
             // 1. Prefer synced lyrics if available
             if (!string.IsNullOrWhiteSpace(apiResponse.SyncedLyrics))
             {
-                var synced = LrcParser.Parse(apiResponse.SyncedLyrics, apiResponse.TrackName ?? trackName, apiResponse.ArtistName ?? artistName);
+                var synced = LrcParser.Parse(apiResponse.SyncedLyrics, apiResponse.TrackName ?? cleanTrack, apiResponse.ArtistName ?? cleanArtist);
                 return new LyricsSearchResult(true, synced, "LRCLIB");
             }
 
@@ -131,8 +165,8 @@ public sealed class LrclibClient : ILyricsClient
             if (!string.IsNullOrWhiteSpace(apiResponse.PlainLyrics))
             {
                 var plain = new SyncedLyrics(
-                    title: apiResponse.TrackName ?? trackName,
-                    artist: apiResponse.ArtistName ?? artistName,
+                    title: apiResponse.TrackName ?? cleanTrack,
+                    artist: apiResponse.ArtistName ?? cleanArtist,
                     isSynced: false,
                     lines: Array.Empty<LyricLine>(),
                     plainLyrics: apiResponse.PlainLyrics);
@@ -154,6 +188,43 @@ public sealed class LrclibClient : ILyricsClient
         {
             return new LyricsSearchResult(false, null, "LRCLIB", $"Unexpected error: {ex.Message}");
         }
+    }
+
+    public static string StripTrackSuffixes(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return string.Empty;
+        string s = title.Trim();
+        int dashIdx = s.IndexOf(" - ", StringComparison.Ordinal);
+        if (dashIdx > 1)
+        {
+            s = s[..dashIdx].Trim();
+        }
+        int parenIdx = s.IndexOf(" (", StringComparison.Ordinal);
+        if (parenIdx > 1)
+        {
+            s = s[..parenIdx].Trim();
+        }
+        int bracketIdx = s.IndexOf(" [", StringComparison.Ordinal);
+        if (bracketIdx > 1)
+        {
+            s = s[..bracketIdx].Trim();
+        }
+        return s;
+    }
+
+    public static string ExtractPrimaryArtist(string artist)
+    {
+        if (string.IsNullOrWhiteSpace(artist)) return string.Empty;
+        string s = artist.Trim();
+        int commaIdx = s.IndexOf(',');
+        if (commaIdx > 1) s = s[..commaIdx].Trim();
+        int semiIdx = s.IndexOf(';');
+        if (semiIdx > 1) s = s[..semiIdx].Trim();
+        int featIdx = s.IndexOf(" feat.", StringComparison.OrdinalIgnoreCase);
+        if (featIdx > 1) s = s[..featIdx].Trim();
+        int ftIdx = s.IndexOf(" ft.", StringComparison.OrdinalIgnoreCase);
+        if (ftIdx > 1) s = s[..ftIdx].Trim();
+        return s;
     }
 
     private sealed class LrclibResponse

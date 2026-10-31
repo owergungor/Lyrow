@@ -15,7 +15,7 @@ public sealed class GitHubUpdateService : IUpdateService
 {
     public const string DefaultReleasesApiUrl = "https://api.github.com/repos/owergungor/Lyrow/releases/latest";
     public const string DefaultReleasesPageUrl = "https://github.com/owergungor/Lyrow/releases";
-    public const string AppVersion = "3.3";
+    public const string AppVersion = "3.4";
     public const string SilentInstallerArguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-";
 
     public static bool IsUpdateCheckDue(UpdateCheckFrequency frequency, DateTime? lastCheckUtc, DateTime? nowUtc = null)
@@ -315,27 +315,78 @@ public sealed class GitHubUpdateService : IUpdateService
         return LaunchSilentUpdateAndRestart(installerPath);
     }
 
-    public bool LaunchSilentUpdateAndRestart(string installerPath, string? appExecutablePath = null)
+    public bool VerifyDownloadedPackage(string packagePath)
     {
-        if (string.IsNullOrWhiteSpace(installerPath) || !File.Exists(installerPath))
+        if (string.IsNullOrWhiteSpace(packagePath) || !File.Exists(packagePath))
         {
             return false;
         }
 
         try
         {
-            string appExe = appExecutablePath ?? Process.GetCurrentProcess().MainModule?.FileName ?? "Lyrow.App.exe";
+            var info = new FileInfo(packagePath);
+            if (info.Length < 64)
+            {
+                return false;
+            }
+
+            using var fs = new FileStream(packagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            int b0 = fs.ReadByte();
+            int b1 = fs.ReadByte();
+            // Windows PE executable MZ header ('M' = 0x4D, 'Z' = 0x5A)
+            return b0 == 0x4D && b1 == 0x5A;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static string BuildPostUpdateRelaunchScript(string installerPath, string appExecutablePath, int currentProcessId)
+    {
+        string safeInstaller = (installerPath ?? string.Empty).Replace("'", "''");
+        string safeAppExe = (appExecutablePath ?? string.Empty).Replace("'", "''");
+        string safeAppDir = (Path.GetDirectoryName(appExecutablePath) ?? string.Empty).Replace("'", "''");
+        string localAppDataExe = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Programs",
+            "Lyrow",
+            "Lyrow.App.exe").Replace("'", "''");
+
+        return
+            $"Start-Sleep -Milliseconds 400; " +
+            $"Wait-Process -Id {currentProcessId} -Timeout 12 -ErrorAction SilentlyContinue; " +
+            $"$p = Start-Process -FilePath '{safeInstaller}' -ArgumentList '{SilentInstallerArguments}' -Wait -PassThru; " +
+            $"if ($null -eq $p -or $p.ExitCode -eq 0) {{ " +
+            $"  Start-Sleep -Milliseconds 300; " +
+            $"  if (Test-Path -LiteralPath '{safeAppExe}') {{ " +
+            $"    Start-Process -FilePath '{safeAppExe}' -WorkingDirectory '{safeAppDir}'; " +
+            $"  }} elseif (Test-Path -LiteralPath '{localAppDataExe}') {{ " +
+            $"    Start-Process -FilePath '{localAppDataExe}'; " +
+            $"  }} " +
+            $"}}";
+    }
+
+    public bool LaunchSilentUpdateAndRestart(string installerPath, string? appExecutablePath = null, Action? onBeforeExit = null)
+    {
+        if (!VerifyDownloadedPackage(installerPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            string appExe = !string.IsNullOrWhiteSpace(appExecutablePath)
+                ? appExecutablePath
+                : (Environment.ProcessPath ?? Process.GetCurrentProcess().MainModule?.FileName ?? "Lyrow.App.exe");
             int currentPid = Environment.ProcessId;
 
-            // Script that waits for current process to exit, runs silent installer without wizard dialogs, and restarts app
-            string script = $"Start-Sleep -Milliseconds 600; Wait-Process -Id {currentPid} -Timeout 10 -ErrorAction SilentlyContinue; " +
-                            $"Start-Process -FilePath '{installerPath}' -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait; " +
-                            $"Start-Process -FilePath '{appExe}';";
+            string script = BuildPostUpdateRelaunchScript(installerPath, appExe, currentPid);
 
             var startInfo = new ProcessStartInfo
             {
                 FileName = "powershell.exe",
-                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script}\"",
+                Arguments = $"-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command \"{script}\"",
                 CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden,
                 UseShellExecute = false
@@ -344,25 +395,39 @@ public sealed class GitHubUpdateService : IUpdateService
             var proc = Process.Start(startInfo);
             if (proc != null)
             {
-                Environment.Exit(0);
+                if (onBeforeExit != null)
+                {
+                    onBeforeExit();
+                }
+                else
+                {
+                    Environment.Exit(0);
+                }
                 return true;
             }
         }
         catch { }
 
-        // Fallback: standard launch
+        // Fallback: standard launch without PowerShell wrapper
         try
         {
             var fallback = new ProcessStartInfo
             {
                 FileName = installerPath,
-                Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-",
+                Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /SP-",
                 UseShellExecute = true
             };
             var proc = Process.Start(fallback);
             if (proc != null)
             {
-                Environment.Exit(0);
+                if (onBeforeExit != null)
+                {
+                    onBeforeExit();
+                }
+                else
+                {
+                    Environment.Exit(0);
+                }
                 return true;
             }
         }

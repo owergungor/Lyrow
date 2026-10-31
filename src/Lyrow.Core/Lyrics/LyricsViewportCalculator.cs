@@ -172,7 +172,97 @@ public static class LyricsViewportCalculator
         if (Math.Abs(diff) <= epsilon) return target;
         return current + diff * Math.Clamp(factor, 0.02, 1.0);
     }
+
+    /// <summary>
+    /// Width threshold in logical pixels at or above which resizing a Compact (Dar Mod) window
+    /// automatically transitions back to Horizontal 50/50 normal mode.
+    /// </summary>
+    public const double CompactToNormalWidthThreshold = 640.0;
+
+    /// <summary>
+    /// Width threshold in logical pixels below which (along with height below CompactMaxAutoHeightThreshold)
+    /// resizing a Horizontal window transitions into Compact mode.
+    /// </summary>
+    public const double NormalToCompactWidthThreshold = 520.0;
+    public const double NormalToCompactHeightThreshold = 260.0;
+
+    /// <summary>
+    /// Computes responsive player and lyrics metrics from the current window dimensions.
+    /// Maintains 1:1 square artwork, aligns progress and volume bar widths with artwork width,
+    /// and scales typography and control dimensions proportionally.
+    /// </summary>
+    public static ResponsiveLyricsLayoutMetrics CalculateResponsiveMetrics(
+        double windowWidth,
+        double windowHeight,
+        bool isLyricsPanelVisible = true,
+        double baseFocusedFontSize = 28.0,
+        double baseUnfocusedFontSize = 20.0)
+    {
+        double safeW = Math.Max(480.0, windowWidth);
+        double safeH = Math.Max(220.0, windowHeight);
+
+        double playerAvailableW = isLyricsPanelVisible ? (safeW * 0.50) - 56.0 : safeW - 80.0;
+        double playerAvailableH = safeH - 44.0; // Exclude title bar
+
+        // Artwork takes proportional height and width while leaving room for metadata + controls below it (~210-250px)
+        double maxArtByWidth = Math.Clamp(playerAvailableW * 0.78, 180.0, 560.0);
+        double maxArtByHeight = Math.Clamp(playerAvailableH - 225.0, 180.0, 560.0);
+        double artworkSize = Math.Round(Math.Clamp(Math.Min(maxArtByWidth, maxArtByHeight), 180.0, 560.0));
+
+        double scaleRatio = Math.Clamp(artworkSize / 300.0, 0.72, 1.75);
+
+        double songTitleFontSize = Math.Round(Math.Clamp(22.0 * scaleRatio, 16.0, 34.0), 1);
+        double artistAlbumFontSize = Math.Round(Math.Clamp(14.0 * scaleRatio, 12.0, 21.0), 1);
+        double timestampFontSize = Math.Round(Math.Clamp(11.0 * scaleRatio, 10.0, 15.0), 1);
+        double deviceFontSize = Math.Round(Math.Clamp(12.0 * scaleRatio, 10.5, 16.0), 1);
+
+        double playButtonSize = Math.Round(Math.Clamp(46.0 * scaleRatio, 38.0, 66.0));
+        double skipButtonSize = Math.Round(Math.Clamp(36.0 * scaleRatio, 30.0, 52.0));
+        double utilityButtonSize = Math.Round(Math.Clamp(34.0 * scaleRatio, 28.0, 46.0));
+
+        double lyricScale = Math.Clamp((safeW / 960.0) * 0.55 + (safeH / 640.0) * 0.45, 0.80, 1.65);
+        double scaledFocusedFontSize = Math.Round(Math.Clamp(baseFocusedFontSize * lyricScale, 20.0, 54.0), 1);
+        double scaledUnfocusedFontSize = Math.Round(Math.Clamp(baseUnfocusedFontSize * lyricScale, 14.0, 38.0), 1);
+        double lyricLineSpacing = Math.Round(Math.Clamp(20.0 * lyricScale, 14.0, 34.0), 1);
+
+        return new ResponsiveLyricsLayoutMetrics(
+            ArtworkSize: artworkSize,
+            PlayerColumnWidth: artworkSize,
+            ProgressBarWidth: artworkSize,
+            VolumeBarWidth: artworkSize,
+            ScaleRatio: scaleRatio,
+            SongTitleFontSize: songTitleFontSize,
+            ArtistAlbumFontSize: artistAlbumFontSize,
+            TimestampFontSize: timestampFontSize,
+            DeviceFontSize: deviceFontSize,
+            PlayPauseButtonSize: playButtonSize,
+            SkipButtonSize: skipButtonSize,
+            UtilityButtonSize: utilityButtonSize,
+            FocusedLyricFontSize: scaledFocusedFontSize,
+            UnfocusedLyricFontSize: scaledUnfocusedFontSize,
+            LyricLineSpacing: lyricLineSpacing);
+    }
 }
+
+/// <summary>
+/// Responsive layout metrics calculated for LyricsWindow based on current viewport dimensions.
+/// </summary>
+public readonly record struct ResponsiveLyricsLayoutMetrics(
+    double ArtworkSize,
+    double PlayerColumnWidth,
+    double ProgressBarWidth,
+    double VolumeBarWidth,
+    double ScaleRatio,
+    double SongTitleFontSize,
+    double ArtistAlbumFontSize,
+    double TimestampFontSize,
+    double DeviceFontSize,
+    double PlayPauseButtonSize,
+    double SkipButtonSize,
+    double UtilityButtonSize,
+    double FocusedLyricFontSize,
+    double UnfocusedLyricFontSize,
+    double LyricLineSpacing);
 
 /// <summary>
 /// Motion states in the Apple Music / VoxelVerse lyric line animation state machine.
