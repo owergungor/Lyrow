@@ -350,10 +350,27 @@ public sealed class GlowBeatEngine
             return;
         }
 
-        // Compute mean & consistency of recent inter-onset intervals
-        double sum = 0.0;
-        for (int i = 0; i < _beatIntervalCount; i++) sum += _beatIntervalsMs[i];
-        double meanMs = sum / _beatIntervalCount;
+        // Recency-weighted mean & tempo shift detection for agile adaptation without jitter
+        int newestIdx = (_beatIntervalIndex - 1 + MaxBeatIntervals) % MaxBeatIntervals;
+        int prevIdx = (_beatIntervalIndex - 2 + MaxBeatIntervals) % MaxBeatIntervals;
+        double recentDiff = Math.Abs(_beatIntervalsMs[newestIdx] - _beatIntervalsMs[prevIdx]);
+        bool isTempoShift = _beatIntervalCount >= 3 &&
+                            (recentDiff / _beatIntervalsMs[newestIdx]) < 0.12 &&
+                            Math.Abs(_beatIntervalsMs[newestIdx] - (60000.0 / Math.Max(1f, _estimatedBpm))) > 35.0;
+
+        double weightedSum = 0.0;
+        double totalWeight = 0.0;
+        double decayFactor = isTempoShift ? 0.50 : 0.82;
+
+        for (int k = 0; k < _beatIntervalCount; k++)
+        {
+            int bufIdx = (_beatIntervalIndex - 1 - k + MaxBeatIntervals) % MaxBeatIntervals;
+            double w = Math.Pow(decayFactor, k);
+            weightedSum += _beatIntervalsMs[bufIdx] * w;
+            totalWeight += w;
+        }
+
+        double meanMs = weightedSum / totalWeight;
 
         double devSum = 0.0;
         for (int i = 0; i < _beatIntervalCount; i++)
@@ -369,8 +386,9 @@ public sealed class GlowBeatEngine
         }
         else
         {
-            // Smooth BPM adaptation so tempo shifts adapt cleanly without wild jitter
-            _estimatedBpm += (candidateBpm - _estimatedBpm) * 0.35f;
+            // Adaptive smoothing: adapt faster (0.75) during detected tempo transitions, smooth gently (0.35) during steady state
+            float adaptRate = isTempoShift ? 0.75f : 0.35f;
+            _estimatedBpm += (candidateBpm - _estimatedBpm) * adaptRate;
         }
 
         float stability = (float)Math.Clamp(1.0 - (meanDev / Math.Max(1.0, meanMs * 0.25)), 0.0, 1.0);
