@@ -1390,6 +1390,12 @@ public sealed partial class MainWindow : Window
 
             HomeTxtTitle.Text = track.Title;
             HomeTxtArtist.Text = track.Artist;
+            var metaAnim = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation { From = 0.4, To = 1.0, Duration = TimeSpan.FromMilliseconds(200) };
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(metaAnim, StackHomeTrackMeta);
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(metaAnim, "Opacity");
+            var sbMeta = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+            sbMeta.Children.Add(metaAnim);
+            sbMeta.Begin();
             if (!string.IsNullOrWhiteSpace(track.Album))
             {
                 HomeTxtAlbum.Text = track.Album;
@@ -1443,7 +1449,14 @@ public sealed partial class MainWindow : Window
 
             if (bitmap != null)
             {
+                HomeTrackArtwork.Opacity = 0.0;
                 HomeTrackArtwork.Source = bitmap;
+                var anim = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation { From = 0.0, To = 1.0, Duration = TimeSpan.FromMilliseconds(240) };
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(anim, HomeTrackArtwork);
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(anim, "Opacity");
+                var sb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+                sb.Children.Add(anim);
+                sb.Begin();
                 HomeArtworkPlaceholder.Visibility = Visibility.Collapsed;
             }
             else

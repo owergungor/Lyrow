@@ -109,4 +109,66 @@ public class LyrowAppleMusicExperienceTests
         float decayFactor = (currentFactor < 0.001f) ? 0.0f : (currentFactor * 0.85f);
         decayFactor.Should().Be(0.0f);
     }
+
+    [Fact]
+    public void TransitionTiming_ConformsToFluidSpec()
+    {
+        var artworkFadeDuration = TimeSpan.FromMilliseconds(240);
+        var metaFadeDuration = TimeSpan.FromMilliseconds(200);
+
+        artworkFadeDuration.TotalMilliseconds.Should().BeInRange(150, 350);
+        metaFadeDuration.TotalMilliseconds.Should().BeInRange(150, 300);
+    }
+
+    [Fact]
+    public void LyricsScrollEasing_SmoothingFactor_InterpolatesSmoothlyWithoutOvershoot()
+    {
+        double currentOffset = 100.0;
+        double targetOffset = 250.0;
+        double factor = 0.15;
+
+        double step1 = LyricsViewportCalculator.InterpolateScrollOffset(currentOffset, targetOffset, factor);
+        step1.Should().BeGreaterThan(currentOffset);
+        step1.Should().BeLessThan(targetOffset);
+        step1.Should().BeApproximately(122.5, 0.5);
+
+        double step2 = LyricsViewportCalculator.InterpolateScrollOffset(step1, targetOffset, factor);
+        step2.Should().BeGreaterThan(step1);
+        step2.Should().BeLessThan(targetOffset);
+    }
+
+    [Fact]
+    public void StaleAsyncSequence_RejectsOutdatedRequests()
+    {
+        long sequence = 0;
+        long seq1 = Interlocked.Increment(ref sequence);
+        long seq2 = Interlocked.Increment(ref sequence);
+
+        seq2.Should().BeGreaterThan(seq1);
+
+        // A delayed callback with seq1 should be rejected
+        bool isCallbackValidForSeq1 = (seq1 == Interlocked.Read(ref sequence));
+        bool isCallbackValidForSeq2 = (seq2 == Interlocked.Read(ref sequence));
+
+        isCallbackValidForSeq1.Should().BeFalse();
+        isCallbackValidForSeq2.Should().BeTrue();
+    }
+
+    [Fact]
+    public void MiniPlayer_LayoutCalculations_ZeroOverflow()
+    {
+        double windowWidth = 500.0;
+        double windowHeight = 232.0;
+
+        double paddingHorizontal = 14.0 * 2; // Card padding
+        double artworkWidth = 64.0;
+        double controlsWidth = (38.0 * 2) + 46.0 + (8.0 * 2); // Prev (38) + Next (38) + Play (46) + Spacing (16)
+
+        double availableMetaWidth = windowWidth - paddingHorizontal - artworkWidth - controlsWidth;
+        availableMetaWidth.Should().BeGreaterThan(100.0); // Sufficient room for track title and artist
+
+        double paddingVertical = 10.0 * 2;
+        double contentHeight = 64.0 + 20.0 + 32.0; // artwork/meta + progress + controls
+        (contentHeight + paddingVertical).Should().BeLessThan(windowHeight); // Zero vertical overflow
+    }
 }

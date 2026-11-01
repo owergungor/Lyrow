@@ -523,6 +523,12 @@ public sealed partial class LyricsWindow : Window
             TxtArtistAlbum.Text = artistAlbum;
             TxtSongTitleCompact.Text = newTrack.Title;
             TxtArtistAlbumCompact.Text = artistAlbum;
+            var metaAnim = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation { From = 0.4, To = 1.0, Duration = TimeSpan.FromMilliseconds(200) };
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(metaAnim, TxtSongTitle);
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(metaAnim, "Opacity");
+            var sbMeta = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+            sbMeta.Children.Add(metaAnim);
+            sbMeta.Begin();
 
             _ = UpdateArtworkAsync(newTrack, currentSeq);
         }
@@ -699,7 +705,21 @@ public sealed partial class LyricsWindow : Window
 
             if (bitmap != null)
             {
+                ImgTrackArtwork.Opacity = 0.0;
+                ImgTrackArtworkCompact.Opacity = 0.0;
                 ImgTrackArtwork.Source = bitmap;
+                var anim = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation { From = 0.0, To = 1.0, Duration = TimeSpan.FromMilliseconds(240) };
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(anim, ImgTrackArtwork);
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(anim, "Opacity");
+                var sb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+                sb.Children.Add(anim);
+                sb.Begin();
+                var animC = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation { From = 0.0, To = 1.0, Duration = TimeSpan.FromMilliseconds(240) };
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animC, ImgTrackArtworkCompact);
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animC, "Opacity");
+                var sbC = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+                sbC.Children.Add(animC);
+                sbC.Begin();
                 IconArtworkPlaceholder.Visibility = Visibility.Collapsed;
                 ImgTrackArtworkCompact.Source = bitmap;
                 IconArtworkPlaceholderCompact.Visibility = Visibility.Collapsed;
@@ -1137,7 +1157,7 @@ public sealed partial class LyricsWindow : Window
         RecalculateCenterScrollTarget(immediate: false);
 
         double actualOffset = LyricsScrollViewer.VerticalOffset;
-        if (Math.Abs(_currentScrollOffsetY - actualOffset) > 40.0)
+        if (Math.Abs(_currentScrollOffsetY - actualOffset) > 80.0)
         {
             _currentScrollOffsetY = actualOffset;
         }
@@ -1147,7 +1167,7 @@ public sealed partial class LyricsWindow : Window
             _currentScrollOffsetY = LyricsViewportCalculator.InterpolateScrollOffset(
                 _currentScrollOffsetY,
                 _targetScrollOffsetY,
-                smoothingFactor: 0.18,
+                smoothingFactor: 0.15,
                 snapEpsilon: 0.30);
 
             LyricsScrollViewer.ChangeView(null, _currentScrollOffsetY, null, disableAnimation: true);
