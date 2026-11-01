@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
@@ -1541,6 +1541,7 @@ public sealed partial class MainWindow : Window
         {
             TxtLyricsAvailability.Text = "No synchronized lyrics found for this track";
             TxtHomeCurrentLyricLine.Text = "♪ Instrumental or unsynchronized track";
+            _lyricsWindow?.SetLyricsNotFound(e.ErrorMessage);
         });
     }
 

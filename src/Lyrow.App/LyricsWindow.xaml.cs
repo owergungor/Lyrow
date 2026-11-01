@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
@@ -1330,5 +1330,19 @@ public sealed partial class LyricsWindow : Window
             ThemeMode.Light => ElementTheme.Light,
             _ => ElementTheme.Default
         };
+    }
+
+    /// <summary>
+    /// Displays an aesthetic empty state when synchronized lyrics are unavailable for the current track.
+    /// </summary>
+    public void SetLyricsNotFound(string? message = null)
+    {
+        if (_currentRenderedLines.Count == 0 && string.IsNullOrEmpty(_lastLyrics?.PlainLyrics))
+        {
+            TxtEmptyState.Text = "Sözler bulunamadı";
+            TxtEmptyStateSub.Text = !string.IsNullOrWhiteSpace(message) ? message : "Bu parça için senkronize söz bulunamadı.";
+            PanelEmptyState.Visibility = Visibility.Visible;
+            LyricsScrollViewer.Visibility = Visibility.Collapsed;
+        }
     }
 }

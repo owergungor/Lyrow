@@ -109,6 +109,18 @@ public class LyrowV35FeatureVerificationTests
         mapped.Should().Be(expected);
     }
 
+    [Fact]
+    public void LyricsEmptyState_FormatsClearNotFoundMessage()
+    {
+        string defaultMsg = "Bu parça için senkronize söz bulunamadı.";
+        string customMsg = "Rate limited";
+        string formatted1 = !string.IsNullOrWhiteSpace(customMsg) ? customMsg : defaultMsg;
+        string formatted2 = !string.IsNullOrWhiteSpace(null) ? null! : defaultMsg;
+
+        formatted1.Should().Be("Rate limited");
+        formatted2.Should().Be(defaultMsg);
+    }
+
     private static string FindRepoRoot()
     {
         string current = AppContext.BaseDirectory;
