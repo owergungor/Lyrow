@@ -1275,6 +1275,14 @@ public sealed partial class LyricsWindow : Window
     private async Task SeekToLyricLineAsync(TimeSpan timestamp)
     {
         if (_mediaMonitor == null) return;
+        if (!_mediaMonitor.CanSeek)
+        {
+            _toastManager?.ShowToast(
+                "Seek işlemi aktif medya oynatıcısı tarafından desteklenmiyor.",
+                title: "Seek Desteklenmiyor",
+                severity: InfoBarSeverity.Informational);
+            return;
+        }
         bool ok = await _mediaMonitor.TrySeekAsync(timestamp);
         if (!ok)
         {

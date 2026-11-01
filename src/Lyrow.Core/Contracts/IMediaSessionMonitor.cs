@@ -31,6 +31,9 @@ public interface IMediaSessionMonitor : IAsyncDisposable
     /// <summary>Gets the most recently observed playback timeline status.</summary>
     MediaTimelineInfo CurrentTimeline { get; }
 
+    /// <summary>Gets whether seeking/scrubbing is supported by the active media session.</summary>
+    bool CanSeek => CurrentTimeline.CanSeek;
+
     /// <summary>Starts listening for media session events.</summary>
     Task StartAsync(CancellationToken cancellationToken = default);
 

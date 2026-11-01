@@ -3,6 +3,7 @@ using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
 using Windows.Media.Control;
 using Windows.Storage.Streams;
+using Lyrow.Music.Metadata;
 
 namespace Lyrow.Music.Session;
 
@@ -15,14 +16,16 @@ namespace Lyrow.Music.Session;
 public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly IMediaMetadataNormalizer _normalizer;
     private GlobalSystemMediaTransportControlsSessionManager? _sessionManager;
     private GlobalSystemMediaTransportControlsSession? _currentSession;
     private bool _isMonitoring;
     private bool _isDisposed;
     private long _trackSequence = 0;
 
-    public WindowsGsmtcMediaSessionMonitor()
+    public WindowsGsmtcMediaSessionMonitor(IMediaMetadataNormalizer? normalizer = null)
     {
+        _normalizer = normalizer ?? new MediaMetadataNormalizer();
         CurrentTrack = MediaTrackInfo.Empty;
         CurrentTimeline = MediaTimelineInfo.Zero;
     }
@@ -265,9 +268,14 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 }
             }
 
-            string newTitle = props.Title ?? string.Empty;
-            string newArtist = props.Artist ?? string.Empty;
-            string newAlbum = props.AlbumTitle ?? string.Empty;
+            string rawTitle = props.Title ?? string.Empty;
+            string rawArtist = props.Artist ?? string.Empty;
+            string rawAlbum = props.AlbumTitle ?? string.Empty;
+
+            var norm = _normalizer.Normalize(rawTitle, rawArtist, rawAlbum);
+            string newTitle = norm.Title;
+            string newArtist = norm.Artist;
+            string newAlbum = norm.Album;
 
             bool isTrackSwitch = !string.Equals(CurrentTrack.Title, newTitle, StringComparison.OrdinalIgnoreCase) ||
                                  !string.Equals(CurrentTrack.Artist, newArtist, StringComparison.OrdinalIgnoreCase);
@@ -277,10 +285,13 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             var endTime = timelineProps?.EndTime ?? TimeSpan.Zero;
             var duration = endTime > startTime ? (endTime - startTime) : endTime;
 
+            var pbInfo = session.GetPlaybackInfo();
+            bool canSeek = pbInfo?.Controls?.IsPlaybackPositionEnabled ?? true;
+
             if (isTrackSwitch)
             {
                 // Reset timeline immediately on track switch so old track's position/duration is never extrapolated
-                CurrentTimeline = new MediaTimelineInfo(TimeSpan.Zero, duration, MediaPlaybackStatus.Changing, DateTime.UtcNow);
+                CurrentTimeline = new MediaTimelineInfo(TimeSpan.Zero, duration, MediaPlaybackStatus.Changing, DateTime.UtcNow, canSeek);
                 TimelineChanged?.Invoke(this, CurrentTimeline);
             }
 
@@ -289,7 +300,10 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 Artist: newArtist,
                 Album: newAlbum,
                 Duration: duration,
-                ThumbnailData: thumbnailBytes);
+                ThumbnailData: thumbnailBytes,
+                RawTitle: norm.RawTitle,
+                RawArtist: norm.RawArtist,
+                RawAlbum: norm.RawAlbum);
 
             if (Interlocked.Read(ref _trackSequence) != currentSeq) return;
 
@@ -350,7 +364,9 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 }
             }
 
-            var timeline = new MediaTimelineInfo(pos, dur, status, lastUpdatedUtc);
+            var controls = playbackInfo?.Controls;
+            bool canSeek = controls?.IsPlaybackPositionEnabled ?? true;
+            var timeline = new MediaTimelineInfo(pos, dur, status, lastUpdatedUtc, canSeek);
             CurrentTimeline = timeline;
             TimelineChanged?.Invoke(this, timeline);
         }
@@ -501,6 +517,13 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
     {
         var session = await EnsureActiveSessionAsync().ConfigureAwait(false);
         if (session == null) return false;
+
+        var controls = session.GetPlaybackInfo()?.Controls;
+        if (controls != null && !controls.IsPlaybackPositionEnabled)
+        {
+            // Seeking is unsupported by the active player (e.g. Apple Music on Windows)
+            return false;
+        }
 
         try
         {

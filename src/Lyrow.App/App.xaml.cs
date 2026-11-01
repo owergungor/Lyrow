@@ -254,15 +254,18 @@ public partial class App : Application
             sp.GetRequiredService<ISettingsManager>()));
 
         // Music & Lyrics pipeline services
+        services.AddSingleton<IMediaMetadataNormalizer, Lyrow.Music.Metadata.MediaMetadataNormalizer>();
         services.AddSingleton<IMediaSessionMonitor>(sp =>
         {
+            var normalizer = sp.GetRequiredService<IMediaMetadataNormalizer>();
             if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041, 0))
             {
-                return new Lyrow.Music.Session.WindowsGsmtcMediaSessionMonitor();
+                return new Lyrow.Music.Session.WindowsGsmtcMediaSessionMonitor(normalizer);
             }
             return new Lyrow.Music.Session.SyntheticMediaSessionMonitor();
         });
-        services.AddSingleton<ILyricsClient, Lyrow.Music.Lyrics.LrclibClient>();
+        services.AddSingleton<ILyricsClient>(sp => new Lyrow.Music.Lyrics.LrclibClient(
+            normalizer: sp.GetRequiredService<IMediaMetadataNormalizer>()));
         services.AddSingleton<ILyricsCache, Lyrow.Music.Lyrics.LocalFileLyricsCache>();
         services.AddSingleton<IArtworkService, ArtworkService>();
         services.AddSingleton<ArtworkBitmapManager>();

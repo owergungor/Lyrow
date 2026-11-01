@@ -24,7 +24,10 @@ public sealed record MediaTrackInfo(
     TimeSpan Duration,
     string? TrackId = null,
     string? AlbumArtUri = null,
-    byte[]? ThumbnailData = null)
+    byte[]? ThumbnailData = null,
+    string? RawTitle = null,
+    string? RawArtist = null,
+    string? RawAlbum = null)
 {
     public static readonly MediaTrackInfo Empty = new(
         Title: string.Empty,
@@ -42,13 +45,15 @@ public sealed record MediaTimelineInfo(
     TimeSpan Position,
     TimeSpan Duration,
     MediaPlaybackStatus Status,
-    DateTime LastUpdatedUtc)
+    DateTime LastUpdatedUtc,
+    bool CanSeek = true)
 {
     public static readonly MediaTimelineInfo Zero = new(
         Position: TimeSpan.Zero,
         Duration: TimeSpan.Zero,
         Status: MediaPlaybackStatus.Stopped,
-        LastUpdatedUtc: DateTime.UtcNow);
+        LastUpdatedUtc: DateTime.UtcNow,
+        CanSeek: true);
 
     /// <summary>
     /// Calculates smoothly interpolated current position by adding elapsed real time if Playing.

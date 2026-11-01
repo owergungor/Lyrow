@@ -33,6 +33,7 @@ public sealed class SyntheticMediaSessionMonitor : IMediaSessionMonitor
     }
 
     public string? SourceAppId { get; set; } = "Spotify.exe";
+    public bool CanSeek { get; set; } = true;
     public MediaTrackInfo CurrentTrack { get; private set; }
     public MediaTimelineInfo CurrentTimeline { get; private set; }
 
@@ -100,7 +101,7 @@ public sealed class SyntheticMediaSessionMonitor : IMediaSessionMonitor
 
     public Task<bool> TrySeekAsync(TimeSpan position)
     {
-        if (!_hasActiveSession || _isDisposed) return Task.FromResult(false);
+        if (!_hasActiveSession || _isDisposed || !CanSeek) return Task.FromResult(false);
         SimulateSeek(position);
         return Task.FromResult(true);
     }
@@ -157,7 +158,7 @@ public sealed class SyntheticMediaSessionMonitor : IMediaSessionMonitor
         _hasActiveSession = true;
         var track = new MediaTrackInfo(title, artist, album, duration, AlbumArtUri: albumArtUri, ThumbnailData: thumbnailData);
         CurrentTrack = track;
-        CurrentTimeline = new MediaTimelineInfo(TimeSpan.Zero, duration, MediaPlaybackStatus.Playing, DateTime.UtcNow);
+        CurrentTimeline = new MediaTimelineInfo(TimeSpan.Zero, duration, MediaPlaybackStatus.Playing, DateTime.UtcNow, CanSeek);
 
         TrackChanged?.Invoke(this, track);
         TimelineChanged?.Invoke(this, CurrentTimeline);
@@ -167,14 +168,14 @@ public sealed class SyntheticMediaSessionMonitor : IMediaSessionMonitor
     public void SimulatePlaybackState(MediaPlaybackStatus status, TimeSpan? position = null)
     {
         var pos = position ?? CurrentTimeline.GetInterpolatedPosition();
-        CurrentTimeline = new MediaTimelineInfo(pos, CurrentTrack.Duration, status, DateTime.UtcNow);
+        CurrentTimeline = new MediaTimelineInfo(pos, CurrentTrack.Duration, status, DateTime.UtcNow, CanSeek);
         TimelineChanged?.Invoke(this, CurrentTimeline);
     }
 
     /// <summary>Simulates user seeking forward or backward in media player.</summary>
     public void SimulateSeek(TimeSpan targetPosition)
     {
-        CurrentTimeline = new MediaTimelineInfo(targetPosition, CurrentTrack.Duration, CurrentTimeline.Status, DateTime.UtcNow);
+        CurrentTimeline = new MediaTimelineInfo(targetPosition, CurrentTrack.Duration, CurrentTimeline.Status, DateTime.UtcNow, CanSeek);
         TimelineChanged?.Invoke(this, CurrentTimeline);
     }
 
