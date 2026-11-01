@@ -123,4 +123,24 @@ public class LyricsCenteringAndAppleMusicTests
             Status: status,
             LastUpdatedUtc: DateTime.UtcNow);
     }
+
+    [Theory]
+    [InlineData(1280, 720, 180, 560)]
+    [InlineData(1600, 900, 180, 560)]
+    [InlineData(1920, 1080, 180, 560)]
+    [InlineData(2560, 1440, 180, 560)]
+    public void CalculateResponsiveMetrics_AcrossResolutions_PreservesProportionsAndClamping(
+        double width, double height, double minArt, double maxArt)
+    {
+        var metrics = LyricsViewportCalculator.CalculateResponsiveMetrics(width, height);
+
+        metrics.ArtworkSize.Should().BeInRange(minArt, maxArt);
+        metrics.PlayerColumnWidth.Should().Be(metrics.ArtworkSize);
+        metrics.ProgressBarWidth.Should().Be(metrics.ArtworkSize);
+        metrics.VolumeBarWidth.Should().Be(metrics.ArtworkSize);
+        metrics.SongTitleFontSize.Should().BeInRange(16.0, 34.0);
+        metrics.FocusedLyricFontSize.Should().BeInRange(20.0, 54.0);
+        metrics.UnfocusedLyricFontSize.Should().BeInRange(14.0, 38.0);
+        metrics.PlayPauseButtonSize.Should().BeInRange(38.0, 66.0);
+    }
 }

@@ -133,6 +133,16 @@ public sealed class GlowBeatEngine
             _energyEma *= 0.95f;
             _fluxEma *= 0.92f;
             _tempoConfidence *= 0.96f;
+
+            if (_overallGlowIntensity < 0.002f)
+            {
+                _overallGlowIntensity = 0f;
+                _transientEnergy = 0f;
+                _topEdgeIntensity = 0f;
+                _bottomEdgeIntensity = 0f;
+                _leftEdgeIntensity = 0f;
+                _rightEdgeIntensity = 0f;
+            }
             return;
         }
 

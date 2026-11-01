@@ -193,13 +193,29 @@
                         </ScrollViewer>
 
                         <!-- Empty State Message -->
-                        <StackPanel x:Name="PanelEmptyState" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                    Spacing="12" Visibility="Visible" IsHitTestVisible="False">
-                            <FontIcon Glyph="&#xEC4F;" FontSize="38" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <TextBlock x:Name="TxtEmptyState" Text="Play a song in Spotify, Apple Music, or your browser"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14"
-                                       HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="320" TextWrapping="Wrap" />
-                        </StackPanel>
+                        <Border x:Name="PanelEmptyState" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                CornerRadius="16" Padding="32,28" MaxWidth="380"
+                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                Visibility="Visible" IsHitTestVisible="False">
+                            <StackPanel HorizontalAlignment="Center" Spacing="14">
+                                <Border Width="56" Height="56" CornerRadius="28"
+                                        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                        HorizontalAlignment="Center">
+                                    <FontIcon x:Name="IconEmptyState" Glyph="&#xEC4F;" FontSize="26"
+                                              Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Spacing="6" HorizontalAlignment="Center">
+                                    <TextBlock x:Name="TxtEmptyState" Text="Waiting for playback..."
+                                               FontWeight="SemiBold" FontSize="15"
+                                               HorizontalAlignment="Center" TextAlignment="Center" />
+                                    <TextBlock x:Name="TxtEmptyStateSub" Text="Play a song in Spotify, Apple Music, or your browser"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12.5"
+                                               HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" LineHeight="18" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
                     </Grid>
                 </Grid>
 

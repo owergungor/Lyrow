@@ -463,8 +463,11 @@ public sealed partial class LyricsWindow : Window
         LyricsScrollViewer.ChangeView(null, 0, null, disableAnimation: true);
         LyricsScrollViewer.Visibility = Visibility.Collapsed;
         TxtEmptyState.Text = newTrack.IsEmpty
-            ? "Play a song in Spotify, Apple Music, or your browser"
+            ? "Waiting for playback..."
             : "Searching for synchronized lyrics...";
+        TxtEmptyStateSub.Text = newTrack.IsEmpty
+            ? "Play a song in Spotify, Apple Music, or your browser"
+            : $"Looking up lyrics for \"{newTrack.Title}\"...";
         PanelEmptyState.Visibility = Visibility.Visible;
 
         // 3. Reset progress bars and time labels strictly to 0:00 / clean state
@@ -543,7 +546,8 @@ public sealed partial class LyricsWindow : Window
             TxtRemaining.Text = "-0:00";
             TxtElapsedCompact.Text = "0:00";
             TxtRemainingCompact.Text = "-0:00";
-            TxtEmptyState.Text = "Play a song in Spotify, Apple Music, or your browser";
+            TxtEmptyState.Text = "Waiting for playback...";
+            TxtEmptyStateSub.Text = "Play a song in Spotify, Apple Music, or your browser";
             PanelEmptyState.Visibility = Visibility.Visible;
             LyricsScrollViewer.Visibility = Visibility.Collapsed;
             IconArtworkPlaceholder.Visibility = Visibility.Visible;
@@ -745,6 +749,7 @@ public sealed partial class LyricsWindow : Window
             else
             {
                 TxtEmptyState.Text = "Searching for synchronized lyrics...";
+                TxtEmptyStateSub.Text = "Looking up synchronized lyrics from LRCLIB...";
                 PanelEmptyState.Visibility = Visibility.Visible;
                 LyricsScrollViewer.Visibility = Visibility.Collapsed;
             }

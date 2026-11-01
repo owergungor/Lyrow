@@ -145,4 +145,27 @@ public class GlowBeatEngineTests
         engine.BassIntensity.Should().Be(0f);
         engine.IsBeatDetected.Should().BeFalse();
     }
+
+    [Fact]
+    public void Silence_DecaysToExactZero_EliminatingMicroResidues()
+    {
+        var engine = new GlowBeatEngine();
+        var active = CreateSpectrum(rms: 0.8f, bass: 0.9f, subBass: 0.8f, mid: 0.6f, treble: 0.4f);
+        for (int i = 0; i < 10; i++) engine.Process(active);
+
+        engine.OverallGlowIntensity.Should().BeGreaterThan(0.3f);
+
+        var silent = CreateSpectrum(rms: 0f, bass: 0f, subBass: 0f, mid: 0f, treble: 0f, isSilent: true);
+        for (int i = 0; i < 50; i++)
+        {
+            engine.Process(silent);
+        }
+
+        engine.OverallGlowIntensity.Should().Be(0f);
+        engine.TransientEnergy.Should().Be(0f);
+        engine.TopEdgeIntensity.Should().Be(0f);
+        engine.BottomEdgeIntensity.Should().Be(0f);
+        engine.LeftEdgeIntensity.Should().Be(0f);
+        engine.RightEdgeIntensity.Should().Be(0f);
+    }
 }

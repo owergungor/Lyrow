@@ -64,6 +64,8 @@ public sealed class GlowOverlayWindow : IDisposable
     private readonly ISettingsManager? _settingsManager;
     private readonly GlowBeatEngine _beatEngine = new();
     private readonly object _paletteLock = new();
+    private readonly uint[] _leftColorsBuffer = new uint[256];
+    private readonly uint[] _rightColorsBuffer = new uint[256];
 
     private GlowPalette _sourcePalette = GlowPalette.Default;
     private GlowPalette _currentPalette = GlowPalette.Default;
@@ -424,50 +426,85 @@ public sealed class GlowOverlayWindow : IDisposable
             }
         }
 
-        // 3. Left Edge (Mid + Bass Harmonics)
-        uint[] leftColors = new uint[maxThickness];
+        // 3. Left Edge (Mid + Bass Harmonics, zero-allocation preallocated buffer with corner harmonization)
         for (int x = 0; x < maxThickness; x++)
         {
             float normX = 1.0f - ((float)x / maxThickness);
             float falloff = normX * normX * (1.25f - 0.25f * normX);
             byte a = (byte)Math.Clamp((int)(alphaLeft * falloff * 240.0f), 0, 255);
-            leftColors[x] = a > 0 ? PreMultiplyAlpha(palette.LeftColor, a) : 0u;
+            _leftColorsBuffer[x] = a > 0 ? PreMultiplyAlpha(palette.LeftColor, a) : 0u;
         }
 
         for (int y = 0; y < _height; y++)
         {
             int rowOffset = y * stride;
+            // Chromatic corner harmonization: smoothly blend toward top/bottom edge colors near corners
+            float tY = (float)y / _height;
+            GlowColor vertColor;
+            if (tY < 0.25f)
+            {
+                float blendT = tY / 0.25f;
+                vertColor = GlowColor.Lerp(palette.TopColor, palette.LeftColor, blendT);
+            }
+            else if (tY > 0.75f)
+            {
+                float blendT = (tY - 0.75f) / 0.25f;
+                vertColor = GlowColor.Lerp(palette.LeftColor, palette.BottomColor, blendT);
+            }
+            else
+            {
+                vertColor = palette.LeftColor;
+            }
+
             for (int x = 0; x < maxThickness; x++)
             {
-                uint c = leftColors[x];
-                if (c != 0u)
-                {
-                    pixels[rowOffset + x] = BlendPixel(pixels[rowOffset + x], c);
-                }
+                float normX = 1.0f - ((float)x / maxThickness);
+                float falloff = normX * normX * (1.25f - 0.25f * normX);
+                byte a = (byte)Math.Clamp((int)(alphaLeft * falloff * 240.0f), 0, 255);
+                if (a == 0) continue;
+                uint c = PreMultiplyAlpha(vertColor, a);
+                pixels[rowOffset + x] = BlendPixel(pixels[rowOffset + x], c);
             }
         }
 
-        // 4. Right Edge (Mid + Treble Harmonics)
-        uint[] rightColors = new uint[maxThickness];
+        // 4. Right Edge (Mid + Treble Harmonics, zero-allocation preallocated buffer with corner harmonization)
         for (int x = 0; x < maxThickness; x++)
         {
             float normX = 1.0f - ((float)x / maxThickness);
             float falloff = normX * normX * (1.25f - 0.25f * normX);
             byte a = (byte)Math.Clamp((int)(alphaRight * falloff * 240.0f), 0, 255);
-            rightColors[x] = a > 0 ? PreMultiplyAlpha(palette.RightColor, a) : 0u;
+            _rightColorsBuffer[x] = a > 0 ? PreMultiplyAlpha(palette.RightColor, a) : 0u;
         }
 
         for (int y = 0; y < _height; y++)
         {
             int rowOffset = y * stride;
+            float tY = (float)y / _height;
+            GlowColor vertColor;
+            if (tY < 0.25f)
+            {
+                float blendT = tY / 0.25f;
+                vertColor = GlowColor.Lerp(palette.TopColor, palette.RightColor, blendT);
+            }
+            else if (tY > 0.75f)
+            {
+                float blendT = (tY - 0.75f) / 0.25f;
+                vertColor = GlowColor.Lerp(palette.RightColor, palette.BottomColor, blendT);
+            }
+            else
+            {
+                vertColor = palette.RightColor;
+            }
+
             for (int x = 0; x < maxThickness; x++)
             {
-                uint c = rightColors[x];
-                if (c != 0u)
-                {
-                    int idx = rowOffset + (_width - 1 - x);
-                    pixels[idx] = BlendPixel(pixels[idx], c);
-                }
+                float normX = 1.0f - ((float)x / maxThickness);
+                float falloff = normX * normX * (1.25f - 0.25f * normX);
+                byte a = (byte)Math.Clamp((int)(alphaRight * falloff * 240.0f), 0, 255);
+                if (a == 0) continue;
+                uint c = PreMultiplyAlpha(vertColor, a);
+                int idx = rowOffset + (_width - 1 - x);
+                pixels[idx] = BlendPixel(pixels[idx], c);
             }
         }
     }
