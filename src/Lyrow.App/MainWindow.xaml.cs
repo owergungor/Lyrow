@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+using Lyrow.Core.Lyrics;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
@@ -53,6 +54,7 @@ public sealed partial class MainWindow : Window
     private bool _isUpdatingToggles = false;
     private bool _isUpdatingVolumeUi = false;
     private bool _isUpdatingSettingsUi = false;
+    private bool _isDraggingHomeProgress = false;
 
     public MainWindow(
         IModuleManager moduleManager,
@@ -139,6 +141,8 @@ public sealed partial class MainWindow : Window
         catch { }
 
         WireHomeCardsNavigation();
+        WireHomeProgressScrubber();
+        RootShellGrid.SizeChanged += OnRootShellSizeChanged;
 
         _trayIconManager?.Initialize(
             onShowMainWindow: () => DispatcherQueue.TryEnqueue(() => { AppWindow.Show(); NavigateTo("Home"); }),
@@ -1456,7 +1460,14 @@ public sealed partial class MainWindow : Window
             if (Interlocked.Read(ref _mainTrackSequence) != currentSeq) return;
 
             _glowOverlayManager?.SetCustomPalette(palette);
-            DispatcherQueue.TryEnqueue(() => UpdatePaletteSwatches(palette));
+                        var ambient = ArtworkPaletteExtractor.ExtractAmbientPalette(palette);
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                UpdatePaletteSwatches(palette);
+                HomeStopTopLeft.Color = Windows.UI.Color.FromArgb(255, ambient.Dominant.R, ambient.Dominant.G, ambient.Dominant.B);
+                HomeStopCenter.Color = Windows.UI.Color.FromArgb(255, ambient.Secondary.R, ambient.Secondary.G, ambient.Secondary.B);
+                HomeStopBottomRight.Color = Windows.UI.Color.FromArgb(255, ambient.Tertiary.R, ambient.Tertiary.G, ambient.Tertiary.B);
+            });
         }
     }
 
@@ -1495,6 +1506,7 @@ public sealed partial class MainWindow : Window
 
     private void UpdateDashboardTimelineDisplay(MediaTimelineInfo timeline, MediaTrackInfo track)
     {
+        if (_isDraggingHomeProgress) return;
         var pos = timeline.GetInterpolatedPosition();
         var dur = track.Duration > TimeSpan.Zero ? track.Duration : timeline.Duration;
 
@@ -1620,6 +1632,11 @@ public sealed partial class MainWindow : Window
 
     public void ApplyTheme(ThemeMode mode)
     {
+        if (HomeAmbientBackgroundLayer != null)
+        {
+            HomeAmbientBackgroundLayer.Opacity = mode == ThemeMode.Light ? 0.12 : 0.55;
+        }
+
         if (Content is FrameworkElement root)
         {
             root.RequestedTheme = mode switch
@@ -1849,7 +1866,132 @@ public sealed partial class MainWindow : Window
         return DefSubclassProc(hWnd, uMsg, wParam, lParam);
     }
 
-    [DllImport("user32.dll")]
+    private void OnRootShellSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        bool isCompact = e.NewSize.Width <= 560 || e.NewSize.Height <= 320;
+        if (isCompact)
+        {
+            NavView.IsPaneVisible = false;
+            RootContentGrid.Margin = new Thickness(12, 6, 12, 6);
+            CardVolume.Visibility = Visibility.Collapsed;
+            CardGlow.Visibility = Visibility.Collapsed;
+            CardLyrics.Visibility = Visibility.Collapsed;
+            BorderHomeTrackArtwork.Width = 64;
+            BorderHomeTrackArtwork.Height = 64;
+            BorderHomeTrackArtwork.CornerRadius = new CornerRadius(10);
+            HomeTxtTitle.FontSize = 15;
+            HomeTxtArtist.FontSize = 12;
+            CardCurrentTrack.Padding = new Thickness(14, 10, 14, 10);
+        }
+        else
+        {
+            NavView.IsPaneVisible = true;
+            RootContentGrid.Margin = new Thickness(24, 14, 24, 28);
+            CardVolume.Visibility = Visibility.Visible;
+            CardGlow.Visibility = Visibility.Visible;
+            CardLyrics.Visibility = Visibility.Visible;
+            BorderHomeTrackArtwork.Width = 84;
+            BorderHomeTrackArtwork.Height = 84;
+            BorderHomeTrackArtwork.CornerRadius = new CornerRadius(12);
+            HomeTxtTitle.FontSize = 19;
+            HomeTxtArtist.FontSize = 13.5;
+            CardCurrentTrack.Padding = new Thickness(20);
+        }
+    }
+
+    private void WireHomeProgressScrubber()
+    {
+        bool isPointerCaptured = false;
+
+        TimeSpan ResolveDuration()
+        {
+            var track = _mediaMonitor?.CurrentTrack ?? MediaTrackInfo.Empty;
+            var timeline = _mediaMonitor?.CurrentTimeline ?? MediaTimelineInfo.Zero;
+            return track.Duration > TimeSpan.Zero ? track.Duration : timeline.Duration;
+        }
+
+        void UpdatePreview(Windows.Foundation.Point pt)
+        {
+            double w = GridHomeProgressHitBox.ActualWidth > 0 ? GridHomeProgressHitBox.ActualWidth : HomeProgressTimeline.ActualWidth;
+            var dur = ResolveDuration();
+            if (w <= 0 || dur <= TimeSpan.Zero) return;
+
+            var targetTime = LyricsFillProgressCalculator.CalculateSeekTimeFromPointer(pt.X, w, dur);
+            double pct = Math.Clamp((targetTime.TotalMilliseconds / dur.TotalMilliseconds) * 100.0, 0.0, 100.0);
+            HomeProgressTimeline.Value = pct;
+            HomeTxtTimestamp.Text = $"{targetTime:mm\\:ss} / {dur:mm\\:ss}";
+        }
+
+        void UpdateScrubberToolTip()
+        {
+            bool canSeek = _mediaMonitor?.CanSeek ?? false;
+            string toolTip = canSeek
+                ? "Click or drag to seek"
+                : "Seek işlemi aktif medya oynatıcısı (Apple Music) tarafından desteklenmiyor.";
+            ToolTipService.SetToolTip(GridHomeProgressHitBox, toolTip);
+        }
+
+        UpdateScrubberToolTip();
+
+        GridHomeProgressHitBox.PointerPressed += (s, e) =>
+        {
+            if (_mediaMonitor != null && !_mediaMonitor.CanSeek)
+            {
+                ShowToast("Seek işlemi aktif medya oynatıcısı (Apple Music) tarafından desteklenmiyor.", InfoBarSeverity.Informational);
+                e.Handled = true;
+                return;
+            }
+
+            var dur = ResolveDuration();
+            if (dur <= TimeSpan.Zero) return;
+
+            isPointerCaptured = GridHomeProgressHitBox.CapturePointer(e.Pointer);
+            _isDraggingHomeProgress = true;
+            UpdatePreview(e.GetCurrentPoint(GridHomeProgressHitBox).Position);
+            e.Handled = true;
+        };
+
+        GridHomeProgressHitBox.PointerMoved += (s, e) =>
+        {
+            if (!_isDraggingHomeProgress || !isPointerCaptured) return;
+            UpdatePreview(e.GetCurrentPoint(GridHomeProgressHitBox).Position);
+            e.Handled = true;
+        };
+
+        GridHomeProgressHitBox.PointerReleased += async (s, e) =>
+        {
+            if (!_isDraggingHomeProgress) return;
+            _isDraggingHomeProgress = false;
+            if (isPointerCaptured)
+            {
+                GridHomeProgressHitBox.ReleasePointerCapture(e.Pointer);
+                isPointerCaptured = false;
+            }
+
+            double w = GridHomeProgressHitBox.ActualWidth > 0 ? GridHomeProgressHitBox.ActualWidth : HomeProgressTimeline.ActualWidth;
+            var dur = ResolveDuration();
+            if (w > 0 && dur > TimeSpan.Zero && _mediaMonitor != null && _mediaMonitor.CanSeek)
+            {
+                var pt = e.GetCurrentPoint(GridHomeProgressHitBox).Position;
+                var targetTime = LyricsFillProgressCalculator.CalculateSeekTimeFromPointer(pt.X, w, dur);
+                await _mediaMonitor.TrySeekAsync(targetTime);
+            }
+            e.Handled = true;
+        };
+
+        GridHomeProgressHitBox.PointerCanceled += (s, e) =>
+        {
+            _isDraggingHomeProgress = false;
+            if (isPointerCaptured)
+            {
+                GridHomeProgressHitBox.ReleasePointerCapture(e.Pointer);
+                isPointerCaptured = false;
+            }
+        };
+    }
+
+
+        [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);
 }
 
@@ -1875,4 +2017,5 @@ public sealed class PalettePresetViewModel
     }
 
     public override string ToString() => Name;
+
 }

@@ -9,7 +9,10 @@ namespace Lyrow.Core.Services;
 /// </summary>
 public sealed class ArtworkService : IArtworkService
 {
+    public const int MaxCachedItems = 50;
     private readonly ConcurrentDictionary<string, byte[]> _cache = new(StringComparer.OrdinalIgnoreCase);
+
+    public int CachedCount => _cache.Count;
 
     public static string CreateCacheKey(string artist, string title)
     {
@@ -34,6 +37,7 @@ public sealed class ArtworkService : IArtworkService
             if (IsValidImageData(track.ThumbnailData))
             {
                 _cache[key] = track.ThumbnailData;
+                PruneCacheIfExceeded(key);
                 return Task.FromResult<byte[]?>(track.ThumbnailData);
             }
         }
@@ -48,6 +52,24 @@ public sealed class ArtworkService : IArtworkService
 
         string key = CreateCacheKey(artist, title);
         _cache[key] = artworkBytes;
+        PruneCacheIfExceeded(key);
+    }
+
+    private void PruneCacheIfExceeded(string retainKey)
+    {
+        if (_cache.Count <= MaxCachedItems) return;
+        int toRemove = _cache.Count - MaxCachedItems;
+        foreach (var oldKey in _cache.Keys)
+        {
+            if (toRemove <= 0) break;
+            if (!string.Equals(oldKey, retainKey, StringComparison.OrdinalIgnoreCase))
+            {
+                if (_cache.TryRemove(oldKey, out _))
+                {
+                    toRemove--;
+                }
+            }
+        }
     }
 
     public bool IsCached(string artist, string title)

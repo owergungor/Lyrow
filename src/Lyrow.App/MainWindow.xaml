@@ -27,6 +27,26 @@
 
 
     <Grid x:Name="RootShellGrid" RowDefinitions="Auto,*" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <!-- Dynamic Artwork Ambient Background Layer (Apple Music 26 Reference) -->
+        <Grid x:Name="HomeAmbientBackgroundLayer" Grid.RowSpan="2" IsHitTestVisible="False" Opacity="0.55">
+            <Grid.Background>
+                <LinearGradientBrush x:Name="HomeAmbientBrush" StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop x:Name="HomeStopTopLeft" Color="#121218" Offset="0.0" />
+                    <GradientStop x:Name="HomeStopCenter" Color="#0C0E14" Offset="0.5" />
+                    <GradientStop x:Name="HomeStopBottomRight" Color="#08080C" Offset="1.0" />
+                </LinearGradientBrush>
+            </Grid.Background>
+            <Rectangle Fill="#35000000" />
+            <Rectangle>
+                <Rectangle.Fill>
+                    <RadialGradientBrush Center="0.5,0.5" RadiusX="0.9" RadiusY="0.9">
+                        <GradientStop Color="#00000000" Offset="0.0" />
+                        <GradientStop Color="#25000000" Offset="0.6" />
+                        <GradientStop Color="#60000000" Offset="1.0" />
+                    </RadialGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+        </Grid>
 
         <!-- Windows 11 Native Custom TitleBar -->
 
@@ -162,101 +182,56 @@
 
                         <!-- 1. Current Track & Playback Card -->
 
-                        <Border x:Name="CardCurrentTrack" Padding="20" CornerRadius="12"
-
+                        <Border x:Name="CardCurrentTrack" Padding="20" CornerRadius="14"
                                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-
-                            <Grid ColumnDefinitions="80,*,Auto" RowDefinitions="Auto,Auto">
-
+                            <Grid x:Name="GridCardCurrentTrack" ColumnDefinitions="96,*,Auto" RowDefinitions="Auto,Auto">
                                 <!-- Album Artwork -->
-
-                                <Border Grid.RowSpan="2" Grid.Column="0" Width="72" Height="72" CornerRadius="10"
-
+                                <Border x:Name="BorderHomeTrackArtwork" Grid.RowSpan="2" Grid.Column="0" Width="84" Height="84" CornerRadius="12"
                                         Background="{ThemeResource LayerFillColorDefaultBrush}" VerticalAlignment="Center" HorizontalAlignment="Left">
-
                                     <Grid>
-
                                         <Image x:Name="HomeTrackArtwork" Stretch="UniformToFill" />
-
-                                        <FontIcon x:Name="HomeArtworkPlaceholder" Glyph="&#xE8D6;" FontSize="28"
-
+                                        <FontIcon x:Name="HomeArtworkPlaceholder" Glyph="&#xE8D6;" FontSize="32"
                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-
                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-
                                     </Grid>
-
                                 </Border>
 
-
-
                                 <!-- Track Metadata (Title, Artist, Album) -->
-
-                                <StackPanel Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="14,0,16,0" Spacing="2">
-
+                                <StackPanel x:Name="StackHomeTrackMeta" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="16,0,16,0" Spacing="3">
                                     <TextBlock x:Name="HomeTxtTitle" Text="Waiting for playback..."
-
-                                               FontWeight="SemiBold" FontSize="18" TextTrimming="CharacterEllipsis" />
-
+                                               FontWeight="SemiBold" FontSize="19" TextTrimming="CharacterEllipsis" />
                                     <TextBlock x:Name="HomeTxtArtist" Text="Play music in Spotify, Apple Music, or your browser"
-
-                                               FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
-
+                                               FontSize="13.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
                                     <TextBlock x:Name="HomeTxtAlbum" Text="" Visibility="Collapsed"
-
                                                FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis" />
-
                                 </StackPanel>
-
-
 
                                 <!-- Playback Controls (Previous, Play/Pause, Next) -->
-
-                                <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-
-                                    <Button x:Name="BtnPrevTrack" Width="38" Height="38" Padding="0" CornerRadius="8" ToolTipService.ToolTip="Previous Track">
-
-                                        <FontIcon Glyph="&#xE892;" FontSize="14" />
-
+                                <StackPanel x:Name="StackHomeControls" Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <Button x:Name="BtnPrevTrack" Width="38" Height="38" Padding="0" CornerRadius="19" ToolTipService.ToolTip="Previous Track">
+                                        <FontIcon Glyph="&#xE892;" FontSize="15" />
                                     </Button>
-
-                                    <Button x:Name="BtnPlayPause" Width="42" Height="42" Padding="0" CornerRadius="10" Style="{ThemeResource AccentButtonStyle}" ToolTipService.ToolTip="Play / Pause">
-
-                                        <FontIcon x:Name="IconPlayPause" Glyph="&#xE768;" FontSize="16" />
-
+                                    <Button x:Name="BtnPlayPause" Width="46" Height="46" Padding="0" CornerRadius="23" Style="{ThemeResource AccentButtonStyle}" ToolTipService.ToolTip="Play / Pause">
+                                        <FontIcon x:Name="IconPlayPause" Glyph="&#xE768;" FontSize="18" />
                                     </Button>
-
-                                    <Button x:Name="BtnNextTrack" Width="38" Height="38" Padding="0" CornerRadius="8" ToolTipService.ToolTip="Next Track">
-
-                                        <FontIcon Glyph="&#xE893;" FontSize="14" />
-
+                                    <Button x:Name="BtnNextTrack" Width="38" Height="38" Padding="0" CornerRadius="19" ToolTipService.ToolTip="Next Track">
+                                        <FontIcon Glyph="&#xE893;" FontSize="15" />
                                     </Button>
-
                                 </StackPanel>
 
-
-
-                                <!-- Timeline Progress -->
-
-                                <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="14,12,0,0" ColumnDefinitions="*,Auto">
-
-                                    <ProgressBar x:Name="HomeProgressTimeline" Minimum="0" Maximum="100" Value="0"
-
-                                                 VerticalAlignment="Center" Height="4" Margin="0,0,12,0" />
-
+                                <!-- Timeline Progress with Interactive Hit Box -->
+                                <Grid x:Name="GridHomeProgressRow" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="16,12,0,0" ColumnDefinitions="*,Auto">
+                                    <Grid x:Name="GridHomeProgressHitBox" Grid.Column="0" Height="20" Background="Transparent" VerticalAlignment="Center" Margin="0,0,14,0"
+                                          ToolTipService.ToolTip="Playback Progress">
+                                        <ProgressBar x:Name="HomeProgressTimeline" Minimum="0" Maximum="100" Value="0"
+                                                     VerticalAlignment="Center" Height="4" CornerRadius="2" IsHitTestVisible="False" />
+                                    </Grid>
                                     <TextBlock x:Name="HomeTxtTimestamp" Grid.Column="1" Text="00:00 / 00:00"
-
-                                               FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-
+                                               FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
                                 </Grid>
-
                             </Grid>
-
                         </Border>
-
-
 
                         <!-- 2. Dual Volume Controls (Playback Session & System Master 0% - 100%) -->
 

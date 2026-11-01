@@ -15,6 +15,7 @@ namespace Lyrow.App.Platform;
 /// </summary>
 public sealed class ArtworkBitmapManager
 {
+    public const int MaxCacheEntries = 50;
     private readonly IArtworkService _artworkService;
     private readonly ConcurrentDictionary<string, byte[]> _rawBytesCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, GlowPalette> _paletteCache = new(StringComparer.OrdinalIgnoreCase);
@@ -41,6 +42,7 @@ public sealed class ArtworkBitmapManager
             if (!_rawBytesCache.TryGetValue(key, out var existing) || existing == null || existing.Length <= rawBytes.Length)
             {
                 _rawBytesCache[key] = rawBytes;
+                PruneCache(_rawBytesCache, key);
                 _artworkService.CacheArtwork(track.Artist, track.Title, rawBytes);
             }
             else
@@ -178,8 +180,23 @@ public sealed class ArtworkBitmapManager
         if (palette != GlowPalette.Default)
         {
             _paletteCache[key] = palette;
+            PruneCache(_paletteCache, key);
         }
         return palette;
+    }
+
+    private static void PruneCache<T>(ConcurrentDictionary<string, T> dict, string retainKey)
+    {
+        if (dict.Count <= MaxCacheEntries) return;
+        int toRemove = dict.Count - MaxCacheEntries;
+        foreach (var k in dict.Keys)
+        {
+            if (toRemove <= 0) break;
+            if (!string.Equals(k, retainKey, StringComparison.OrdinalIgnoreCase))
+            {
+                if (dict.TryRemove(k, out _)) toRemove--;
+            }
+        }
     }
 
     public static int ComputeArtworkSignature(MediaTrackInfo track)

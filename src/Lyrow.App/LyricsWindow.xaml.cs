@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
@@ -119,6 +119,7 @@ public sealed partial class LyricsWindow : Window
         // Interactive Progress Bar Click & Drag Seeking
         WireInteractiveProgressScrubber(GridProgressHitBox, ProgressTimeline);
         WireInteractiveProgressScrubber(GridProgressCompactHitBox, ProgressTimelineCompact);
+        UpdateScrubberToolTips();
 
         // Lyrics Toggle (Active -> 50/50, Inactive -> Player Centered)
         BtnToggleLyrics.Click += (_, _) => ToggleLyricsPanel();
@@ -386,6 +387,16 @@ public sealed partial class LyricsWindow : Window
 
         hitBox.PointerPressed += (s, e) =>
         {
+            if (_mediaMonitor != null && !_mediaMonitor.CanSeek)
+            {
+                _toastManager?.ShowToast(
+                    "Seek işlemi aktif medya oynatıcısı (Apple Music) tarafından desteklenmiyor.",
+                    title: "Seek Desteklenmiyor",
+                    severity: InfoBarSeverity.Informational);
+                e.Handled = true;
+                return;
+            }
+
             var dur = ResolveActiveTrackDuration();
             if (dur <= TimeSpan.Zero) return;
 
@@ -442,6 +453,7 @@ public sealed partial class LyricsWindow : Window
     /// </summary>
     public void ResetTrackState(MediaTrackInfo newTrack)
     {
+        UpdateScrubberToolTips();
         long currentSeq = Interlocked.Increment(ref _windowTrackSequence);
         _lastSongKey = $"{newTrack.Artist}_{newTrack.Title}";
         _lastArtworkSignature = ArtworkBitmapManager.ComputeArtworkSignature(newTrack);
@@ -947,8 +959,8 @@ public sealed partial class LyricsWindow : Window
                 _lineContainers[i].Opacity = target.TargetOpacity;
                 if (_lineContainers[i].RenderTransform is ScaleTransform st)
                 {
-                    st.ScaleX = 1.0;
-                    st.ScaleY = 1.0;
+                    st.ScaleX = target.TargetScale;
+                    st.ScaleY = target.TargetScale;
                 }
             }
         }
@@ -1024,8 +1036,8 @@ public sealed partial class LyricsWindow : Window
                 _currentScales[i] = nextSc;
                 if (_lineContainers[i].RenderTransform is ScaleTransform st)
                 {
-                    st.ScaleX = 1.0;
-                    st.ScaleY = 1.0;
+                    st.ScaleX = nextSc;
+                    st.ScaleY = nextSc;
                 }
             }
         }
@@ -1330,6 +1342,20 @@ public sealed partial class LyricsWindow : Window
             ThemeMode.Light => ElementTheme.Light,
             _ => ElementTheme.Default
         };
+        if (AmbientBackgroundLayer != null)
+        {
+            AmbientBackgroundLayer.Opacity = mode == ThemeMode.Light ? 0.15 : 1.0;
+        }
+    }
+
+    private void UpdateScrubberToolTips()
+    {
+        bool canSeek = _mediaMonitor?.CanSeek ?? false;
+        string toolTip = canSeek
+            ? "Click or drag to seek"
+            : "Seek işlemi aktif medya oynatıcısı (Apple Music) tarafından desteklenmiyor.";
+        ToolTipService.SetToolTip(GridProgressHitBox, toolTip);
+        ToolTipService.SetToolTip(GridProgressCompactHitBox, toolTip);
     }
 
     /// <summary>
