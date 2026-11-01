@@ -22,17 +22,41 @@ public sealed class SettingsManager : ISettingsManager
     private readonly SemaphoreSlim _lock = new(1, 1);
     private LyrowSettings _current;
 
+    public string FilePath => _filePath;
     public LyrowSettings Current => _current;
 
     public event EventHandler<LyrowSettings>? SettingsChanged;
 
-    public SettingsManager(string? customFilePath = null, ILogger<SettingsManager>? logger = null)
+    public static string ResolveDefaultSettingsPath()
     {
-        _logger = logger ?? NullLogger<SettingsManager>.Instance;
-        _filePath = customFilePath ?? Path.Combine(
+        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        string portableMarker = Path.Combine(baseDir, "portable");
+        string dotPortableMarker = Path.Combine(baseDir, ".portable");
+        string localSettings = Path.Combine(baseDir, "settings.json");
+
+        if (File.Exists(portableMarker) || File.Exists(dotPortableMarker) || File.Exists(localSettings))
+        {
+            return localSettings;
+        }
+
+        return Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Lyrow",
             "settings.json");
+    }
+
+    public static bool IsPortableMode()
+    {
+        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        return File.Exists(Path.Combine(baseDir, "portable")) ||
+               File.Exists(Path.Combine(baseDir, ".portable")) ||
+               File.Exists(Path.Combine(baseDir, "settings.json"));
+    }
+
+    public SettingsManager(string? customFilePath = null, ILogger<SettingsManager>? logger = null)
+    {
+        _logger = logger ?? NullLogger<SettingsManager>.Instance;
+        _filePath = customFilePath ?? ResolveDefaultSettingsPath();
         _current = LyrowSettings.CreateDefault();
     }
 

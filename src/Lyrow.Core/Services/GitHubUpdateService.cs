@@ -183,6 +183,19 @@ public sealed class GitHubUpdateService : IUpdateService
 
             bool isNewer = IsNewerVersion(CurrentVersion, normalizedRemote);
 
+            string? sha256Checksum = null;
+            if (!string.IsNullOrWhiteSpace(releaseNotes))
+            {
+                var shaMatch = System.Text.RegularExpressions.Regex.Match(
+                    releaseNotes,
+                    @"(?:SHA-?256[:\s=]+)([0-9a-fA-F]{64})",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (shaMatch.Success)
+                {
+                    sha256Checksum = shaMatch.Groups[1].Value;
+                }
+            }
+
             var result = new UpdateCheckResult(
                 Status: isNewer ? UpdateCheckStatus.UpdateAvailable : UpdateCheckStatus.UpToDate,
                 CurrentVersion: CurrentVersion,
@@ -192,7 +205,8 @@ public sealed class GitHubUpdateService : IUpdateService
                 ReleaseUrl: releaseUrl,
                 InstallerDownloadUrl: installerUrl,
                 CheckedAtUtc: now,
-                ErrorMessage: null);
+                ErrorMessage: null,
+                Sha256Checksum: sha256Checksum);
 
             LastCheckResult = result;
             return result;
@@ -261,36 +275,81 @@ public sealed class GitHubUpdateService : IUpdateService
             Directory.CreateDirectory(dir);
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-
-        long? totalBytes = response.Content.Headers.ContentLength;
-        await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        await using var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-
-        byte[] buffer = new byte[81920];
-        long totalRead = 0;
-        int bytesRead;
-
-        while ((bytesRead = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+        const int maxAttempts = 3;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
-            totalRead += bytesRead;
+            string tempPath = destinationPath + ".download";
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
 
-            if (totalBytes.HasValue && totalBytes.Value > 0)
-            {
-                double pct = Math.Clamp((double)totalRead / totalBytes.Value * 100.0, 0.0, 100.0);
-                progress?.Report(new UpdateDownloadProgress(pct, totalRead, totalBytes.Value));
+                long? totalBytes = response.Content.Headers.ContentLength;
+                await using (var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
+                await using (var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true))
+                {
+                    byte[] buffer = new byte[81920];
+                    long totalRead = 0;
+                    int bytesRead;
+
+                    while ((bytesRead = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+                    {
+                        await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
+                        totalRead += bytesRead;
+
+                        if (totalBytes.HasValue && totalBytes.Value > 0)
+                        {
+                            double pct = Math.Clamp((double)totalRead / totalBytes.Value * 100.0, 0.0, 100.0);
+                            progress?.Report(new UpdateDownloadProgress(pct, totalRead, totalBytes.Value));
+                        }
+                        else
+                        {
+                            // Indeterminate progress when Content-Length is unavailable. Never fake a percentage.
+                            progress?.Report(new UpdateDownloadProgress(-1.0, totalRead, null));
+                        }
+                    }
+
+                    if (totalBytes.HasValue && totalBytes.Value > 0 && totalRead < totalBytes.Value)
+                    {
+                        throw new IOException($"Download was incomplete. Expected {totalBytes.Value} bytes but received {totalRead} bytes.");
+                    }
+                }
+
+                // Successful download: atomic rename to destinationPath
+                if (File.Exists(destinationPath))
+                {
+                    File.Delete(destinationPath);
+                }
+                File.Move(tempPath, destinationPath);
+
+                long finalLength = new FileInfo(destinationPath).Length;
+                progress?.Report(new UpdateDownloadProgress(100.0, finalLength, totalBytes ?? finalLength));
+                return destinationPath;
             }
-            else
+            catch (Exception) when (attempt < maxAttempts && !cancellationToken.IsCancellationRequested)
             {
-                // Indeterminate progress when Content-Length is unavailable. Never fake a percentage.
-                progress?.Report(new UpdateDownloadProgress(-1.0, totalRead, null));
+                // Clean up partial download file before retrying
+                try
+                {
+                    if (File.Exists(tempPath)) File.Delete(tempPath);
+                }
+                catch { }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt), cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Rollback / clean up temp file on final failure
+                try
+                {
+                    if (File.Exists(tempPath)) File.Delete(tempPath);
+                }
+                catch { }
+                throw;
             }
         }
 
-        progress?.Report(new UpdateDownloadProgress(100.0, totalRead, totalBytes ?? totalRead));
         return destinationPath;
     }
 
@@ -317,6 +376,11 @@ public sealed class GitHubUpdateService : IUpdateService
 
     public bool VerifyDownloadedPackage(string packagePath)
     {
+        return VerifyDownloadedPackage(packagePath, expectedSha256: null);
+    }
+
+    public bool VerifyDownloadedPackage(string packagePath, string? expectedSha256)
+    {
         if (string.IsNullOrWhiteSpace(packagePath) || !File.Exists(packagePath))
         {
             return false;
@@ -330,11 +394,55 @@ public sealed class GitHubUpdateService : IUpdateService
                 return false;
             }
 
-            using var fs = new FileStream(packagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            int b0 = fs.ReadByte();
-            int b1 = fs.ReadByte();
-            // Windows PE executable MZ header ('M' = 0x4D, 'Z' = 0x5A)
-            return b0 == 0x4D && b1 == 0x5A;
+            using (var fs = new FileStream(packagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                int b0 = fs.ReadByte();
+                int b1 = fs.ReadByte();
+                // Windows PE executable MZ header ('M' = 0x4D, 'Z' = 0x5A)
+                if (b0 != 0x4D || b1 != 0x5A)
+                {
+                    return false;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(expectedSha256))
+            {
+                string actualSha = ComputeSha256(packagePath);
+                if (!string.Equals(actualSha, expectedSha256.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static string ComputeSha256(string filePath)
+    {
+        using var fs = File.OpenRead(filePath);
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        byte[] hash = sha.ComputeHash(fs);
+        return Convert.ToHexString(hash);
+    }
+
+    public static bool IsPackageAuthenticodeSigned(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+        {
+            return false;
+        }
+
+        try
+        {
+#pragma warning disable SYSLIB0057 // Extract Authenticode signature from Windows PE executable
+            using var cert = System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromSignedFile(filePath);
+#pragma warning restore SYSLIB0057
+            return cert != null;
         }
         catch
         {
@@ -369,7 +477,12 @@ public sealed class GitHubUpdateService : IUpdateService
 
     public bool LaunchSilentUpdateAndRestart(string installerPath, string? appExecutablePath = null, Action? onBeforeExit = null)
     {
-        if (!VerifyDownloadedPackage(installerPath))
+        return LaunchSilentUpdateAndRestart(installerPath, appExecutablePath, onBeforeExit, expectedSha256: null);
+    }
+
+    public bool LaunchSilentUpdateAndRestart(string installerPath, string? appExecutablePath, Action? onBeforeExit, string? expectedSha256)
+    {
+        if (!VerifyDownloadedPackage(installerPath, expectedSha256))
         {
             return false;
         }

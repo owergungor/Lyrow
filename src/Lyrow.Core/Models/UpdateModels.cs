@@ -35,7 +35,8 @@ public sealed record UpdateCheckResult(
     string? ReleaseUrl,
     string? InstallerDownloadUrl,
     DateTime CheckedAtUtc,
-    string? ErrorMessage = null)
+    string? ErrorMessage = null,
+    string? Sha256Checksum = null)
 {
     public bool IsUpdateAvailable => Status == UpdateCheckStatus.UpdateAvailable && !string.IsNullOrWhiteSpace(LatestVersion);
 }

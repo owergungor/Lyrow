@@ -29,6 +29,12 @@ public interface IUpdateService
     /// <summary>Applies update silently in-app without wizard prompts, replaces binaries, and restarts the application.</summary>
     bool LaunchSilentUpdateAndRestart(string installerPath, string? appExecutablePath = null, Action? onBeforeExit = null);
 
+    /// <summary>Applies update silently in-app after verifying expected SHA-256 checksum.</summary>
+    bool LaunchSilentUpdateAndRestart(string installerPath, string? appExecutablePath, Action? onBeforeExit, string? expectedSha256);
+
     /// <summary>Verifies that a downloaded update package exists, is non-empty, and has a valid Windows PE signature.</summary>
     bool VerifyDownloadedPackage(string packagePath);
+
+    /// <summary>Verifies package PE signature and checks against expected SHA-256 checksum if provided.</summary>
+    bool VerifyDownloadedPackage(string packagePath, string? expectedSha256);
 }

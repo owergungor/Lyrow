@@ -14,8 +14,20 @@ public static class LocalDiagnosticLogger
 
     static LocalDiagnosticLogger()
     {
-        string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        _logDirectory = Path.Combine(appData, "Lyrow", "logs");
+        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        bool isPortable = File.Exists(Path.Combine(baseDir, "portable")) ||
+                          File.Exists(Path.Combine(baseDir, ".portable")) ||
+                          File.Exists(Path.Combine(baseDir, "settings.json"));
+
+        if (isPortable)
+        {
+            _logDirectory = Path.Combine(baseDir, "logs");
+        }
+        else
+        {
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            _logDirectory = Path.Combine(appData, "Lyrow", "logs");
+        }
         _logFilePath = Path.Combine(_logDirectory, "app.log");
 
         try
@@ -32,6 +44,17 @@ public static class LocalDiagnosticLogger
     }
 
     public static string LogFilePath => _logFilePath;
+
+    public static string Sanitize(string message)
+    {
+        if (string.IsNullOrEmpty(message)) return string.Empty;
+
+        // Mask user profile names in absolute Windows file paths
+        return System.Text.RegularExpressions.Regex.Replace(
+            message,
+            @"(?i)(Users\\)[^\\]+(\\)",
+            "$1***$2");
+    }
 
     public static void LogInfo(string message) => WriteEntry("INFO", message);
     public static void LogWarning(string message) => WriteEntry("WARN", message);
@@ -55,6 +78,7 @@ public static class LocalDiagnosticLogger
     {
         try
         {
+            string sanitized = Sanitize(text);
             lock (_fileLock)
             {
                 if (!Directory.Exists(_logDirectory))
@@ -71,7 +95,7 @@ public static class LocalDiagnosticLogger
                     File.Move(_logFilePath, oldPath);
                 }
 
-                string line = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff UTC}] [{level}] {text}{Environment.NewLine}";
+                string line = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff UTC}] [{level}] {sanitized}{Environment.NewLine}";
                 File.AppendAllText(_logFilePath, line, Encoding.UTF8);
             }
         }
