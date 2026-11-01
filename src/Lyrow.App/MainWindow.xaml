@@ -989,6 +989,33 @@
                                     </StackPanel>
                                     <ToggleSwitch x:Name="SwitchSystemTray" AutomationProperties.Name="System Tray Integration" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
                                 </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Fluid Motion &amp; Animations" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Enable smooth visual transitions, artwork crossfades, and interactive physics"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchEnableAnimations" AutomationProperties.Name="Fluid Motion and Animations" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Desktop Notifications" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Show Windows notifications for updates and system events"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchNotifications" AutomationProperties.Name="Desktop Notifications" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Notify on Track Change" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Display a brief notification when the playing track changes"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchNotifyOnTrackChange" AutomationProperties.Name="Notify on Track Change" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                </Grid>
                             </StackPanel>
                         </Border>
 
@@ -1344,6 +1371,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
                                     <Button x:Name="BtnResetSettings" AutomationProperties.Name="Reset Settings to Defaults" Content="Reset Settings to Defaults" />
                                     <Button x:Name="BtnOpenLogs" AutomationProperties.Name="Open Diagnostic Log" Content="Open Diagnostic Log" />
+                                    <Button x:Name="BtnRestartWizard" AutomationProperties.Name="Restart Setup Wizard" Content="Restart Setup Wizard" />
                                 </StackPanel>
                             </StackPanel>
                         </Border>
@@ -1354,7 +1382,197 @@
 
             </ScrollViewer>
 
-        </NavigationView>
+                </NavigationView>
+
+        <!-- Setup Wizard Overlay (First-run Experience) -->
+        <Grid x:Name="SetupWizardOverlay" Grid.Row="1" Visibility="Collapsed" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" Width="720" MinHeight="520" MaxHeight="660"
+                    Padding="32" CornerRadius="20" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <!-- Wizard Header / Step Breadcrumbs -->
+                    <Grid Grid.Row="0" Margin="0,0,0,20">
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <Image Source="Assets/lyrow-logo.png" Width="24" Height="24" />
+                            <TextBlock Text="Lyrow" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" />
+                            <TextBlock Text="• Setup" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- Step indicator dots -->
+                        <StackPanel x:Name="StackWizardBreadcrumbs" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Border x:Name="DotStep0" Width="8" Height="8" CornerRadius="4" Background="{ThemeResource AccentFillColorDefaultBrush}" />
+                            <Border x:Name="DotStep1" Width="8" Height="8" CornerRadius="4" Background="{ThemeResource TextFillColorTertiaryBrush}" />
+                            <Border x:Name="DotStep2" Width="8" Height="8" CornerRadius="4" Background="{ThemeResource TextFillColorTertiaryBrush}" />
+                            <Border x:Name="DotStep3" Width="8" Height="8" CornerRadius="4" Background="{ThemeResource TextFillColorTertiaryBrush}" />
+                            <Border x:Name="DotStep4" Width="8" Height="8" CornerRadius="4" Background="{ThemeResource TextFillColorTertiaryBrush}" />
+                            <Border x:Name="DotStep5" Width="8" Height="8" CornerRadius="4" Background="{ThemeResource TextFillColorTertiaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Wizard Step Panels -->
+                    <Grid Grid.Row="1" VerticalAlignment="Center">
+                        <!-- Step 0: Welcome Screen -->
+                        <StackPanel x:Name="PanelWizardStep0" Spacing="16" HorizontalAlignment="Center" MaxWidth="540" Visibility="Visible">
+                            <Image Source="Assets/lyrow-logo.png" Width="72" Height="72" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                            <TextBlock Text="Lyrow" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center" />
+                            <TextBlock x:Name="TxtWizardSlogan" Text="Your music. Your atmosphere." FontSize="18" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" />
+                            <TextBlock x:Name="TxtWizardSubtitle" Text="Elevate your desktop with real-time ambient lighting and cinematic lyrics."
+                                       FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" />
+
+                            <Grid ColumnDefinitions="Auto,*" Margin="0,12,0,0" HorizontalAlignment="Center">
+                                <TextBlock Text="Language:" VerticalAlignment="Center" Margin="0,0,12,0" FontWeight="Medium" />
+                                <ComboBox x:Name="ComboWizardWelcomeLanguage" Grid.Column="1" Width="180" AutomationProperties.Name="Wizard Welcome Language Selector">
+                                    <ComboBoxItem Content="English" Tag="en" />
+                                    <ComboBoxItem Content="Français" Tag="fr" />
+                                    <ComboBoxItem Content="Español" Tag="es" />
+                                    <ComboBoxItem Content="Deutsch" Tag="de" />
+                                    <ComboBoxItem Content="Türkçe" Tag="tr" />
+                                </ComboBox>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Step 1: Appearance -->
+                        <StackPanel x:Name="PanelWizardStep1" Spacing="16" MaxWidth="540" HorizontalAlignment="Center" Visibility="Collapsed">
+                            <TextBlock Text="Appearance &amp; Style" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+                            <TextBlock Text="Choose your preferred theme, interface language, and fluid animations."
+                                       FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" />
+
+                            <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" Margin="0,8,0,0">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="Theme Appearance" FontWeight="SemiBold" FontSize="14" />
+                                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+                                        <RadioButton x:Name="RadioWizardThemeSystem" Content="System Default" IsChecked="True" GroupName="WizardThemeGroup" />
+                                        <RadioButton x:Name="RadioWizardThemeDark" Content="Dark" GroupName="WizardThemeGroup" />
+                                        <RadioButton x:Name="RadioWizardThemeLight" Content="Light" GroupName="WizardThemeGroup" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                                <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Fluid Motion &amp; Animations" FontWeight="SemiBold" FontSize="14" />
+                                        <TextBlock Text="Enable smooth visual transitions and interactive physics"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchWizardAnimations" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Step 2: Music Player -->
+                        <StackPanel x:Name="PanelWizardStep2" Spacing="16" MaxWidth="540" HorizontalAlignment="Center" Visibility="Collapsed">
+                            <TextBlock Text="Music Player Integration" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+                            <TextBlock Text="Lyrow seamlessly links with Windows Media Session (GSMTC)."
+                                       FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" />
+
+                            <Border Padding="18" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" Margin="0,8,0,0">
+                                <StackPanel Spacing="10">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                        <FontIcon x:Name="IconWizardPlayerStatus" Glyph="&#xE768;" FontSize="24" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock x:Name="TxtWizardPlayerHeader" Text="Detection Status" FontWeight="SemiBold" FontSize="14" />
+                                            <TextBlock x:Name="TxtWizardPlayerStatus" Text="Searching for active media sessions..."
+                                                       FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Button x:Name="BtnWizardPlayerRefresh" Content="Refresh Detection" HorizontalAlignment="Right" Margin="0,8,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="Supported: Apple Music, Spotify, Windows Media Player, Edge, Chrome, and all GSMTC-compatible players."
+                                       FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" TextAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- Step 3: Synchronized Lyrics -->
+                        <StackPanel x:Name="PanelWizardStep3" Spacing="16" MaxWidth="540" HorizontalAlignment="Center" Visibility="Collapsed">
+                            <TextBlock Text="Cinematic Lyrics" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+                            <TextBlock Text="LRCLIB provides millisecond-accurate lyrics with word-by-word karaoke highlighting."
+                                       FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" />
+
+                            <Border Padding="18" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" Margin="0,8,0,0">
+                                <StackPanel Spacing="12">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                        <FontIcon Glyph="&#xE8D6;" FontSize="24" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="LRCLIB Database" FontWeight="SemiBold" FontSize="14" />
+                                            <TextBlock x:Name="TxtWizardLyricsStatus" Text="LRCLIB Service: Connected"
+                                                       FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <StackPanel Spacing="6" Margin="36,4,0,0">
+                                        <TextBlock Text="• Real-time word-by-word fill and smooth line centering" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Text="• Interactive lyrics seeking (click line to jump in supported players)" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Text="• Offline caching keeps previously viewed lyrics ready anytime" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Step 4: Ambient Glow -->
+                        <StackPanel x:Name="PanelWizardStep4" Spacing="16" MaxWidth="540" HorizontalAlignment="Center" Visibility="Collapsed">
+                            <TextBlock Text="Ambient Edge Glow" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+                            <TextBlock Text="Four-edge real-time lighting reacts directly to bass, mids, and highs."
+                                       FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" />
+
+                            <!-- 4-Edge Preview Box -->
+                            <Border Margin="0,8,0,0" Height="100" CornerRadius="12" Padding="2"
+                                    BorderThickness="3" BorderBrush="{ThemeResource AccentFillColorDefaultBrush}">
+                                <Grid Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="10">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                                        <FontIcon Glyph="&#xE706;" FontSize="20" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                        <TextBlock Text="Reactive four-edge glow around your screen" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                                <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Enable Ambient Glow on startup" FontWeight="SemiBold" FontSize="14" />
+                                        <TextBlock Text="Can also be toggled anytime from the Home page or system tray"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchWizardGlow" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Step 5: Finish -->
+                        <StackPanel x:Name="PanelWizardStep5" Spacing="16" MaxWidth="540" HorizontalAlignment="Center" Visibility="Collapsed">
+                            <FontIcon Glyph="&#xE73E;" FontSize="48" Foreground="{ThemeResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                            <TextBlock Text="You're All Set!" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" />
+                            <TextBlock Text="Your music. Your atmosphere." FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Text="Lyrow is configured and ready to elevate your listening experience."
+                                       FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" />
+
+                            <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" Margin="0,8,0,0">
+                                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" RowSpacing="10" ColumnSpacing="16">
+                                    <TextBlock Text="Theme:" FontWeight="Medium" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtSummaryTheme" Grid.Column="1" Text="System Default" FontWeight="SemiBold" FontSize="12" />
+
+                                    <TextBlock Grid.Row="1" Text="Language:" FontWeight="Medium" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtSummaryLanguage" Grid.Row="1" Grid.Column="1" Text="English" FontWeight="SemiBold" FontSize="12" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Wizard Footer Action Buttons -->
+                    <Grid Grid.Row="2" Margin="0,20,0,0">
+                        <Button x:Name="BtnWizardSkip" Content="Skip Introduction" Style="{ThemeResource SubtleButtonStyle}" HorizontalAlignment="Left" />
+                        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                            <Button x:Name="BtnWizardBack" Content="Back" Visibility="Collapsed" />
+                            <Button x:Name="BtnWizardNext" Content="Get Started" Style="{ThemeResource AccentButtonStyle}" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
 
     </Grid>
 

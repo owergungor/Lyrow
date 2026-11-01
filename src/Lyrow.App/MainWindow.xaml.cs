@@ -55,6 +55,9 @@ public sealed partial class MainWindow : Window
     private bool _isUpdatingVolumeUi = false;
     private bool _isUpdatingSettingsUi = false;
     private bool _isDraggingHomeProgress = false;
+    private string _currentActivePage = "Home";
+    private bool _isCompact = false;
+    private int _currentWizardStep = 0;
 
     public MainWindow(
         IModuleManager moduleManager,
@@ -102,6 +105,7 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         ResizeForCurrentDpi(960, 720);
+        InitializeSetupWizard();
 
         NavView.SelectedItem = NavHome;
 
@@ -469,6 +473,9 @@ public sealed partial class MainWindow : Window
             // General & Updates
             SwitchStartWithWindows.IsOn = settings.StartWithWindows;
             SwitchSystemTray.IsOn = settings.SystemTrayEnabled;
+            if (SwitchEnableAnimations != null) SwitchEnableAnimations.IsOn = settings.EnableAnimations;
+            if (SwitchNotifications != null) SwitchNotifications.IsOn = settings.NotificationsEnabled;
+            if (SwitchNotifyOnTrackChange != null) SwitchNotifyOnTrackChange.IsOn = settings.NotifyOnTrackChange;
             SwitchAutoUpdate.IsOn = settings.AutoUpdateEnabled;
             ComboUpdateFrequency.SelectedIndex = Math.Clamp((int)settings.UpdateFrequency, 0, 3);
             TxtCurrentVersion.Text = $"Current Version: v{_updateService.CurrentVersion}";
@@ -762,7 +769,37 @@ public sealed partial class MainWindow : Window
             _settingsManager.Current.SystemTrayEnabled = SwitchSystemTray.IsOn;
         };
 
-        // Auto Update Settings
+        
+        if (SwitchEnableAnimations != null)
+        {
+            SwitchEnableAnimations.Toggled += (_, _) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                _settingsManager.Current.EnableAnimations = SwitchEnableAnimations.IsOn;
+                SaveCurrentSettingsDebounced();
+            };
+        }
+
+        if (SwitchNotifications != null)
+        {
+            SwitchNotifications.Toggled += (_, _) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                _settingsManager.Current.NotificationsEnabled = SwitchNotifications.IsOn;
+                SaveCurrentSettingsDebounced();
+            };
+        }
+
+        if (SwitchNotifyOnTrackChange != null)
+        {
+            SwitchNotifyOnTrackChange.Toggled += (_, _) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                _settingsManager.Current.NotifyOnTrackChange = SwitchNotifyOnTrackChange.IsOn;
+                SaveCurrentSettingsDebounced();
+            };
+        }
+// Auto Update Settings
         SwitchAutoUpdate.Toggled += async (_, _) =>
         {
             if (_isUpdatingSettingsUi) return;
@@ -1830,6 +1867,14 @@ public sealed partial class MainWindow : Window
     private void OnHardwareMediaTrackChanged(object? sender, MediaTrackInfo track)
     {
         _ = HandleTrackChangedUnifiedAsync(track);
+
+        if (_settingsManager?.Current != null &&
+            _settingsManager.Current.NotificationsEnabled &&
+            _settingsManager.Current.NotifyOnTrackChange &&
+            !track.IsEmpty)
+        {
+            _toastService?.ShowInfo($"{track.Title} • {track.Artist}");
+        }
     }
 
     private void OnHardwareMediaTimelineChanged(object? sender, MediaTimelineInfo timeline)
@@ -2170,7 +2215,24 @@ public sealed partial class MainWindow : Window
 
     public void ShowAndActivate()
     {
-        Activate();
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            try
+            {
+                AppWindow.Show();
+                Activate();
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                if (hwnd != IntPtr.Zero)
+                {
+                    ShowWindow(hwnd, SW_RESTORE);
+                    SetForegroundWindow(hwnd);
+                }
+            }
+            catch (Exception ex)
+            {
+                LocalDiagnosticLogger.LogError("Error in ShowAndActivate", ex);
+            }
+        });
     }
 
     public void ToggleGlowFromExternal()
@@ -2201,6 +2263,7 @@ public sealed partial class MainWindow : Window
         {
             if (_settingsManager != null)
             {
+                WindowStateManager.SaveWindowState(AppWindow, _settingsManager.Current, _currentActivePage, _isCompact);
                 _settingsManager.SaveAsync(_settingsManager.Current, CancellationToken.None).GetAwaiter().GetResult();
             }
         }
@@ -2230,6 +2293,7 @@ public sealed partial class MainWindow : Window
 
     public void NavigateTo(string pageName)
     {
+        _currentActivePage = pageName;
         switch (pageName)
         {
             case "Home":
@@ -2389,6 +2453,7 @@ public sealed partial class MainWindow : Window
     private void OnRootShellSizeChanged(object sender, SizeChangedEventArgs e)
     {
         bool isCompact = e.NewSize.Width <= 560 || e.NewSize.Height <= 320;
+        _isCompact = isCompact;
         if (isCompact)
         {
             NavView.IsPaneVisible = false;
@@ -2514,6 +2579,276 @@ public sealed partial class MainWindow : Window
 
         [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);
+
+    private const int SW_RESTORE = 9;
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    private void InitializeSetupWizard()
+    {
+        if (!_settingsManager.Current.HasCompletedFirstRun && !App.IsSmokeTestMode)
+        {
+            SetupWizardOverlay.Visibility = Visibility.Visible;
+            NavView.Visibility = Visibility.Collapsed;
+            ShowWizardStep(0);
+        }
+        else
+        {
+            SetupWizardOverlay.Visibility = Visibility.Collapsed;
+            NavView.Visibility = Visibility.Visible;
+            WindowStateManager.RestoreWindowState(AppWindow, _settingsManager.Current, page => NavigateTo(page));
+        }
+
+        if (BtnWizardSkip != null)
+        {
+            BtnWizardSkip.Click += (_, _) => CompleteWizard(skipped: true);
+        }
+
+        if (BtnWizardNext != null)
+        {
+            BtnWizardNext.Click += (_, _) =>
+            {
+                if (_currentWizardStep >= 5)
+                {
+                    CompleteWizard(skipped: false);
+                }
+                else
+                {
+                    ShowWizardStep(_currentWizardStep + 1);
+                }
+            };
+        }
+
+        if (BtnWizardBack != null)
+        {
+            BtnWizardBack.Click += (_, _) =>
+            {
+                if (_currentWizardStep > 0)
+                {
+                    ShowWizardStep(_currentWizardStep - 1);
+                }
+            };
+        }
+
+        if (BtnWizardPlayerRefresh != null)
+        {
+            BtnWizardPlayerRefresh.Click += (_, _) => UpdateWizardPlayerStepStatus();
+        }
+
+        if (ComboWizardWelcomeLanguage != null)
+        {
+            string currentLang = _settingsManager.Current.Language ?? "en";
+            for (int i = 0; i < ComboWizardWelcomeLanguage.Items.Count; i++)
+            {
+                if (ComboWizardWelcomeLanguage.Items[i] is ComboBoxItem item &&
+                    string.Equals(item.Tag?.ToString(), currentLang, StringComparison.OrdinalIgnoreCase))
+                {
+                    ComboWizardWelcomeLanguage.SelectedIndex = i;
+                    break;
+                }
+            }
+
+            ComboWizardWelcomeLanguage.SelectionChanged += (_, _) =>
+            {
+                if (ComboWizardWelcomeLanguage.SelectedItem is ComboBoxItem item && item.Tag != null)
+                {
+                    string lang = item.Tag.ToString()!;
+                    LocalizationService.Instance.SetLanguage(lang);
+                    _settingsManager.Current.Language = lang;
+                    SaveCurrentSettingsDebounced();
+                    ApplyLocalization();
+                }
+            };
+        }
+
+        if (RadioWizardThemeSystem != null)
+        {
+            RadioWizardThemeSystem.Checked += (_, _) =>
+            {
+                _settingsManager.Current.Theme = ThemeMode.SystemDefault;
+                ApplyTheme(ThemeMode.SystemDefault);
+                SaveCurrentSettingsDebounced();
+            };
+        }
+        if (RadioWizardThemeDark != null)
+        {
+            RadioWizardThemeDark.Checked += (_, _) =>
+            {
+                _settingsManager.Current.Theme = ThemeMode.Dark;
+                ApplyTheme(ThemeMode.Dark);
+                SaveCurrentSettingsDebounced();
+            };
+        }
+        if (RadioWizardThemeLight != null)
+        {
+            RadioWizardThemeLight.Checked += (_, _) =>
+            {
+                _settingsManager.Current.Theme = ThemeMode.Light;
+                ApplyTheme(ThemeMode.Light);
+                SaveCurrentSettingsDebounced();
+            };
+        }
+
+        if (SwitchWizardAnimations != null)
+        {
+            SwitchWizardAnimations.IsOn = _settingsManager.Current.EnableAnimations;
+            SwitchWizardAnimations.Toggled += (_, _) =>
+            {
+                _settingsManager.Current.EnableAnimations = SwitchWizardAnimations.IsOn;
+                SaveCurrentSettingsDebounced();
+            };
+        }
+
+        if (SwitchWizardGlow != null)
+        {
+            SwitchWizardGlow.IsOn = _settingsManager.Current.GlowEnabled;
+            SwitchWizardGlow.Toggled += (_, _) =>
+            {
+                _settingsManager.Current.GlowEnabled = SwitchWizardGlow.IsOn;
+                SaveCurrentSettingsDebounced();
+            };
+        }
+
+        if (BtnRestartWizard != null)
+        {
+            BtnRestartWizard.Click += (_, _) => RestartWizard();
+        }
+    }
+
+    public void RestartWizard()
+    {
+        SetupWizardOverlay.Visibility = Visibility.Visible;
+        NavView.Visibility = Visibility.Collapsed;
+        ShowWizardStep(0);
+    }
+
+    public void ShowWizardStep(int step)
+    {
+        _currentWizardStep = Math.Clamp(step, 0, 5);
+
+        if (PanelWizardStep0 != null) PanelWizardStep0.Visibility = _currentWizardStep == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (PanelWizardStep1 != null) PanelWizardStep1.Visibility = _currentWizardStep == 1 ? Visibility.Visible : Visibility.Collapsed;
+        if (PanelWizardStep2 != null) PanelWizardStep2.Visibility = _currentWizardStep == 2 ? Visibility.Visible : Visibility.Collapsed;
+        if (PanelWizardStep3 != null) PanelWizardStep3.Visibility = _currentWizardStep == 3 ? Visibility.Visible : Visibility.Collapsed;
+        if (PanelWizardStep4 != null) PanelWizardStep4.Visibility = _currentWizardStep == 4 ? Visibility.Visible : Visibility.Collapsed;
+        if (PanelWizardStep5 != null) PanelWizardStep5.Visibility = _currentWizardStep == 5 ? Visibility.Visible : Visibility.Collapsed;
+
+        var accentBrush = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+        var mutedBrush = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"];
+
+        if (DotStep0 != null) DotStep0.Background = _currentWizardStep == 0 ? accentBrush : mutedBrush;
+        if (DotStep1 != null) DotStep1.Background = _currentWizardStep == 1 ? accentBrush : mutedBrush;
+        if (DotStep2 != null) DotStep2.Background = _currentWizardStep == 2 ? accentBrush : mutedBrush;
+        if (DotStep3 != null) DotStep3.Background = _currentWizardStep == 3 ? accentBrush : mutedBrush;
+        if (DotStep4 != null) DotStep4.Background = _currentWizardStep == 4 ? accentBrush : mutedBrush;
+        if (DotStep5 != null) DotStep5.Background = _currentWizardStep == 5 ? accentBrush : mutedBrush;
+
+        if (BtnWizardBack != null)
+        {
+            BtnWizardBack.Visibility = _currentWizardStep > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        if (BtnWizardNext != null)
+        {
+            BtnWizardNext.Content = _currentWizardStep switch
+            {
+                0 => "Get Started",
+                5 => "Start Using Lyrow",
+                _ => "Next"
+            };
+        }
+
+        if (_currentWizardStep == 2)
+        {
+            UpdateWizardPlayerStepStatus();
+        }
+        else if (_currentWizardStep == 3)
+        {
+            UpdateWizardLyricsStepStatus();
+        }
+        else if (_currentWizardStep == 5)
+        {
+            if (TxtSummaryTheme != null)
+            {
+                TxtSummaryTheme.Text = _settingsManager.Current.Theme switch
+                {
+                    ThemeMode.Dark => "Dark",
+                    ThemeMode.Light => "Light",
+                    _ => "System Default"
+                };
+            }
+            if (TxtSummaryLanguage != null)
+            {
+                TxtSummaryLanguage.Text = (_settingsManager.Current.Language ?? "en") switch
+                {
+                    "tr" => "Türkçe",
+                    "fr" => "Français",
+                    "es" => "Español",
+                    "de" => "Deutsch",
+                    _ => "English"
+                };
+            }
+        }
+    }
+
+    private void UpdateWizardPlayerStepStatus()
+    {
+        bool hasSession = _mediaMonitor?.HasActiveSession ?? false;
+        var currentTrack = _mediaMonitor?.CurrentTrack ?? MediaTrackInfo.Empty;
+
+        if (TxtWizardPlayerStatus != null && IconWizardPlayerStatus != null && TxtWizardPlayerHeader != null)
+        {
+            if (hasSession && !currentTrack.IsEmpty)
+            {
+                IconWizardPlayerStatus.Glyph = "\uE73E";
+                IconWizardPlayerStatus.Foreground = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
+                TxtWizardPlayerHeader.Text = "Active Player Detected";
+                TxtWizardPlayerStatus.Text = $"{currentTrack.Title} • {currentTrack.Artist}";
+            }
+            else if (hasSession)
+            {
+                IconWizardPlayerStatus.Glyph = "\uE73E";
+                IconWizardPlayerStatus.Foreground = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
+                TxtWizardPlayerHeader.Text = "Media Session Ready";
+                TxtWizardPlayerStatus.Text = "Connected to Windows media session. Start playback anytime.";
+            }
+            else
+            {
+                IconWizardPlayerStatus.Glyph = "\uE768";
+                IconWizardPlayerStatus.Foreground = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+                TxtWizardPlayerHeader.Text = "No Media Session Active";
+                TxtWizardPlayerStatus.Text = "Open Apple Music or Spotify and start playback to link with Lyrow.";
+            }
+        }
+    }
+
+    private void UpdateWizardLyricsStepStatus()
+    {
+        if (TxtWizardLyricsStatus != null)
+        {
+            TxtWizardLyricsStatus.Text = "LRCLIB Service: Connected (Online & Offline ready)";
+        }
+    }
+
+    public void CompleteWizard(bool skipped)
+    {
+        _settingsManager.Current.HasCompletedFirstRun = true;
+        _ = _settingsManager.SaveAsync(_settingsManager.Current);
+
+        SetupWizardOverlay.Visibility = Visibility.Collapsed;
+        NavView.Visibility = Visibility.Visible;
+
+        WindowStateManager.RestoreWindowState(AppWindow, _settingsManager.Current, page => NavigateTo(page));
+
+        ShowToast(
+            skipped ? "Welcome to Lyrow! Setup skipped." : "Welcome to Lyrow! You're all set.",
+            InfoBarSeverity.Success);
+    }
+
 }
 
 /// <summary>

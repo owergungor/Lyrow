@@ -49,6 +49,28 @@ public sealed class LyrowSettings
 
     public bool SystemTrayEnabled { get; set; } = true;
 
+    public bool HasCompletedFirstRun { get; set; } = false;
+
+    public bool EnableAnimations { get; set; } = true;
+
+    public bool NotificationsEnabled { get; set; } = true;
+
+    public bool NotifyOnTrackChange { get; set; } = true;
+
+    public int? WindowX { get; set; }
+
+    public int? WindowY { get; set; }
+
+    public int? WindowWidth { get; set; }
+
+    public int? WindowHeight { get; set; }
+
+    public bool IsCompactMode { get; set; } = false;
+
+    public bool IsMaximized { get; set; } = false;
+
+    public string LastActivePage { get; set; } = "Home";
+
     public bool AutoUpdateEnabled { get; set; } = true;
 
     public UpdateCheckFrequency UpdateFrequency { get; set; } = UpdateCheckFrequency.Weekly;
