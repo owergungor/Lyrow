@@ -22,7 +22,7 @@
                     <SolidColorBrush x:Key="LyrowSubtleFillBrush" Color="#2A2B3D" />
                     <SolidColorBrush x:Key="LyrowTextPrimaryBrush" Color="#CDD6F4" />
                     <SolidColorBrush x:Key="LyrowTextSecondaryBrush" Color="#A6ADC8" />
-                    <SolidColorBrush x:Key="LyrowTextTertiaryBrush" Color="#6C7086" />
+                    <SolidColorBrush x:Key="LyrowTextTertiaryBrush" Color="#9399B2" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
                     <SolidColorBrush x:Key="LyrowAccentBrush" Color="#1E66F5" />
@@ -35,7 +35,7 @@
                     <SolidColorBrush x:Key="LyrowSubtleFillBrush" Color="#F1F5F9" />
                     <SolidColorBrush x:Key="LyrowTextPrimaryBrush" Color="#0F172A" />
                     <SolidColorBrush x:Key="LyrowTextSecondaryBrush" Color="#475569" />
-                    <SolidColorBrush x:Key="LyrowTextTertiaryBrush" Color="#94A3B8" />
+                    <SolidColorBrush x:Key="LyrowTextTertiaryBrush" Color="#64748B" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
 

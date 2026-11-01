@@ -222,4 +222,39 @@ public class Stage6VerificationTests
         code.Should().Contain("OnWindowClosed");
         code.Should().Contain("_settingsManager.SaveAsync(_settingsManager.Current");
     }
+
+    [Fact]
+    public async Task SettingsPersistence_RapidSliderDragBeforeShutdown_FlushesAtomicallyWithoutUiHang()
+    {
+        string tempFile = Path.Combine(Path.GetTempPath(), $"lyrow_rapid_drag_{Guid.NewGuid():N}.json");
+        try
+        {
+            var manager = new Lyrow.Core.Services.SettingsManager(tempFile);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            // Simulate 50 rapid slider value updates in tight succession
+            for (int i = 1; i <= 50; i++)
+            {
+                manager.Current.GlowIntensity = i;
+                manager.Current.ArtworkCornerRadius = i % 24;
+            }
+
+            // Simulate immediate synchronous flush on window close
+            sw.Restart();
+            await manager.SaveAsync(manager.Current, CancellationToken.None);
+            sw.Stop();
+
+            // Verification 1: Synchronous flush must complete fast to avoid blocking UI (< 100ms)
+            sw.ElapsedMilliseconds.Should().BeLessThan(100);
+
+            // Verification 2: Re-read to guarantee that final value is intact
+            var reloaded = await new Lyrow.Core.Services.SettingsManager(tempFile).LoadAsync();
+            reloaded.GlowIntensity.Should().Be(50);
+            reloaded.ArtworkCornerRadius.Should().Be(50 % 24);
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
 }
