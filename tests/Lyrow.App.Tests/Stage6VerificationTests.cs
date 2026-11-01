@@ -135,6 +135,83 @@ public class Stage6VerificationTests
     }
 
     [Fact]
+    public async Task Settings_AllSeventeenProperties_RoundTripPersistAndRestore()
+    {
+        string tempFile = Path.Combine(Path.GetTempPath(), $"lyrow_settings_test_{Guid.NewGuid():N}.json");
+        try
+        {
+            var manager = new Lyrow.Core.Services.SettingsManager(tempFile);
+            var s = LyrowSettings.CreateDefault();
+
+            // 1. Theme
+            s.Theme = ThemeMode.Dark;
+            // 2. Language
+            s.Language = "tr";
+            // 3. Master opacity
+            s.MasterOpacity = 0.82;
+            // 4. Lyrics focused font size
+            s.FocusedLyricFontSize = 32;
+            // 5. Lyrics unfocused font size
+            s.UnfocusedLyricFontSize = 22;
+            // 6. Lyrics sync offset
+            s.Lyrics.SyncOffsetMs = 150;
+            // 7. Glow thickness
+            s.GlowThickness = 36;
+            // 8. Glow intensity
+            s.GlowIntensity = 65;
+            // 9. Glow sensitivity
+            s.Glow.Sensitivity = 3.2f;
+            // 10. Glow palette
+            s.GlowPaletteMode = "Vibrant";
+            // 11. Artwork saturation
+            s.ArtworkBackgroundSaturation = 1.25;
+            // 12. Artwork corner radius
+            s.ArtworkCornerRadius = 18.0;
+            // 13. FFT size
+            s.Glow.FftSize = 1024;
+            // 14. Seek step
+            s.SeekStepSeconds = 10;
+            // 15. Auto pause on mute
+            s.AutoPauseOnMute = true;
+            // 16. Start with Windows
+            s.StartWithWindows = false;
+            // 17. Minimize to tray
+            s.MinimizeToTray = true;
+            // 18. Auto update
+            s.AutoUpdateEnabled = true;
+
+            await manager.SaveAsync(s);
+
+            // Re-instantiate from file to simulate app restart
+            var reloadManager = new Lyrow.Core.Services.SettingsManager(tempFile);
+            var reloaded = await reloadManager.LoadAsync();
+
+            reloaded.Theme.Should().Be(ThemeMode.Dark);
+            reloaded.Language.Should().Be("tr");
+            reloaded.MasterOpacity.Should().Be(0.82);
+            reloaded.FocusedLyricFontSize.Should().Be(32);
+            reloaded.UnfocusedLyricFontSize.Should().Be(22);
+            reloaded.Lyrics.SyncOffsetMs.Should().Be(150);
+            reloaded.GlowThickness.Should().Be(36);
+            reloaded.GlowIntensity.Should().Be(65);
+            reloaded.Glow.Sensitivity.Should().Be(3.2f);
+            reloaded.GlowPaletteMode.Should().Be("Vibrant");
+            reloaded.ArtworkBackgroundSaturation.Should().Be(1.25);
+            reloaded.ArtworkCornerRadius.Should().Be(18.0);
+            reloaded.Glow.FftSize.Should().Be(1024);
+            reloaded.SeekStepSeconds.Should().Be(10);
+            reloaded.AutoPauseOnMute.Should().BeTrue();
+            reloaded.StartWithWindows.Should().BeFalse();
+            reloaded.MinimizeToTray.Should().BeTrue();
+            reloaded.AutoUpdateEnabled.Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
     public void SettingsPersistence_MainWindowCs_ContainsDebouncedSaveAndWindowCloseFlush()
     {
         string root = GetSolutionRoot();
