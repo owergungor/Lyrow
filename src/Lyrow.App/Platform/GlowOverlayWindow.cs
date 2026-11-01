@@ -1,3 +1,4 @@
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Lyrow.Audio.Analysis;
@@ -103,6 +104,15 @@ public sealed class GlowOverlayWindow : IDisposable
     public float LastRenderedLeftAlpha { get; private set; }
     public float LastRenderedRightAlpha { get; private set; }
     public long RenderedFrameCount { get; private set; }
+    public double LastFrameRenderTimeMs { get; private set; }
+    public double FrameTimeAvgMs { get; private set; }
+    public double FrameTimeP50Ms { get; private set; }
+    public double FrameTimeP95Ms { get; private set; }
+    public double FrameTimeP99Ms { get; private set; }
+
+    private readonly double[] _frameTimeHistory = new double[300];
+    private readonly double[] _sortedFrameTimes = new double[300];
+    private int _frameTimeIndex;
 
     public GlowOverlayWindow(GlowModule? glowModule = null, ISettingsManager? settingsManager = null)
     {
@@ -192,9 +202,10 @@ public sealed class GlowOverlayWindow : IDisposable
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             int topMostCounter = 0;
 
+            int statsInterval = 0;
             while (!_stopRequested && !_isDisposed && _hwnd != IntPtr.Zero)
             {
-                long frameStartMs = stopwatch.ElapsedMilliseconds;
+                long frameStartTick = Stopwatch.GetTimestamp();
 
                 // 1. Pump pending Win32 messages for this overlay window
                 while (PeekMessageW(out var msg, IntPtr.Zero, 0, 0, PM_REMOVE))
@@ -206,6 +217,27 @@ public sealed class GlowOverlayWindow : IDisposable
                 // 2. Render 60 FPS ambient lighting frame
                 RenderStep();
 
+                long renderEndTick = Stopwatch.GetTimestamp();
+                double renderMs = (renderEndTick - frameStartTick) * 1000.0 / Stopwatch.Frequency;
+                LastFrameRenderTimeMs = renderMs;
+
+                _frameTimeHistory[_frameTimeIndex] = renderMs;
+                _frameTimeIndex = (_frameTimeIndex + 1) % _frameTimeHistory.Length;
+
+                statsInterval++;
+                if (statsInterval >= 60)
+                {
+                    statsInterval = 0;
+                    Array.Copy(_frameTimeHistory, _sortedFrameTimes, _frameTimeHistory.Length);
+                    Array.Sort(_sortedFrameTimes);
+                    FrameTimeP50Ms = _sortedFrameTimes[_sortedFrameTimes.Length / 2];
+                    FrameTimeP95Ms = _sortedFrameTimes[(int)(_sortedFrameTimes.Length * 0.95)];
+                    FrameTimeP99Ms = _sortedFrameTimes[(int)(_sortedFrameTimes.Length * 0.99)];
+                    double sum = 0;
+                    for (int i = 0; i < _sortedFrameTimes.Length; i++) sum += _sortedFrameTimes[i];
+                    FrameTimeAvgMs = sum / _sortedFrameTimes.Length;
+                }
+
                 // 3. Periodically reinforce topmost non-activating z-order (~every 2 seconds)
                 topMostCounter++;
                 if (topMostCounter >= 120)
@@ -214,8 +246,8 @@ public sealed class GlowOverlayWindow : IDisposable
                     SetWindowPos(_hwnd, HWND_TOPMOST, _x, _y, _width, _height, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_NOSENDCHANGING);
                 }
 
-                long elapsedMs = stopwatch.ElapsedMilliseconds - frameStartMs;
-                int sleepMs = (int)Math.Max(1, 16 - elapsedMs);
+                long totalElapsedMs = (Stopwatch.GetTimestamp() - frameStartTick) * 1000 / Stopwatch.Frequency;
+                int sleepMs = (int)Math.Max(1, 16 - totalElapsedMs);
                 Thread.Sleep(sleepMs);
             }
         }

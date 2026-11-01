@@ -1,4 +1,4 @@
-using Lyrow.Core.Models;
+﻿using Lyrow.Core.Models;
 
 namespace Lyrow.Audio.Analysis;
 
@@ -142,6 +142,15 @@ public sealed class GlowBeatEngine
                 _bottomEdgeIntensity = 0f;
                 _leftEdgeIntensity = 0f;
                 _rightEdgeIntensity = 0f;
+                _smoothedBass = 0f;
+                _smoothedLowMid = 0f;
+                _smoothedMid = 0f;
+                _smoothedHighMid = 0f;
+                _smoothedTreble = 0f;
+                _prevEnergy = 0f;
+                _prevBass = 0f;
+                _prevMid = 0f;
+                _prevTreble = 0f;
             }
             return;
         }

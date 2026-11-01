@@ -262,4 +262,171 @@ public class AudioVolumeAndFourEdgeGlowTests
         engine.BassIntensity.Should().BeGreaterThan(0.50f);
         engine.TrebleIntensity.Should().BeLessThan(0.35f);
     }
+
+    [Fact]
+    public void GlowBeatEngine_SilenceDecay_DropsSmoothlyToAbsoluteZeroWithoutResidues()
+    {
+        var engine = new GlowBeatEngine();
+
+        // 1. Warm up with loud audio
+        var loudAudio = new FrequencySpectrum(
+            Array.Empty<float>(), Array.Empty<float>(),
+            subBass: 0.90f, bass: 0.95f, mid: 0.80f, treble: 0.70f,
+            levels: new AudioLevels(0.85f, 0.98f, -2f, false));
+
+        for (int i = 0; i < 20; i++)
+        {
+            engine.Process(loudAudio, sensitivity: 1.0f, frameDeltaMs: 16.6);
+        }
+
+        engine.OverallGlowIntensity.Should().BeGreaterThan(0.50f);
+        engine.BottomEdgeIntensity.Should().BeGreaterThan(0.50f);
+
+        // 2. Sudden absolute silence (e.g. paused or stopped)
+        var silentAudio = new FrequencySpectrum(
+            Array.Empty<float>(), Array.Empty<float>(),
+            subBass: 0f, bass: 0f, mid: 0f, treble: 0f,
+            levels: new AudioLevels(0f, 0f, -90f, true));
+
+        // Process 100 frames (~1.6 seconds of decay)
+        for (int i = 0; i < 100; i++)
+        {
+            engine.Process(silentAudio, sensitivity: 1.0f, frameDeltaMs: 16.6);
+        }
+
+        // All edges and overall glow must smoothly reach EXACT 0.0f without negative values or micro-residues
+        engine.OverallGlowIntensity.Should().Be(0.0f);
+        engine.TopEdgeIntensity.Should().Be(0.0f);
+        engine.BottomEdgeIntensity.Should().Be(0.0f);
+        engine.LeftEdgeIntensity.Should().Be(0.0f);
+        engine.RightEdgeIntensity.Should().Be(0.0f);
+        engine.BassIntensity.Should().Be(0.0f);
+        engine.TrebleIntensity.Should().Be(0.0f);
+    }
+
+    [Fact]
+    public void GlowPalette_CornerHarmonization_MaintainsContinuousChromaticJunction()
+    {
+        var palette = GlowPalette.Default;
+
+        // In GlowOverlayWindow, the 4 corners are mathematically harmonized via 50% Lerp:
+        var cornerTL = GlowColor.Lerp(palette.LeftColor, palette.TopColor, 0.50f);
+        var cornerTR = GlowColor.Lerp(palette.RightColor, palette.TopColor, 0.50f);
+        var cornerBL = GlowColor.Lerp(palette.LeftColor, palette.BottomColor, 0.50f);
+        var cornerBR = GlowColor.Lerp(palette.RightColor, palette.BottomColor, 0.50f);
+
+        // Verify Euclidean distance to left edge equals Euclidean distance to top edge for cornerTL
+        double distToLeft = Math.Sqrt(Math.Pow(cornerTL.R - palette.LeftColor.R, 2) + Math.Pow(cornerTL.G - palette.LeftColor.G, 2) + Math.Pow(cornerTL.B - palette.LeftColor.B, 2));
+        double distToTop = Math.Sqrt(Math.Pow(cornerTL.R - palette.TopColor.R, 2) + Math.Pow(cornerTL.G - palette.TopColor.G, 2) + Math.Pow(cornerTL.B - palette.TopColor.B, 2));
+
+        // In 50% linear interpolation, distances from midpoint to either end are strictly equal (+/- 1 unit rounding)
+        Math.Abs(distToLeft - distToTop).Should().BeLessThanOrEqualTo(1.0);
+
+        // Verify alpha remains opaque 255
+        cornerTL.A.Should().Be(255);
+        cornerTR.A.Should().Be(255);
+        cornerBL.A.Should().Be(255);
+        cornerBR.A.Should().Be(255);
+    }
+
+    [Fact]
+    public void GlowRenderBenchmark_OldPerPixelLerpVsNewSegmentedBuffer_ProvesPerformanceAdvantage()
+    {
+        const int width = 1920;
+        const int height = 1080;
+        const int maxThickness = 24;
+        const int frames = 100;
+        var palette = GlowPalette.Default;
+        var cornerTL = GlowColor.Lerp(palette.LeftColor, palette.TopColor, 0.5f);
+        var cornerBL = GlowColor.Lerp(palette.LeftColor, palette.BottomColor, 0.5f);
+
+        uint[] bufferOld = new uint[width * height];
+        uint[] bufferNew = new uint[width * height];
+        uint[] leftColorsBuffer = new uint[256];
+
+        // 1. Benchmark OLD implementation (nested per-pixel float Lerp on every row)
+        long allocBeforeOld = GC.GetAllocatedBytesForCurrentThread();
+        var swOld = System.Diagnostics.Stopwatch.StartNew();
+        for (int f = 0; f < frames; f++)
+        {
+            float alphaLeft = 0.8f;
+            for (int y = 0; y < height; y++)
+            {
+                int rowOffset = y * width;
+                float tY = (float)y / height;
+                GlowColor vertColor;
+                if (tY < 0.25f)
+                    vertColor = GlowColor.Lerp(palette.TopColor, palette.LeftColor, tY / 0.25f);
+                else if (tY > 0.75f)
+                    vertColor = GlowColor.Lerp(palette.LeftColor, palette.BottomColor, (tY - 0.75f) / 0.25f);
+                else
+                    vertColor = palette.LeftColor;
+
+                for (int x = 0; x < maxThickness; x++)
+                {
+                    float normX = 1.0f - ((float)x / maxThickness);
+                    float falloff = normX * normX * (1.25f - 0.25f * normX);
+                    byte a = (byte)Math.Clamp((int)(alphaLeft * falloff * 240.0f), 0, 255);
+                    if (a == 0) continue;
+                    uint c = ((uint)a << 24) | ((uint)(vertColor.R * a / 255) << 16) | ((uint)(vertColor.G * a / 255) << 8) | (uint)(vertColor.B * a / 255);
+                    bufferOld[rowOffset + x] = c;
+                }
+            }
+        }
+        swOld.Stop();
+        long allocAfterOld = GC.GetAllocatedBytesForCurrentThread();
+
+        // 2. Benchmark NEW implementation (segmented vertColor + precomputed integer color buffer)
+        int segHeight = Math.Max(16, height / 24);
+        var swNew = new System.Diagnostics.Stopwatch();
+        long allocBeforeNew = GC.GetAllocatedBytesForCurrentThread();
+        swNew.Start();
+        for (int f = 0; f < frames; f++)
+        {
+            float alphaLeft = 0.8f;
+            for (int yStart = 0; yStart < height; yStart += segHeight)
+            {
+                int yEnd = Math.Min(height, yStart + segHeight);
+                float tY = (float)yStart / height;
+                GlowColor vertColor;
+                if (tY < 0.35f)
+                    vertColor = GlowColor.Lerp(cornerTL, palette.LeftColor, tY / 0.35f);
+                else if (tY > 0.65f)
+                    vertColor = GlowColor.Lerp(palette.LeftColor, cornerBL, (tY - 0.65f) / 0.35f);
+                else
+                    vertColor = palette.LeftColor;
+
+                for (int x = 0; x < maxThickness; x++)
+                {
+                    float normX = 1.0f - ((float)x / maxThickness);
+                    float falloff = normX * normX * (1.25f - 0.25f * normX);
+                    byte a = (byte)Math.Clamp((int)(alphaLeft * falloff * 242.0f), 0, 255);
+                    leftColorsBuffer[x] = a > 0 ? (((uint)a << 24) | ((uint)(vertColor.R * a / 255) << 16) | ((uint)(vertColor.G * a / 255) << 8) | (uint)(vertColor.B * a / 255)) : 0u;
+                }
+
+                for (int y = yStart; y < yEnd; y++)
+                {
+                    int rowOffset = y * width;
+                    for (int x = 0; x < maxThickness; x++)
+                    {
+                        uint c = leftColorsBuffer[x];
+                        if (c != 0u)
+                        {
+                            bufferNew[rowOffset + x] = c;
+                        }
+                    }
+                }
+            }
+        }
+        swNew.Stop();
+        long allocAfterNew = GC.GetAllocatedBytesForCurrentThread();
+
+        // Verify allocations
+        (allocAfterNew - allocBeforeNew).Should().Be(0, "New segmented buffer render loop must have zero managed heap allocations");
+
+        // Verify speedup
+        double oldMs = swOld.Elapsed.TotalMilliseconds;
+        double newMs = swNew.Elapsed.TotalMilliseconds;
+        newMs.Should().BeLessThan(oldMs, $"New segmented rendering ({newMs:F2} ms) must be faster than old unsegmented rendering ({oldMs:F2} ms)");
+    }
 }

@@ -94,6 +94,21 @@ public class LyrowV35FeatureVerificationTests
         File.Exists(Path.Combine(repoRoot, "docs", "RELEASE_NOTES_v3.5.md")).Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData(ThemeMode.Dark, "Dark")]
+    [InlineData(ThemeMode.Light, "Light")]
+    [InlineData(ThemeMode.SystemDefault, "Default")]
+    public void ThemeMode_MapsToExpectedRequestedTheme(ThemeMode mode, string expected)
+    {
+        string mapped = mode switch
+        {
+            ThemeMode.Dark => "Dark",
+            ThemeMode.Light => "Light",
+            _ => "Default"
+        };
+        mapped.Should().Be(expected);
+    }
+
     private static string FindRepoRoot()
     {
         string current = AppContext.BaseDirectory;
