@@ -218,4 +218,48 @@ public class AudioVolumeAndFourEdgeGlowTests
         midPalette.TopColor.B.Should().BeInRange(145, 155);
         midPalette.BottomColor.G.Should().BeInRange(135, 145);
     }
+
+    [Fact]
+    public void GlowAcousticDynamics_TrebleAndBassBias_SeparatesTopAndBottomLighting()
+    {
+        var engine = new GlowBeatEngine();
+
+        // High frequency spectrum (high treble, low bass)
+        var trebleHeavy = new FrequencySpectrum(
+            rawFrequencies: Array.Empty<float>(),
+            bands: Array.Empty<float>(),
+            subBass: 0.05f,
+            bass: 0.05f,
+            mid: 0.20f,
+            treble: 0.95f,
+            levels: new AudioLevels(Rms: 0.50f, Peak: 0.70f, Decibels: -9f, IsSilent: false));
+
+        for (int i = 0; i < 15; i++)
+        {
+            engine.Process(trebleHeavy, sensitivity: 1.0f, frameDeltaMs: 16.6);
+        }
+
+        engine.TopEdgeIntensity.Should().BeGreaterThan(engine.BottomEdgeIntensity);
+        engine.TrebleIntensity.Should().BeGreaterThan(0.40f);
+        engine.BassIntensity.Should().BeLessThan(0.20f);
+
+        // Low frequency spectrum (high bass, low treble)
+        var bassHeavy = new FrequencySpectrum(
+            rawFrequencies: Array.Empty<float>(),
+            bands: Array.Empty<float>(),
+            subBass: 0.90f,
+            bass: 0.95f,
+            mid: 0.20f,
+            treble: 0.05f,
+            levels: new AudioLevels(Rms: 0.65f, Peak: 0.85f, Decibels: -7f, IsSilent: false));
+
+        for (int i = 0; i < 15; i++)
+        {
+            engine.Process(bassHeavy, sensitivity: 1.0f, frameDeltaMs: 16.6);
+        }
+
+        engine.BottomEdgeIntensity.Should().BeGreaterThan(engine.TopEdgeIntensity);
+        engine.BassIntensity.Should().BeGreaterThan(0.50f);
+        engine.TrebleIntensity.Should().BeLessThan(0.35f);
+    }
 }

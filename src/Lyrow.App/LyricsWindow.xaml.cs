@@ -76,6 +76,10 @@ public sealed partial class LyricsWindow : Window
     private bool _isLyricsEnabled = true;
 
     // Preserved Ambient Dynamic Artwork Background Engine
+    private static readonly SolidColorBrush InactiveLyricBrush = new(Windows.UI.Color.FromArgb(200, 190, 190, 205));
+    private static readonly SolidColorBrush ActiveLyricBrush = new(Windows.UI.Color.FromArgb(255, 255, 255, 255));
+    private static readonly SolidColorBrush TransparentBrush = new(Windows.UI.Color.FromArgb(0, 0, 0, 0));
+
     private AmbientBackgroundPalette _currentAmbientPalette = AmbientBackgroundPalette.Default;
     private AmbientBackgroundPalette _targetAmbientPalette = AmbientBackgroundPalette.Default;
 
@@ -93,6 +97,7 @@ public sealed partial class LyricsWindow : Window
         InitializeComponent();
         _lyricsModule = lyricsModule;
         _settingsManager = settingsManager;
+        ApplyTheme(_settingsManager.Current.Theme);
         _artworkBitmapManager = artworkBitmapManager;
         _mediaMonitor = mediaMonitor;
         _volumeService = volumeService;
@@ -795,7 +800,7 @@ public sealed partial class LyricsWindow : Window
                     HorizontalAlignment = HorizontalAlignment.Center,
                     TextAlignment = TextAlignment.Center,
                     LineHeight = target.FontSize * 1.32,
-                    Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(200, 190, 190, 205))
+                    Foreground = InactiveLyricBrush
                 };
 
                 // Overlay TextBlock: Active highlight clipped by RectangleGeometry sequentially per sub-line
@@ -809,7 +814,7 @@ public sealed partial class LyricsWindow : Window
                     HorizontalAlignment = HorizontalAlignment.Center,
                     TextAlignment = TextAlignment.Center,
                     LineHeight = target.FontSize * 1.32,
-                    Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)),
+                    Foreground = ActiveLyricBrush,
                     Clip = overlayClip,
                     Visibility = Visibility.Collapsed
                 };
@@ -836,7 +841,7 @@ public sealed partial class LyricsWindow : Window
                 Opacity = target.TargetOpacity,
                 RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5),
                 RenderTransform = new ScaleTransform { ScaleX = 1.0, ScaleY = 1.0 },
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0))
+                Background = TransparentBrush
             };
 
             var targetModelLine = line;
@@ -1312,4 +1317,18 @@ public sealed partial class LyricsWindow : Window
 
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);
+
+    /// <summary>
+    /// Applies Light, Dark, or SystemDefault theme dynamically across the Lyrics Window.
+    /// </summary>
+    public void ApplyTheme(ThemeMode mode)
+    {
+        if (RootLayout == null) return;
+        RootLayout.RequestedTheme = mode switch
+        {
+            ThemeMode.Dark => ElementTheme.Dark,
+            ThemeMode.Light => ElementTheme.Light,
+            _ => ElementTheme.Default
+        };
+    }
 }

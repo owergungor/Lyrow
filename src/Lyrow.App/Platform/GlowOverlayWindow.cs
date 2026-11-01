@@ -334,24 +334,26 @@ public sealed class GlowOverlayWindow : IDisposable
         float leftEnergy = _beatEngine.LeftEdgeIntensity;
         float rightEnergy = _beatEngine.RightEdgeIntensity;
 
-        // Subtle organic breathing baseline so Glow is immediately visible when enabled,
-        // surging dramatically with musical energy and beat transients (Attack -> Hold -> Decay)
-        float breathTop = 0.24f + 0.05f * MathF.Sin(_animationPhase);
-        float breathBottom = 0.28f + 0.06f * MathF.Sin(_animationPhase + 1.2f);
-        float breathLeft = 0.25f + 0.05f * MathF.Sin(_animationPhase + 2.4f);
-        float breathRight = 0.25f + 0.05f * MathF.Sin(_animationPhase + 3.6f);
+        // Controlled soft-knee transient expansion so punches are crisp without harsh white strobe clipping
+        float controlledTransient = MathF.Tanh(transient * 1.25f) * 0.32f;
 
-        float alphaTop = Math.Clamp((breathTop + topEnergy * 0.72f + transient * 0.32f) * effectiveScale, 0.0f, 1.0f);
-        float alphaBottom = Math.Clamp((breathBottom + bottomEnergy * 0.78f + transient * 0.38f) * effectiveScale, 0.0f, 1.0f);
-        float alphaLeft = Math.Clamp((breathLeft + leftEnergy * 0.74f + transient * 0.28f) * effectiveScale, 0.0f, 1.0f);
-        float alphaRight = Math.Clamp((breathRight + rightEnergy * 0.74f + transient * 0.28f) * effectiveScale, 0.0f, 1.0f);
+        // Organic acoustic breathing baseline (independent phases per edge)
+        float breathTop = 0.22f + 0.04f * MathF.Sin(_animationPhase * 1.1f);
+        float breathBottom = 0.28f + 0.06f * MathF.Sin(_animationPhase * 0.5f + 1.2f);
+        float breathLeft = 0.25f + 0.05f * MathF.Sin(_animationPhase * 0.7f + 2.4f);
+        float breathRight = 0.25f + 0.05f * MathF.Sin(_animationPhase * 0.75f + 3.6f);
+
+        float alphaTop = Math.Clamp((breathTop + topEnergy * 0.74f + controlledTransient * 0.9f) * effectiveScale, 0.0f, 1.0f);
+        float alphaBottom = Math.Clamp((breathBottom + bottomEnergy * 0.82f + controlledTransient * 1.1f) * effectiveScale, 0.0f, 1.0f);
+        float alphaLeft = Math.Clamp((breathLeft + leftEnergy * 0.75f + controlledTransient * 0.8f) * effectiveScale, 0.0f, 1.0f);
+        float alphaRight = Math.Clamp((breathRight + rightEnergy * 0.75f + controlledTransient * 0.8f) * effectiveScale, 0.0f, 1.0f);
 
         LastRenderedTopAlpha = alphaTop;
         LastRenderedBottomAlpha = alphaBottom;
         LastRenderedLeftAlpha = alphaLeft;
         LastRenderedRightAlpha = alphaRight;
 
-        // Dynamic edge thickness: base user setting (0 - 256 px) + subtle dynamic pulse on musical beats
+        // Dynamic edge thickness: base user setting (0 - 256 px) with edge-specific acoustic expansion
         int baseThickness = Math.Clamp(userThicknessPx, 0, 256);
         if (baseThickness == 0)
         {
@@ -362,36 +364,39 @@ public sealed class GlowOverlayWindow : IDisposable
             return;
         }
 
-        int dynamicBoost = (int)(overall * 32.0f + transient * 24.0f);
-        int thickness = Math.Clamp(baseThickness + dynamicBoost, 0, 256);
-        int maxThickness = Math.Min(thickness, Math.Min(_width / 2, _height / 2));
+        // Bass impacts expand bottom bloom deeply; highs remain crisp and tight along the top
+        int maxHalfW = _width / 2;
+        int maxHalfH = _height / 2;
+        int maxThickBottom = Math.Min(Math.Clamp(baseThickness + (int)(bottomEnergy * 44.0f + controlledTransient * 32.0f), 0, 256), maxHalfH);
+        int maxThickTop = Math.Min(Math.Clamp(baseThickness + (int)(topEnergy * 16.0f + controlledTransient * 14.0f), 0, 256), maxHalfH);
+        int maxThickSides = Math.Min(Math.Clamp(baseThickness + (int)(((leftEnergy + rightEnergy) * 0.5f) * 26.0f + controlledTransient * 18.0f), 0, 256), maxHalfW);
 
         uint* pixels = (uint*)_pixelBufferPtr;
         int stride = _width;
 
-        // Precompute blended corner colors for ambient flowing gradients along each edge
-        var topStart = GlowColor.Lerp(palette.LeftColor, palette.TopColor, 0.65f);
-        var topEnd = GlowColor.Lerp(palette.RightColor, palette.TopColor, 0.65f);
-        var bottomStart = GlowColor.Lerp(palette.LeftColor, palette.BottomColor, 0.65f);
-        var bottomEnd = GlowColor.Lerp(palette.RightColor, palette.BottomColor, 0.65f);
+        // Continuous corner junction colors for 100% mathematical edge continuity
+        var cornerTopLeft = GlowColor.Lerp(palette.LeftColor, palette.TopColor, 0.50f);
+        var cornerTopRight = GlowColor.Lerp(palette.RightColor, palette.TopColor, 0.50f);
+        var cornerBottomLeft = GlowColor.Lerp(palette.LeftColor, palette.BottomColor, 0.50f);
+        var cornerBottomRight = GlowColor.Lerp(palette.RightColor, palette.BottomColor, 0.50f);
 
-        // 1. Top Edge (Treble + Mid + Transients)
-        for (int y = 0; y < maxThickness; y++)
+        // 1. Top Edge (Treble shimmer + High-Mid + Transients)
+        for (int y = 0; y < maxThickTop; y++)
         {
-            float normY = 1.0f - ((float)y / maxThickness);
-            float falloff = normY * normY * (1.25f - 0.25f * normY); // Smooth soft bloom curve
+            float normY = 1.0f - ((float)y / maxThickTop);
+            float falloff = normY * normY * (1.20f - 0.20f * normY);
             byte baseA = (byte)Math.Clamp((int)(alphaTop * falloff * 245.0f), 0, 255);
             if (baseA == 0) continue;
 
             int rowOffset = y * stride;
-            // Render in horizontal segments for smooth color gradient without per-pixel Lerp overhead
             int segWidth = Math.Max(16, _width / 24);
             for (int xStart = 0; xStart < _width; xStart += segWidth)
             {
                 int xEnd = Math.Min(_width, xStart + segWidth);
                 float tX = (float)xStart / _width;
-                float wave = 0.5f + 0.5f * MathF.Sin(_animationPhase * 0.7f + tX * 3.14159f);
-                var edgeColor = GlowColor.Lerp(topStart, topEnd, wave);
+                // High frequency acoustic shimmer
+                float wave = 0.5f + 0.35f * MathF.Sin(_animationPhase * 1.1f + tX * 4.0f) + 0.15f * MathF.Cos(_animationPhase * 2.5f + tX * 8.0f);
+                var edgeColor = GlowColor.Lerp(cornerTopLeft, cornerTopRight, wave);
                 uint packed = PreMultiplyAlpha(edgeColor, baseA);
 
                 for (int x = xStart; x < xEnd; x++)
@@ -401,11 +406,12 @@ public sealed class GlowOverlayWindow : IDisposable
             }
         }
 
-        // 2. Bottom Edge (Bass + Sub-Bass + Transients)
-        for (int y = 0; y < maxThickness; y++)
+        // 2. Bottom Edge (Sub-Bass + Bass + Deep Room Bloom)
+        for (int y = 0; y < maxThickBottom; y++)
         {
-            float normY = 1.0f - ((float)y / maxThickness);
-            float falloff = normY * normY * (1.25f - 0.25f * normY);
+            float normY = 1.0f - ((float)y / maxThickBottom);
+            // Richer quadratic-cubic falloff for visceral low-end weight
+            float falloff = normY * normY * (1.35f - 0.35f * normY);
             byte baseA = (byte)Math.Clamp((int)(alphaBottom * falloff * 252.0f), 0, 255);
             if (baseA == 0) continue;
 
@@ -415,8 +421,9 @@ public sealed class GlowOverlayWindow : IDisposable
             {
                 int xEnd = Math.Min(_width, xStart + segWidth);
                 float tX = (float)xStart / _width;
-                float wave = 0.5f + 0.5f * MathF.Cos(_animationPhase * 0.8f + tX * 3.14159f);
-                var edgeColor = GlowColor.Lerp(bottomStart, bottomEnd, wave);
+                // Deep, slow oceanic bass sweep
+                float wave = 0.5f + 0.5f * MathF.Cos(_animationPhase * 0.55f + tX * 3.14159f);
+                var edgeColor = GlowColor.Lerp(cornerBottomLeft, cornerBottomRight, wave);
                 uint packed = PreMultiplyAlpha(edgeColor, baseA);
 
                 for (int x = xStart; x < xEnd; x++)
@@ -426,85 +433,93 @@ public sealed class GlowOverlayWindow : IDisposable
             }
         }
 
-        // 3. Left Edge (Mid + Bass Harmonics, zero-allocation preallocated buffer with corner harmonization)
-        for (int x = 0; x < maxThickness; x++)
+        // 3. Left Edge (Mid frequencies, vocal presence, smooth lateral wave)
+        int segHeight = Math.Max(16, _height / 24);
+        for (int yStart = 0; yStart < _height; yStart += segHeight)
         {
-            float normX = 1.0f - ((float)x / maxThickness);
-            float falloff = normX * normX * (1.25f - 0.25f * normX);
-            byte a = (byte)Math.Clamp((int)(alphaLeft * falloff * 240.0f), 0, 255);
-            _leftColorsBuffer[x] = a > 0 ? PreMultiplyAlpha(palette.LeftColor, a) : 0u;
-        }
+            int yEnd = Math.Min(_height, yStart + segHeight);
+            float tY = (float)yStart / _height;
+            float wave = 0.5f + 0.5f * MathF.Sin(_animationPhase * 0.70f + tY * 3.14159f);
 
-        for (int y = 0; y < _height; y++)
-        {
-            int rowOffset = y * stride;
-            // Chromatic corner harmonization: smoothly blend toward top/bottom edge colors near corners
-            float tY = (float)y / _height;
+            // Continuous corner interpolation: cornerTopLeft -> LeftColor -> cornerBottomLeft
             GlowColor vertColor;
-            if (tY < 0.25f)
+            if (tY < 0.35f)
             {
-                float blendT = tY / 0.25f;
-                vertColor = GlowColor.Lerp(palette.TopColor, palette.LeftColor, blendT);
+                vertColor = GlowColor.Lerp(cornerTopLeft, palette.LeftColor, tY / 0.35f);
             }
-            else if (tY > 0.75f)
+            else if (tY > 0.65f)
             {
-                float blendT = (tY - 0.75f) / 0.25f;
-                vertColor = GlowColor.Lerp(palette.LeftColor, palette.BottomColor, blendT);
+                vertColor = GlowColor.Lerp(palette.LeftColor, cornerBottomLeft, (tY - 0.65f) / 0.35f);
             }
             else
             {
                 vertColor = palette.LeftColor;
             }
 
-            for (int x = 0; x < maxThickness; x++)
+            // Precompute packed colors for this vertical segment across x
+            for (int x = 0; x < maxThickSides; x++)
             {
-                float normX = 1.0f - ((float)x / maxThickness);
+                float normX = 1.0f - ((float)x / maxThickSides);
                 float falloff = normX * normX * (1.25f - 0.25f * normX);
-                byte a = (byte)Math.Clamp((int)(alphaLeft * falloff * 240.0f), 0, 255);
-                if (a == 0) continue;
-                uint c = PreMultiplyAlpha(vertColor, a);
-                pixels[rowOffset + x] = BlendPixel(pixels[rowOffset + x], c);
+                byte a = (byte)Math.Clamp((int)(alphaLeft * falloff * 242.0f), 0, 255);
+                _leftColorsBuffer[x] = a > 0 ? PreMultiplyAlpha(vertColor, a) : 0u;
+            }
+
+            for (int y = yStart; y < yEnd; y++)
+            {
+                int rowOffset = y * stride;
+                for (int x = 0; x < maxThickSides; x++)
+                {
+                    uint c = _leftColorsBuffer[x];
+                    if (c != 0u)
+                    {
+                        pixels[rowOffset + x] = BlendPixel(pixels[rowOffset + x], c);
+                    }
+                }
             }
         }
 
-        // 4. Right Edge (Mid + Treble Harmonics, zero-allocation preallocated buffer with corner harmonization)
-        for (int x = 0; x < maxThickness; x++)
+        // 4. Right Edge (High-Mid frequencies, acoustic harmonics, counter-phase wave)
+        for (int yStart = 0; yStart < _height; yStart += segHeight)
         {
-            float normX = 1.0f - ((float)x / maxThickness);
-            float falloff = normX * normX * (1.25f - 0.25f * normX);
-            byte a = (byte)Math.Clamp((int)(alphaRight * falloff * 240.0f), 0, 255);
-            _rightColorsBuffer[x] = a > 0 ? PreMultiplyAlpha(palette.RightColor, a) : 0u;
-        }
+            int yEnd = Math.Min(_height, yStart + segHeight);
+            float tY = (float)yStart / _height;
+            float wave = 0.5f + 0.5f * MathF.Cos(_animationPhase * 0.75f + tY * 3.14159f);
 
-        for (int y = 0; y < _height; y++)
-        {
-            int rowOffset = y * stride;
-            float tY = (float)y / _height;
             GlowColor vertColor;
-            if (tY < 0.25f)
+            if (tY < 0.35f)
             {
-                float blendT = tY / 0.25f;
-                vertColor = GlowColor.Lerp(palette.TopColor, palette.RightColor, blendT);
+                vertColor = GlowColor.Lerp(cornerTopRight, palette.RightColor, tY / 0.35f);
             }
-            else if (tY > 0.75f)
+            else if (tY > 0.65f)
             {
-                float blendT = (tY - 0.75f) / 0.25f;
-                vertColor = GlowColor.Lerp(palette.RightColor, palette.BottomColor, blendT);
+                vertColor = GlowColor.Lerp(palette.RightColor, cornerBottomRight, (tY - 0.65f) / 0.35f);
             }
             else
             {
                 vertColor = palette.RightColor;
             }
 
-            for (int x = 0; x < maxThickness; x++)
+            for (int x = 0; x < maxThickSides; x++)
             {
-                float normX = 1.0f - ((float)x / maxThickness);
+                float normX = 1.0f - ((float)x / maxThickSides);
                 float falloff = normX * normX * (1.25f - 0.25f * normX);
-                byte a = (byte)Math.Clamp((int)(alphaRight * falloff * 240.0f), 0, 255);
-                if (a == 0) continue;
-                uint c = PreMultiplyAlpha(vertColor, a);
-                int idx = rowOffset + (_width - 1 - x);
-                pixels[idx] = BlendPixel(pixels[idx], c);
+                byte a = (byte)Math.Clamp((int)(alphaRight * falloff * 242.0f), 0, 255);
+                _rightColorsBuffer[x] = a > 0 ? PreMultiplyAlpha(vertColor, a) : 0u;
+            }
+
+            for (int y = yStart; y < yEnd; y++)
+            {
+                int rowOffset = y * stride;
+                for (int x = 0; x < maxThickSides; x++)
+                {
+                    uint c = _rightColorsBuffer[x];
+                    if (c != 0u)
+                    {
+                        int idx = rowOffset + (_width - 1 - x);
+                        pixels[idx] = BlendPixel(pixels[idx], c);
+                    }
+                }
             }
         }
     }

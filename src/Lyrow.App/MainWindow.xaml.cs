@@ -1630,6 +1630,7 @@ public sealed partial class MainWindow : Window
         }
 
         _trayIconManager?.SetTheme(mode.ToString());
+        _lyricsWindow?.ApplyTheme(mode);
     }
 
     public void ShowToast(string message, InfoBarSeverity severity = InfoBarSeverity.Informational, string? title = null, string? actionLabel = null, Action? onAction = null)
