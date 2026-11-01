@@ -219,6 +219,39 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        bool isCtrl = (Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control) & Windows.UI.Core.CoreVirtualKeyStates.Down) == Windows.UI.Core.CoreVirtualKeyStates.Down;
+        if (isCtrl)
+        {
+            switch (e.Key)
+            {
+                case VirtualKey.Number1:
+                    NavView.SelectedItem = NavHome;
+                    ShowPage(PageHome);
+                    e.Handled = true;
+                    return;
+                case VirtualKey.Number2:
+                    if (NavPlayback != null) NavView.SelectedItem = NavPlayback;
+                    if (PagePlayback != null) ShowPage(PagePlayback);
+                    e.Handled = true;
+                    return;
+                case VirtualKey.Number3:
+                    NavView.SelectedItem = NavGlow;
+                    ShowPage(PageGlow);
+                    e.Handled = true;
+                    return;
+                case VirtualKey.Number4:
+                    NavView.SelectedItem = NavLyrics;
+                    ShowPage(PageLyrics);
+                    e.Handled = true;
+                    return;
+                case VirtualKey.Number5:
+                    NavView.SelectedItem = NavView.SettingsItem;
+                    ShowPage(PageSettings);
+                    e.Handled = true;
+                    return;
+            }
+        }
+
         double scrollable = MainScrollViewer.ScrollableHeight;
         if (scrollable <= 0) return;
 
@@ -371,6 +404,76 @@ public sealed partial class MainWindow : Window
                 ThemeMode.Light => 2,
                 _ => 0
             };
+
+            // Categorized Settings Initial State
+            if (SliderMasterOpacity != null)
+            {
+                SliderMasterOpacity.Value = Math.Clamp(settings.MasterOpacity * 100.0, 50.0, 100.0);
+                if (TxtMasterOpacityPercent != null) TxtMasterOpacityPercent.Text = $"{(int)SliderMasterOpacity.Value}%";
+            }
+            if (ComboSeekStep != null)
+            {
+                ComboSeekStep.SelectedIndex = settings.SeekStepSeconds switch { 10 => 1, 15 => 2, _ => 0 };
+            }
+            if (SwitchAutoPauseOnMute != null) SwitchAutoPauseOnMute.IsOn = settings.AutoPauseOnMute;
+            if (SliderSettingsFocusedFontSize != null)
+            {
+                SliderSettingsFocusedFontSize.Value = settings.FocusedLyricFontSize;
+                if (TxtSettingsFocusedFontSize != null) TxtSettingsFocusedFontSize.Text = $"{settings.FocusedLyricFontSize:0} px";
+            }
+            if (TxtLyricsPreviewFocused != null) TxtLyricsPreviewFocused.FontSize = settings.FocusedLyricFontSize;
+            if (SliderSettingsUnfocusedFontSize != null)
+            {
+                SliderSettingsUnfocusedFontSize.Value = settings.UnfocusedLyricFontSize;
+                if (TxtSettingsUnfocusedFontSize != null) TxtSettingsUnfocusedFontSize.Text = $"{settings.UnfocusedLyricFontSize:0} px";
+            }
+            if (TxtLyricsPreviewPrev != null) TxtLyricsPreviewPrev.FontSize = settings.UnfocusedLyricFontSize;
+            if (TxtLyricsPreviewNext != null) TxtLyricsPreviewNext.FontSize = settings.UnfocusedLyricFontSize;
+            if (SliderSettingsLyricsOffset != null)
+            {
+                SliderSettingsLyricsOffset.Value = settings.Lyrics.SyncOffsetMs;
+                if (TxtSettingsLyricsOffset != null) TxtSettingsLyricsOffset.Text = $"{settings.Lyrics.SyncOffsetMs:+0;-0;0} ms";
+            }
+            if (SliderSettingsGlowThickness != null)
+            {
+                SliderSettingsGlowThickness.Value = settings.GlowThickness;
+                if (TxtSettingsGlowThickness != null) TxtSettingsGlowThickness.Text = $"{settings.GlowThickness} px";
+                double pt = Math.Max(2.0, settings.GlowThickness / 4.0);
+                if (GlowPreviewTop != null) GlowPreviewTop.Height = pt;
+                if (GlowPreviewBottom != null) GlowPreviewBottom.Height = pt;
+                if (GlowPreviewLeft != null) GlowPreviewLeft.Width = pt;
+                if (GlowPreviewRight != null) GlowPreviewRight.Width = pt;
+            }
+            if (SliderSettingsGlowIntensity != null)
+            {
+                SliderSettingsGlowIntensity.Value = settings.GlowIntensity;
+                if (TxtSettingsGlowIntensity != null) TxtSettingsGlowIntensity.Text = $"{settings.GlowIntensity}%";
+                double pop = Math.Clamp(settings.GlowIntensity / 100.0, 0.1, 1.0);
+                if (GlowPreviewTop != null) GlowPreviewTop.Opacity = pop;
+                if (GlowPreviewBottom != null) GlowPreviewBottom.Opacity = pop;
+                if (GlowPreviewLeft != null) GlowPreviewLeft.Opacity = pop;
+                if (GlowPreviewRight != null) GlowPreviewRight.Opacity = pop;
+            }
+            if (SliderSettingsGlowSensitivity != null)
+            {
+                SliderSettingsGlowSensitivity.Value = Math.Clamp(settings.Glow.Sensitivity, 0.5f, 5.0f);
+                if (TxtSettingsGlowSensitivity != null) TxtSettingsGlowSensitivity.Text = $"{settings.Glow.Sensitivity:0.0}x";
+            }
+            if (SwitchArtworkDynamicBackground != null) SwitchArtworkDynamicBackground.IsOn = settings.VisualIntegrationEnabled;
+            if (SliderArtworkBackgroundSaturation != null)
+            {
+                SliderArtworkBackgroundSaturation.Value = Math.Clamp(settings.ArtworkBackgroundSaturation * 100.0, 10.0, 150.0);
+                if (TxtArtworkSaturationPercent != null) TxtArtworkSaturationPercent.Text = $"{(int)SliderArtworkBackgroundSaturation.Value}%";
+            }
+            if (SliderArtworkCornerRadius != null)
+            {
+                SliderArtworkCornerRadius.Value = Math.Clamp(settings.ArtworkCornerRadius, 4.0, 24.0);
+                if (TxtArtworkRadiusValue != null) TxtArtworkRadiusValue.Text = $"{(int)SliderArtworkCornerRadius.Value} px";
+            }
+            if (ComboFftSize != null)
+            {
+                ComboFftSize.SelectedIndex = settings.Glow.FftSize switch { 1024 => 0, 4096 => 2, _ => 1 };
+            }
 
             // Initialize Dual Volume UI from real Windows Audio Service (0% - 100%)
             SyncVolumeUiFromHardware();
@@ -735,8 +838,11 @@ public sealed partial class MainWindow : Window
         try
         {
             double val = Math.Clamp(Math.Round(newValue), 20.0, 48.0);
-            SliderFocusedFontSize.Value = val;
-            TxtFocusedFontSize.Text = $"{val:0} px";
+            if (SliderFocusedFontSize != null) SliderFocusedFontSize.Value = val;
+            if (TxtFocusedFontSize != null) TxtFocusedFontSize.Text = $"{val:0} px";
+            if (SliderSettingsFocusedFontSize != null) SliderSettingsFocusedFontSize.Value = val;
+            if (TxtSettingsFocusedFontSize != null) TxtSettingsFocusedFontSize.Text = $"{val:0} px";
+            if (TxtLyricsPreviewFocused != null) TxtLyricsPreviewFocused.FontSize = val;
             _settingsManager.Current.FocusedLyricFontSize = val;
         }
         finally
@@ -752,8 +858,12 @@ public sealed partial class MainWindow : Window
         try
         {
             double val = Math.Clamp(Math.Round(newValue), 14.0, 36.0);
-            SliderUnfocusedFontSize.Value = val;
-            TxtUnfocusedFontSize.Text = $"{val:0} px";
+            if (SliderUnfocusedFontSize != null) SliderUnfocusedFontSize.Value = val;
+            if (TxtUnfocusedFontSize != null) TxtUnfocusedFontSize.Text = $"{val:0} px";
+            if (SliderSettingsUnfocusedFontSize != null) SliderSettingsUnfocusedFontSize.Value = val;
+            if (TxtSettingsUnfocusedFontSize != null) TxtSettingsUnfocusedFontSize.Text = $"{val:0} px";
+            if (TxtLyricsPreviewPrev != null) TxtLyricsPreviewPrev.FontSize = val;
+            if (TxtLyricsPreviewNext != null) TxtLyricsPreviewNext.FontSize = val;
             _settingsManager.Current.UnfocusedLyricFontSize = val;
         }
         finally
@@ -884,8 +994,10 @@ public sealed partial class MainWindow : Window
         try
         {
             int val = (int)Math.Round(newValue);
-            SliderLyricsOffset.Value = val;
-            TxtPageLyricsOffset.Text = $"{val:+0;-0;0} ms";
+            if (SliderLyricsOffset != null) SliderLyricsOffset.Value = val;
+            if (TxtPageLyricsOffset != null) TxtPageLyricsOffset.Text = $"{val:+0;-0;0} ms";
+            if (SliderSettingsLyricsOffset != null) SliderSettingsLyricsOffset.Value = val;
+            if (TxtSettingsLyricsOffset != null) TxtSettingsLyricsOffset.Text = $"{val:+0;-0;0} ms";
             _settingsManager.Current.Lyrics.SyncOffsetMs = val;
             _lyricsModule?.SetSyncOffset(val);
         }
@@ -1161,9 +1273,216 @@ public sealed partial class MainWindow : Window
     private void WireSettingsCategoryFilters()
     {
         BtnFilterAllSettings.Click += (_, _) => ShowSettingsCategory("All");
-        BtnFilterGeneral.Click += (_, _) => ShowSettingsCategory("General");
-        BtnFilterUpdates.Click += (_, _) => ShowSettingsCategory("Updates");
-        BtnFilterShortcuts.Click += (_, _) => ShowSettingsCategory("Shortcuts");
+        if (BtnFilterAppearance != null) BtnFilterAppearance.Click += (_, _) => ShowSettingsCategory("Appearance");
+        if (BtnFilterPlayback != null) BtnFilterPlayback.Click += (_, _) => ShowSettingsCategory("Playback");
+        if (BtnFilterLyrics != null) BtnFilterLyrics.Click += (_, _) => ShowSettingsCategory("Lyrics");
+        if (BtnFilterGlow != null) BtnFilterGlow.Click += (_, _) => ShowSettingsCategory("Glow");
+        if (BtnFilterArtwork != null) BtnFilterArtwork.Click += (_, _) => ShowSettingsCategory("Artwork");
+        if (BtnFilterAudio != null) BtnFilterAudio.Click += (_, _) => ShowSettingsCategory("Audio");
+        if (BtnFilterSystem != null) BtnFilterSystem.Click += (_, _) => ShowSettingsCategory("System");
+        if (BtnFilterAbout != null) BtnFilterAbout.Click += (_, _) => ShowSettingsCategory("About");
+
+        // Backwards compatibility aliases
+        BtnFilterGeneral.Click += (_, _) => ShowSettingsCategory("Appearance");
+        BtnFilterUpdates.Click += (_, _) => ShowSettingsCategory("System");
+        BtnFilterShortcuts.Click += (_, _) => ShowSettingsCategory("System");
+
+        WireCategorizedSettingsControls();
+    }
+
+    private void WireCategorizedSettingsControls()
+    {
+        // 1. Appearance / Master Opacity
+        if (SliderMasterOpacity != null)
+        {
+            SliderMasterOpacity.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                int pct = (int)Math.Round(e.NewValue);
+                if (TxtMasterOpacityPercent != null) TxtMasterOpacityPercent.Text = $"{pct}%";
+                _settingsManager.Current.MasterOpacity = pct / 100.0;
+            };
+        }
+
+        // 2. Playback / Seek step & Auto-pause
+        if (ComboSeekStep != null)
+        {
+            ComboSeekStep.SelectionChanged += (_, _) =>
+            {
+                if (_isUpdatingSettingsUi || ComboSeekStep.SelectedItem is not ComboBoxItem item) return;
+                if (int.TryParse(item.Tag?.ToString(), out int sec))
+                {
+                    _settingsManager.Current.SeekStepSeconds = sec;
+                }
+            };
+        }
+
+        if (SwitchAutoPauseOnMute != null)
+        {
+            SwitchAutoPauseOnMute.Toggled += (_, _) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                _settingsManager.Current.AutoPauseOnMute = SwitchAutoPauseOnMute.IsOn;
+            };
+        }
+
+        // 3. Lyrics Live Preview & Sliders
+        if (SliderSettingsFocusedFontSize != null)
+        {
+            SliderSettingsFocusedFontSize.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                double val = Math.Clamp(Math.Round(e.NewValue), 20.0, 48.0);
+                if (TxtSettingsFocusedFontSize != null) TxtSettingsFocusedFontSize.Text = $"{val:0} px";
+                if (TxtLyricsPreviewFocused != null) TxtLyricsPreviewFocused.FontSize = val;
+                OnFocusedFontSizeChanged(val);
+            };
+        }
+
+        if (SliderSettingsUnfocusedFontSize != null)
+        {
+            SliderSettingsUnfocusedFontSize.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                double val = Math.Clamp(Math.Round(e.NewValue), 14.0, 36.0);
+                if (TxtSettingsUnfocusedFontSize != null) TxtSettingsUnfocusedFontSize.Text = $"{val:0} px";
+                if (TxtLyricsPreviewPrev != null) TxtLyricsPreviewPrev.FontSize = val;
+                if (TxtLyricsPreviewNext != null) TxtLyricsPreviewNext.FontSize = val;
+                OnUnfocusedFontSizeChanged(val);
+            };
+        }
+
+        if (SliderSettingsLyricsOffset != null)
+        {
+            SliderSettingsLyricsOffset.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                int val = (int)Math.Round(e.NewValue);
+                if (TxtSettingsLyricsOffset != null) TxtSettingsLyricsOffset.Text = $"{val:+0;-0;0} ms";
+                OnLyricsOffsetChanged(val);
+            };
+        }
+
+        if (BtnSettingsOffsetMinus500 != null) BtnSettingsOffsetMinus500.Click += (_, _) => OnLyricsOffsetChanged((SliderSettingsLyricsOffset?.Value ?? 0) - 500);
+        if (BtnSettingsOffsetReset != null) BtnSettingsOffsetReset.Click += (_, _) => OnLyricsOffsetChanged(0);
+        if (BtnSettingsOffsetPlus500 != null) BtnSettingsOffsetPlus500.Click += (_, _) => OnLyricsOffsetChanged((SliderSettingsLyricsOffset?.Value ?? 0) + 500);
+
+        // 4. Ambient Glow Live Preview & Sliders
+        if (SliderSettingsGlowThickness != null)
+        {
+            SliderSettingsGlowThickness.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                int val = (int)Math.Round(e.NewValue);
+                if (TxtSettingsGlowThickness != null) TxtSettingsGlowThickness.Text = $"{val} px";
+                _settingsManager.Current.GlowThickness = val;
+                if (SliderGlowThickness != null) SliderGlowThickness.Value = val;
+                if (TxtGlowThicknessVal != null) TxtGlowThicknessVal.Text = $"{val} px";
+                double t = Math.Max(2.0, val / 4.0);
+                if (GlowPreviewTop != null) GlowPreviewTop.Height = t;
+                if (GlowPreviewBottom != null) GlowPreviewBottom.Height = t;
+                if (GlowPreviewLeft != null) GlowPreviewLeft.Width = t;
+                if (GlowPreviewRight != null) GlowPreviewRight.Width = t;
+            };
+        }
+
+        if (SliderSettingsGlowIntensity != null)
+        {
+            SliderSettingsGlowIntensity.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                int val = (int)Math.Round(e.NewValue);
+                if (TxtSettingsGlowIntensity != null) TxtSettingsGlowIntensity.Text = $"{val}%";
+                _settingsManager.Current.GlowIntensity = val;
+                if (SliderGlowIntensity != null) SliderGlowIntensity.Value = val;
+                if (TxtGlowIntensityVal != null) TxtGlowIntensityVal.Text = $"{val}%";
+                double op = Math.Clamp(val / 100.0, 0.1, 1.0);
+                if (GlowPreviewTop != null) GlowPreviewTop.Opacity = op;
+                if (GlowPreviewBottom != null) GlowPreviewBottom.Opacity = op;
+                if (GlowPreviewLeft != null) GlowPreviewLeft.Opacity = op;
+                if (GlowPreviewRight != null) GlowPreviewRight.Opacity = op;
+            };
+        }
+
+        if (SliderSettingsGlowSensitivity != null)
+        {
+            SliderSettingsGlowSensitivity.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                float sens = (float)e.NewValue;
+                if (TxtSettingsGlowSensitivity != null) TxtSettingsGlowSensitivity.Text = $"{sens:0.0}x";
+                _settingsManager.Current.Glow.Sensitivity = sens;
+            };
+        }
+
+        if (ComboSettingsGlowPalette != null)
+        {
+            ComboSettingsGlowPalette.SelectionChanged += (_, _) =>
+            {
+                if (_isUpdatingSettingsUi || ComboSettingsGlowPalette.SelectedItem is not ComboBoxItem item) return;
+                string mode = item.Tag?.ToString() ?? "AlbumArt";
+                _settingsManager.Current.GlowPaletteMode = mode;
+            };
+        }
+
+        // 5. Artwork Dynamic Background & Corner Radius
+        if (SwitchArtworkDynamicBackground != null)
+        {
+            SwitchArtworkDynamicBackground.Toggled += (_, _) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                bool enabled = SwitchArtworkDynamicBackground.IsOn;
+                _settingsManager.Current.VisualIntegrationEnabled = enabled;
+                if (HomeAmbientBackgroundLayer != null)
+                {
+                    HomeAmbientBackgroundLayer.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+                }
+            };
+        }
+
+        if (SliderArtworkBackgroundSaturation != null)
+        {
+            SliderArtworkBackgroundSaturation.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                int val = (int)Math.Round(e.NewValue);
+                if (TxtArtworkSaturationPercent != null) TxtArtworkSaturationPercent.Text = $"{val}%";
+                _settingsManager.Current.ArtworkBackgroundSaturation = val / 100.0;
+                if (HomeAmbientBackgroundLayer != null)
+                {
+                    double baseOpacity = _settingsManager.Current.Theme == ThemeMode.Light ? 0.12 : 0.55;
+                    HomeAmbientBackgroundLayer.Opacity = Math.Clamp(baseOpacity * (val / 100.0), 0.05, 0.95);
+                }
+            };
+        }
+
+        if (SliderArtworkCornerRadius != null)
+        {
+            SliderArtworkCornerRadius.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                int val = (int)Math.Round(e.NewValue);
+                if (TxtArtworkRadiusValue != null) TxtArtworkRadiusValue.Text = $"{val} px";
+                _settingsManager.Current.ArtworkCornerRadius = val;
+                if (BorderHomeTrackArtwork != null)
+                {
+                    BorderHomeTrackArtwork.CornerRadius = new CornerRadius(val);
+                }
+            };
+        }
+
+        // 6. Audio Engine Settings
+        if (ComboFftSize != null)
+        {
+            ComboFftSize.SelectionChanged += (_, _) =>
+            {
+                if (_isUpdatingSettingsUi || ComboFftSize.SelectedItem is not ComboBoxItem item) return;
+                if (int.TryParse(item.Tag?.ToString(), out int fft))
+                {
+                    _settingsManager.Current.Glow.FftSize = fft;
+                }
+            };
+        }
     }
 
     public void ShowSettingsCategory(string category)
@@ -1172,13 +1491,29 @@ public sealed partial class MainWindow : Window
         var standard = (Style)Application.Current.Resources["DefaultButtonStyle"];
 
         BtnFilterAllSettings.Style = category == "All" ? accent : standard;
-        BtnFilterGeneral.Style = category == "General" ? accent : standard;
-        BtnFilterUpdates.Style = category == "Updates" ? accent : standard;
-        BtnFilterShortcuts.Style = category == "Shortcuts" ? accent : standard;
+        if (BtnFilterAppearance != null) BtnFilterAppearance.Style = (category == "Appearance" || category == "General") ? accent : standard;
+        if (BtnFilterPlayback != null) BtnFilterPlayback.Style = (category == "Playback") ? accent : standard;
+        if (BtnFilterLyrics != null) BtnFilterLyrics.Style = (category == "Lyrics") ? accent : standard;
+        if (BtnFilterGlow != null) BtnFilterGlow.Style = (category == "Glow") ? accent : standard;
+        if (BtnFilterArtwork != null) BtnFilterArtwork.Style = (category == "Artwork") ? accent : standard;
+        if (BtnFilterAudio != null) BtnFilterAudio.Style = (category == "Audio") ? accent : standard;
+        if (BtnFilterSystem != null) BtnFilterSystem.Style = (category == "System" || category == "Updates" || category == "Shortcuts") ? accent : standard;
+        if (BtnFilterAbout != null) BtnFilterAbout.Style = (category == "About") ? accent : standard;
 
-        SectionGeneral.Visibility = (category == "All" || category == "General") ? Visibility.Visible : Visibility.Collapsed;
-        SectionUpdates.Visibility = (category == "All" || category == "Updates") ? Visibility.Visible : Visibility.Collapsed;
-        SectionShortcuts.Visibility = (category == "All" || category == "Shortcuts") ? Visibility.Visible : Visibility.Collapsed;
+        BtnFilterGeneral.Style = (category == "General" || category == "Appearance") ? accent : standard;
+        BtnFilterUpdates.Style = (category == "Updates" || category == "System") ? accent : standard;
+        BtnFilterShortcuts.Style = (category == "Shortcuts" || category == "System") ? accent : standard;
+
+        // Visibility of 8 settings categories
+        SectionGeneral.Visibility = (category == "All" || category == "Appearance" || category == "General") ? Visibility.Visible : Visibility.Collapsed;
+        if (SectionSettingsPlayback != null) SectionSettingsPlayback.Visibility = (category == "All" || category == "Playback") ? Visibility.Visible : Visibility.Collapsed;
+        if (SectionSettingsLyrics != null) SectionSettingsLyrics.Visibility = (category == "All" || category == "Lyrics") ? Visibility.Visible : Visibility.Collapsed;
+        if (SectionSettingsGlow != null) SectionSettingsGlow.Visibility = (category == "All" || category == "Glow") ? Visibility.Visible : Visibility.Collapsed;
+        if (SectionSettingsArtwork != null) SectionSettingsArtwork.Visibility = (category == "All" || category == "Artwork") ? Visibility.Visible : Visibility.Collapsed;
+        if (SectionSettingsAudio != null) SectionSettingsAudio.Visibility = (category == "All" || category == "Audio") ? Visibility.Visible : Visibility.Collapsed;
+        SectionUpdates.Visibility = (category == "All" || category == "System" || category == "Updates") ? Visibility.Visible : Visibility.Collapsed;
+        SectionShortcuts.Visibility = (category == "All" || category == "System" || category == "Shortcuts") ? Visibility.Visible : Visibility.Collapsed;
+        if (SectionAbout != null) SectionAbout.Visibility = (category == "All" || category == "About") ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void ApplyLocalization()

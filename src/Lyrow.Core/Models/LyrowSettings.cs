@@ -67,6 +67,14 @@ public sealed class LyrowSettings
 
     public int GlowPresetIndex { get; set; } = 0;
 
+    public double ArtworkBackgroundSaturation { get; set; } = 1.0;
+
+    public double ArtworkCornerRadius { get; set; } = 12.0;
+
+    public int SeekStepSeconds { get; set; } = 5;
+
+    public bool AutoPauseOnMute { get; set; } = false;
+
     public HotkeySettings Hotkeys { get; set; } = new();
 
     public Dictionary<string, string> ModuleCustomSettings { get; set; } = new(StringComparer.OrdinalIgnoreCase);

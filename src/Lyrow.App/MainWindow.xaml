@@ -907,300 +907,445 @@
 
                         <TextBlock x:Name="TxtSettingsHeader" Text="Settings" FontSize="22" FontWeight="SemiBold" />
 
-
-
                         <!-- Settings Category Selector Bar -->
-
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Hidden">
-
                             <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,4">
-
                                 <Button x:Name="BtnFilterAllSettings" Content="All" CornerRadius="8" Style="{ThemeResource AccentButtonStyle}" />
+                                <Button x:Name="BtnFilterAppearance" Content="Appearance" CornerRadius="8" />
+                                <Button x:Name="BtnFilterPlayback" Content="Playback" CornerRadius="8" />
+                                <Button x:Name="BtnFilterLyrics" Content="Lyrics" CornerRadius="8" />
+                                <Button x:Name="BtnFilterGlow" Content="Ambient Glow" CornerRadius="8" />
+                                <Button x:Name="BtnFilterArtwork" Content="Artwork" CornerRadius="8" />
+                                <Button x:Name="BtnFilterAudio" Content="Audio" CornerRadius="8" />
+                                <Button x:Name="BtnFilterSystem" Content="System" CornerRadius="8" />
+                                <Button x:Name="BtnFilterAbout" Content="About" CornerRadius="8" />
 
-                                <Button x:Name="BtnFilterGeneral" Content="General" CornerRadius="8" />
-
-                                <Button x:Name="BtnFilterUpdates" Content="Updates" CornerRadius="8" />
-
-                                <Button x:Name="BtnFilterShortcuts" Content="Shortcuts" CornerRadius="8" />
-
+                                <!-- Backwards compatibility aliases -->
+                                <Button x:Name="BtnFilterGeneral" Content="General" Visibility="Collapsed" />
+                                <Button x:Name="BtnFilterUpdates" Content="Updates" Visibility="Collapsed" />
+                                <Button x:Name="BtnFilterShortcuts" Content="Shortcuts" Visibility="Collapsed" />
                             </StackPanel>
-
                         </ScrollViewer>
 
-
-
-                        <!-- 1. General (Theme, Language, Startup, Tray) -->
-
+                        <!-- 1. Appearance (Theme, Language, Window Opacity, Startup, Tray) -->
                         <Border x:Name="SectionGeneral" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-
                             <StackPanel Spacing="14">
-
-                                <TextBlock x:Name="TxtSectionGeneral" Text="General" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
-
-
+                                <TextBlock x:Name="TxtSectionGeneral" Text="Appearance &amp; General" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
 
                                 <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
-
                                     <StackPanel Spacing="2">
-
                                         <TextBlock x:Name="TxtAppTheme" Text="App Theme" FontWeight="Medium" FontSize="14" />
-
                                         <TextBlock x:Name="TxtAppThemeDesc" Text="Choose Windows 11 system theme, dark, or light appearance"
-
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-
                                     </StackPanel>
-
                                     <ComboBox x:Name="ComboTheme" Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch">
-
                                         <ComboBoxItem Content="Windows Default" Tag="SystemDefault" />
-
                                         <ComboBoxItem Content="Dark" Tag="Dark" />
-
                                         <ComboBoxItem Content="Light" Tag="Light" />
-
                                     </ComboBox>
-
                                 </Grid>
-
-
 
                                 <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
-
                                     <StackPanel Spacing="2">
-
                                         <TextBlock x:Name="TxtLanguageLabel" Text="Language" FontWeight="Medium" FontSize="14" />
-
                                         <TextBlock x:Name="TxtLanguageDesc" Text="Application user interface language"
-
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-
                                     </StackPanel>
-
                                     <ComboBox x:Name="ComboLanguage" Grid.Column="1" HorizontalAlignment="Stretch">
-
                                         <ComboBoxItem Content="English" Tag="en" />
-
                                         <ComboBoxItem Content="Français" Tag="fr" />
-
                                         <ComboBoxItem Content="Español" Tag="es" />
-
                                         <ComboBoxItem Content="Deutsch" Tag="de" />
-
                                         <ComboBoxItem Content="Türkçe" Tag="tr" />
-
                                     </ComboBox>
-
                                 </Grid>
 
-
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Window Master Opacity" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Adjust transparency and backdrop blend level"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtMasterOpacityPercent" Grid.Column="1" Text="95%" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider x:Name="SliderMasterOpacity" Minimum="50" Maximum="100" Value="95" StepFrequency="1" />
 
                                 <Grid ColumnDefinitions="*,Auto">
-
                                     <StackPanel Spacing="2">
-
                                         <TextBlock x:Name="TxtStartupLabel" Text="Launch on Windows Startup" FontWeight="Medium" FontSize="14" />
-
                                         <TextBlock x:Name="TxtStartupDesc" Text="Start Lyrow automatically when signing into Windows"
-
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-
                                     </StackPanel>
-
                                     <ToggleSwitch x:Name="SwitchStartWithWindows" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
-
                                 </Grid>
-
-
 
                                 <Grid ColumnDefinitions="*,Auto">
-
                                     <StackPanel Spacing="2">
-
                                         <TextBlock x:Name="TxtSystemTrayLabel" Text="System Tray Integration" FontWeight="Medium" FontSize="14" />
-
                                         <TextBlock x:Name="TxtSystemTrayDesc" Text="Keep Lyrow accessible in the Windows notification area"
-
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-
                                     </StackPanel>
-
                                     <ToggleSwitch x:Name="SwitchSystemTray" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
-
                                 </Grid>
-
                             </StackPanel>
-
                         </Border>
 
-
-
-                        <!-- 5. Updates (Auto Update) -->
-
-                        <Border x:Name="SectionUpdates" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-
+                        <!-- 2. Playback Behavior -->
+                        <Border x:Name="SectionSettingsPlayback" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-
-                            <StackPanel Spacing="12">
-
-                                <TextBlock x:Name="TxtSectionUpdates" Text="Updates" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
-
-
-
-                                <Grid ColumnDefinitions="*,Auto">
-
-                                    <StackPanel Spacing="2">
-
-                                        <TextBlock x:Name="TxtAutoUpdatesLabel" Text="Automatic Update Checks" FontWeight="Medium" FontSize="14" />
-
-                                        <TextBlock x:Name="TxtAutoUpdatesDesc" Text="Check GitHub Releases in the background without interrupting playback or auto-installing"
-
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-
-                                    </StackPanel>
-
-                                    <ToggleSwitch x:Name="SwitchAutoUpdate" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
-
-                                </Grid>
-
-
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Playback &amp; Transport" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
 
                                 <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
-
                                     <StackPanel Spacing="2">
-
-                                        <TextBlock x:Name="TxtUpdateFrequencyLabel" Text="Check Frequency" FontWeight="Medium" FontSize="14" />
-
-                                        <TextBlock x:Name="TxtUpdateFrequencyDesc" Text="Choose how often Lyrow checks for updates"
-
+                                        <TextBlock Text="Seek Step Sensitivity" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Seconds to jump when seeking forward or backward"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-
                                     </StackPanel>
-
-                                    <ComboBox x:Name="ComboUpdateFrequency" Grid.Column="1" HorizontalAlignment="Stretch">
-
-                                        <ComboBoxItem Content="On Startup" Tag="OnStartup" />
-
-                                        <ComboBoxItem Content="Daily" Tag="Daily" />
-
-                                        <ComboBoxItem Content="Weekly" Tag="Weekly" />
-
-                                        <ComboBoxItem Content="Monthly" Tag="Monthly" />
-
+                                    <ComboBox x:Name="ComboSeekStep" Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="5 seconds" Tag="5" />
+                                        <ComboBoxItem Content="10 seconds" Tag="10" />
+                                        <ComboBoxItem Content="15 seconds" Tag="15" />
                                     </ComboBox>
-
                                 </Grid>
 
-
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Auto-Pause on System Mute" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Pause media playback when system volume is muted"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchAutoPauseOnMute" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                </Grid>
 
                                 <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-
                                     <StackPanel Spacing="2">
-
-                                        <TextBlock x:Name="TxtCurrentVersion" Text="Current Version: v3.5" FontWeight="SemiBold" FontSize="14" />
-
-                                        <TextBlock x:Name="TxtUpdateStatusSummary" Text="Release channel: GitHub Releases (Stable)"
-
+                                        <TextBlock Text="Active Media Session" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtSettingsPlaybackStatus" Text="Connected to Windows Global System Media Transport Controls (GSMTC)"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-
                                     </StackPanel>
-
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-
-                                        <Button x:Name="BtnDownloadAndInstallUpdate" Content="Download &amp; Install" Visibility="Collapsed" Style="{ThemeResource AccentButtonStyle}" />
-
-                                        <Button x:Name="BtnOpenUpdateRelease" Content="View Release" Visibility="Collapsed" />
-
-                                        <Button x:Name="BtnCheckUpdates" Content="Check for Updates" />
-
-                                    </StackPanel>
-
+                                    <FontIcon Grid.Column="1" Glyph="&#xE768;" FontSize="16" Foreground="{ThemeResource AccentFillColorDefaultBrush}" Margin="8,0" />
                                 </Grid>
-
-
-
-                                <ProgressBar x:Name="ProgressUpdateDownload" Height="4" Minimum="0" Maximum="100" Value="0" Visibility="Collapsed" Margin="0,4,0,0" />
-
-                                <TextBlock x:Name="TxtUpdateDownloadProgress" Text="" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" />
-
-
-
-                                <InfoBar x:Name="UpdateStatusInfoBar" IsOpen="False" IsClosable="True" Severity="Informational" />
-
                             </StackPanel>
-
                         </Border>
 
-
-
-                        <!-- 6. Shortcuts -->
-
-                        <Border x:Name="SectionShortcuts" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-
+                        <!-- 3. Lyrics Appearance & Live Preview -->
+                        <Border x:Name="SectionSettingsLyrics" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Lyrics Appearance &amp; Live Preview" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
 
+                                <!-- Live Interactive Preview Box -->
+                                <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="Live Preview" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorTertiaryBrush}" CharacterSpacing="50" />
+                                        <TextBlock x:Name="TxtLyricsPreviewPrev" Text="Walking down this midnight avenue..." FontSize="18" Opacity="0.45" />
+                                        <TextBlock x:Name="TxtLyricsPreviewFocused" Text="Never let me go, spinning in the atmosphere..." FontSize="26" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                        <TextBlock x:Name="TxtLyricsPreviewNext" Text="Underneath the neon glow..." FontSize="18" Opacity="0.45" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Focused Line Font Size" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Font size of the active playing lyric line"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtSettingsFocusedFontSize" Grid.Column="1" Text="28 px" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider x:Name="SliderSettingsFocusedFontSize" Minimum="20" Maximum="48" Value="28" StepFrequency="1" />
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Unfocused Lines Font Size" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Font size of surrounding inactive lyric lines"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtSettingsUnfocusedFontSize" Grid.Column="1" Text="20 px" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider x:Name="SliderSettingsUnfocusedFontSize" Minimum="14" Maximum="36" Value="20" StepFrequency="1" />
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Lyrics Sync Offset" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Adjust timestamp synchronization relative to playback"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtSettingsLyricsOffset" Grid.Column="1" Text="0 ms" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider x:Name="SliderSettingsLyricsOffset" Minimum="-3000" Maximum="3000" Value="0" StepFrequency="50" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="BtnSettingsOffsetMinus500" Content="−500 ms" />
+                                    <Button x:Name="BtnSettingsOffsetReset" Content="Reset (0 ms)" />
+                                    <Button x:Name="BtnSettingsOffsetPlus500" Content="+500 ms" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 4. Ambient Glow & Live Preview -->
+                        <Border x:Name="SectionSettingsGlow" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Ambient Glow &amp; Live Preview" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+
+                                <!-- Live Interactive Glow Edge Preview Box -->
+                                <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8" Padding="12" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <Grid Height="90">
+                                        <!-- Bezel frame with glowing 4 edges -->
+                                        <Border x:Name="BorderGlowPreviewFrame" Background="#11111B" CornerRadius="6" BorderBrush="#313244" BorderThickness="1">
+                                            <Grid>
+                                                <!-- Top edge glow -->
+                                                <Rectangle x:Name="GlowPreviewTop" Height="4" VerticalAlignment="Top" HorizontalAlignment="Stretch" Fill="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0.8" />
+                                                <!-- Bottom edge glow -->
+                                                <Rectangle x:Name="GlowPreviewBottom" Height="4" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Fill="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0.8" />
+                                                <!-- Left edge glow -->
+                                                <Rectangle x:Name="GlowPreviewLeft" Width="4" HorizontalAlignment="Left" VerticalAlignment="Stretch" Fill="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0.8" />
+                                                <!-- Right edge glow -->
+                                                <Rectangle x:Name="GlowPreviewRight" Width="4" HorizontalAlignment="Right" VerticalAlignment="Stretch" Fill="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0.8" />
+
+                                                <TextBlock Text="4-Edge Ambient Glow Simulation" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Edge Glow Thickness" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Physical bezel edge thickness in pixels"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtSettingsGlowThickness" Grid.Column="1" Text="24 px" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider x:Name="SliderSettingsGlowThickness" Minimum="8" Maximum="64" Value="24" StepFrequency="2" />
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Glow Brightness Multiplier" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Intensity of the ambient light emission"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtSettingsGlowIntensity" Grid.Column="1" Text="80%" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider x:Name="SliderSettingsGlowIntensity" Minimum="10" Maximum="100" Value="80" StepFrequency="5" />
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="DSP Audio Sensitivity" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Dynamic audio frequency responsiveness multiplier"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtSettingsGlowSensitivity" Grid.Column="1" Text="2.5x" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider x:Name="SliderSettingsGlowSensitivity" Minimum="0.5" Maximum="5.0" Value="2.5" StepFrequency="0.1" />
+
+                                <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Palette Mode" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Color harmony source for edge illumination"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ComboBox x:Name="ComboSettingsGlowPalette" Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="Album Art Dynamic" Tag="AlbumArt" />
+                                        <ComboBoxItem Content="Catppuccin Blue" Tag="Blue" />
+                                        <ComboBoxItem Content="Neon Cyan" Tag="Cyan" />
+                                        <ComboBoxItem Content="Sunset Orange" Tag="Orange" />
+                                        <ComboBoxItem Content="Aurora Emerald" Tag="Emerald" />
+                                    </ComboBox>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 5. Artwork & Dynamic Background -->
+                        <Border x:Name="SectionSettingsArtwork" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Artwork &amp; Dynamic Background" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Dynamic Ambient Background Layer" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Subtle, fluidly tinted blurred artwork atmosphere across the window"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchArtworkDynamicBackground" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Ambient Background Saturation" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Intensity of the background artwork color aura"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtArtworkSaturationPercent" Grid.Column="1" Text="100%" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider x:Name="SliderArtworkBackgroundSaturation" Minimum="10" Maximum="150" Value="100" StepFrequency="5" />
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Artwork Corner Radius" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Apple Music inspired rounded corners on album artwork"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtArtworkRadiusValue" Grid.Column="1" Text="12 px" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider x:Name="SliderArtworkCornerRadius" Minimum="4" Maximum="24" Value="12" StepFrequency="1" />
+
+                                <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="In-Memory Cache Capacity" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtArtworkCacheStatus" Text="Bounded cache: 50 items max (Zero memory leakage)"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <FontIcon Grid.Column="1" Glyph="&#xE753;" FontSize="16" Foreground="{ThemeResource AccentFillColorDefaultBrush}" Margin="8,0" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 6. Audio Engine & Frequency Analysis -->
+                        <Border x:Name="SectionSettingsAudio" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Audio Engine &amp; Frequency Analysis" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+
+                                <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Capture Endpoint" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtAudioEndpointStatus" Text="Windows Default Audio Loopback (Real-Time WASAPI)"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <FontIcon Grid.Column="1" Glyph="&#xE720;" FontSize="16" Foreground="{ThemeResource AccentFillColorDefaultBrush}" Margin="8,0" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="FFT Analysis Window Size" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Sample window for Fast Fourier Transform frequency bins"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ComboBox x:Name="ComboFftSize" Grid.Column="1" SelectedIndex="1" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="1024 samples" Tag="1024" />
+                                        <ComboBoxItem Content="2048 samples (Standard)" Tag="2048" />
+                                        <ComboBoxItem Content="4096 samples (High Res)" Tag="4096" />
+                                    </ComboBox>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="DSP Target Refresh Rate" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtTargetFpsStatus" Text="60 FPS Fluid High-DPI Timer"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <FontIcon Grid.Column="1" Glyph="&#xE773;" FontSize="16" Foreground="{ThemeResource AccentFillColorDefaultBrush}" Margin="8,0" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Silence Threshold" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtSilenceThresholdStatus" Text="-65.0 dB Auto-Sleep Standby"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <FontIcon Grid.Column="1" Glyph="&#xE74F;" FontSize="16" Foreground="{ThemeResource AccentFillColorDefaultBrush}" Margin="8,0" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 7. Updates (Auto Update) -->
+                        <Border x:Name="SectionUpdates" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="12">
+                                <TextBlock x:Name="TxtSectionUpdates" Text="Updates" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock x:Name="TxtAutoUpdatesLabel" Text="Automatic Update Checks" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtAutoUpdatesDesc" Text="Check GitHub Releases in the background without interrupting playback or auto-installing"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchAutoUpdate" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock x:Name="TxtUpdateFrequencyLabel" Text="Check Frequency" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtUpdateFrequencyDesc" Text="Choose how often Lyrow checks for updates"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ComboBox x:Name="ComboUpdateFrequency" Grid.Column="1" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="On Startup" Tag="OnStartup" />
+                                        <ComboBoxItem Content="Daily" Tag="Daily" />
+                                        <ComboBoxItem Content="Weekly" Tag="Weekly" />
+                                        <ComboBoxItem Content="Monthly" Tag="Monthly" />
+                                    </ComboBox>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock x:Name="TxtCurrentVersion" Text="Current Version: v3.5" FontWeight="SemiBold" FontSize="14" />
+                                        <TextBlock x:Name="TxtUpdateStatusSummary" Text="Release channel: GitHub Releases (Stable)"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                        <Button x:Name="BtnDownloadAndInstallUpdate" Content="Download &amp; Install" Visibility="Collapsed" Style="{ThemeResource AccentButtonStyle}" />
+                                        <Button x:Name="BtnOpenUpdateRelease" Content="View Release" Visibility="Collapsed" />
+                                        <Button x:Name="BtnCheckUpdates" Content="Check for Updates" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <ProgressBar x:Name="ProgressUpdateDownload" Height="4" Minimum="0" Maximum="100" Value="0" Visibility="Collapsed" Margin="0,4,0,0" />
+                                <TextBlock x:Name="TxtUpdateDownloadProgress" Text="" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" />
+
+                                <InfoBar x:Name="UpdateStatusInfoBar" IsOpen="False" IsClosable="True" Severity="Informational" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 8. Shortcuts -->
+                        <Border x:Name="SectionShortcuts" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <StackPanel Spacing="10">
-
                                 <TextBlock x:Name="TxtSectionShortcuts" Text="Shortcuts" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
-
                                 <TextBlock x:Name="TxtShortcutsDesc" Text="User-defined global hotkeys. No default hotkeys are forced to prevent key collisions."
-
                                            FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
                                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="8">
-
                                     <TextBlock x:Name="TxtShortcutGlowLabel" Text="Toggle Glow:" VerticalAlignment="Center" />
-
                                     <TextBox x:Name="TxtHotkeyGlow" Grid.Column="1" Width="160" PlaceholderText="e.g. Ctrl+Alt+G" />
 
-
-
                                     <TextBlock x:Name="TxtShortcutLyricsLabel" Grid.Row="1" Text="Toggle Lyrics:" VerticalAlignment="Center" />
-
                                     <TextBox x:Name="TxtHotkeyLyrics" Grid.Row="1" Grid.Column="1" Width="160" PlaceholderText="e.g. Ctrl+Alt+L" />
-
                                 </Grid>
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,4,0,0">
-
                                     <Button x:Name="BtnClearHotkeys" Content="Clear" />
-
                                     <Button x:Name="BtnSaveHotkeys" Content="Apply Shortcuts" Style="{ThemeResource AccentButtonStyle}" />
-
                                 </StackPanel>
-
                             </StackPanel>
-
                         </Border>
 
-
-
-                        <!-- Diagnostics & Reset -->
-
-                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-
+                        <!-- 9. About & Diagnostics -->
+                        <Border x:Name="SectionAbout" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-
                             <StackPanel Spacing="10">
-
-                                <TextBlock Text="Lyrow v3.5" FontWeight="SemiBold" FontSize="14" />
-
-                                <TextBlock Text="Windows 11 Native Ambient Edge Lighting &amp; Apple Music-Style Synchronized Lyrics"
-
+                                <TextBlock Text="Lyrow v3.5" FontWeight="SemiBold" FontSize="15" />
+                                <TextBlock Text="Windows 11 Native Ambient Edge Lighting &amp; Apple Music 26/27 Inspired Synchronized Lyrics"
                                            FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-
+                                <TextBlock Text="Powered by .NET 10, WinUI 3, Windows App SDK, GSMTC Media Engine, and Real-Time WASAPI Loopback DSP."
+                                           FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
                                     <Button x:Name="BtnResetSettings" Content="Reset Settings to Defaults" />
-
                                     <Button x:Name="BtnOpenLogs" Content="Open Diagnostic Log" />
-
                                 </StackPanel>
-
                             </StackPanel>
-
                         </Border>
 
                     </StackPanel>

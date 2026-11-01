@@ -10,11 +10,63 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
 
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Default">
+                    <SolidColorBrush x:Key="LyrowAccentBrush" Color="#89B4FA" />
+                    <SolidColorBrush x:Key="LyrowSuccessBrush" Color="#10B981" />
+                    <SolidColorBrush x:Key="LyrowWarningBrush" Color="#F59E0B" />
+                    <SolidColorBrush x:Key="LyrowStoppedBrush" Color="#71717A" />
+                    <SolidColorBrush x:Key="LyrowSurfaceBrush" Color="#1E1E2E" />
+                    <SolidColorBrush x:Key="LyrowCardBorderBrush" Color="#313244" />
+                    <SolidColorBrush x:Key="LyrowCardBackgroundBrush" Color="#1E1E2E" />
+                    <SolidColorBrush x:Key="LyrowSubtleFillBrush" Color="#2A2B3D" />
+                    <SolidColorBrush x:Key="LyrowTextPrimaryBrush" Color="#CDD6F4" />
+                    <SolidColorBrush x:Key="LyrowTextSecondaryBrush" Color="#A6ADC8" />
+                    <SolidColorBrush x:Key="LyrowTextTertiaryBrush" Color="#6C7086" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="LyrowAccentBrush" Color="#1E66F5" />
+                    <SolidColorBrush x:Key="LyrowSuccessBrush" Color="#16A34A" />
+                    <SolidColorBrush x:Key="LyrowWarningBrush" Color="#D97706" />
+                    <SolidColorBrush x:Key="LyrowStoppedBrush" Color="#9CA3AF" />
+                    <SolidColorBrush x:Key="LyrowSurfaceBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="LyrowCardBorderBrush" Color="#E5E7EB" />
+                    <SolidColorBrush x:Key="LyrowCardBackgroundBrush" Color="#F8FAFC" />
+                    <SolidColorBrush x:Key="LyrowSubtleFillBrush" Color="#F1F5F9" />
+                    <SolidColorBrush x:Key="LyrowTextPrimaryBrush" Color="#0F172A" />
+                    <SolidColorBrush x:Key="LyrowTextSecondaryBrush" Color="#475569" />
+                    <SolidColorBrush x:Key="LyrowTextTertiaryBrush" Color="#94A3B8" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!-- Global Fallback Brushes (in case referenced outside theme lookup) -->
             <SolidColorBrush x:Key="LyrowAccentBrush" Color="#89B4FA" />
             <SolidColorBrush x:Key="LyrowSuccessBrush" Color="#10B981" />
+            <SolidColorBrush x:Key="LyrowWarningBrush" Color="#F59E0B" />
             <SolidColorBrush x:Key="LyrowStoppedBrush" Color="#71717A" />
             <SolidColorBrush x:Key="LyrowSurfaceBrush" Color="#1E1E2E" />
             <SolidColorBrush x:Key="LyrowCardBorderBrush" Color="#313244" />
+
+            <!-- Geometry & CornerRadius Design Tokens -->
+            <CornerRadius x:Key="LyrowCardCornerRadius">12</CornerRadius>
+            <CornerRadius x:Key="LyrowControlCornerRadius">8</CornerRadius>
+            <CornerRadius x:Key="LyrowPillCornerRadius">20</CornerRadius>
+            <CornerRadius x:Key="LyrowArtworkCornerRadius">12</CornerRadius>
+            <CornerRadius x:Key="LyrowBadgeCornerRadius">4</CornerRadius>
+
+            <!-- Typography Hierarchy Tokens -->
+            <x:Double x:Key="LyrowFontSizeTitle">22</x:Double>
+            <x:Double x:Key="LyrowFontSizeSection">16</x:Double>
+            <x:Double x:Key="LyrowFontSizeBody">14</x:Double>
+            <x:Double x:Key="LyrowFontSizeCaption">12</x:Double>
+            <x:Double x:Key="LyrowFontSizeMicro">11</x:Double>
+            <x:Double x:Key="LyrowFontSizeFocusedLyric">28</x:Double>
+            <x:Double x:Key="LyrowFontSizeUnfocusedLyric">20</x:Double>
+
+            <!-- Animation Duration Tokens -->
+            <Duration x:Key="LyrowAnimDurationFast">0:0:0.15</Duration>
+            <Duration x:Key="LyrowAnimDurationNormal">0:0:0.25</Duration>
+            <Duration x:Key="LyrowAnimDurationSmooth">0:0:0.35</Duration>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
