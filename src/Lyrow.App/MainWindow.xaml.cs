@@ -279,6 +279,42 @@ public sealed partial class MainWindow : Window
                 MainScrollViewer.ChangeView(null, scrollable, null, disableAnimation: false);
                 e.Handled = true;
                 break;
+
+            case VirtualKey.Left:
+                if (_mediaMonitor != null)
+                {
+                    if (!_mediaMonitor.CanSeek)
+                    {
+                        ShowToast("Seek işlemi aktif medya oynatıcısı (Apple Music) tarafından desteklenmiyor.", InfoBarSeverity.Informational);
+                    }
+                    else
+                    {
+                        var cur = _mediaMonitor.CurrentTimeline.Position;
+                        int step = _settingsManager?.Current.SeekStepSeconds ?? 5;
+                        var target = cur - TimeSpan.FromSeconds(step);
+                        _ = _mediaMonitor.TrySeekAsync(target < TimeSpan.Zero ? TimeSpan.Zero : target);
+                    }
+                }
+                e.Handled = true;
+                break;
+
+            case VirtualKey.Right:
+                if (_mediaMonitor != null)
+                {
+                    if (!_mediaMonitor.CanSeek)
+                    {
+                        ShowToast("Seek işlemi aktif medya oynatıcısı (Apple Music) tarafından desteklenmiyor.", InfoBarSeverity.Informational);
+                    }
+                    else
+                    {
+                        var cur = _mediaMonitor.CurrentTimeline.Position;
+                        int step = _settingsManager?.Current.SeekStepSeconds ?? 5;
+                        var target = cur + TimeSpan.FromSeconds(step);
+                        _ = _mediaMonitor.TrySeekAsync(target);
+                    }
+                }
+                e.Handled = true;
+                break;
         }
     }
 
@@ -321,6 +357,61 @@ public sealed partial class MainWindow : Window
             if (GitHubUpdateService.IsUpdateCheckDue(freq, lastCheck, DateTime.UtcNow))
             {
                 _ = CheckForUpdatesInternalAsync(userInitiated: false);
+            }
+        }
+    }
+
+    private readonly System.Threading.Lock _saveLock = new();
+    private CancellationTokenSource? _saveDebounceCts;
+
+    public void SaveCurrentSettingsDebounced(int delayMs = 300)
+    {
+        lock (_saveLock)
+        {
+            _saveDebounceCts?.Cancel();
+            _saveDebounceCts?.Dispose();
+            _saveDebounceCts = new CancellationTokenSource();
+            var token = _saveDebounceCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(delayMs, token);
+                    if (!token.IsCancellationRequested && _settingsManager != null)
+                    {
+                        await _settingsManager.SaveAsync(_settingsManager.Current, CancellationToken.None);
+                    }
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    LocalDiagnosticLogger.LogWarning($"Failed to persist settings: {ex.Message}");
+                }
+            }, token);
+        }
+    }
+
+    private static bool IsAnimationEnabled()
+    {
+        try
+        {
+            var uiSettings = new Windows.UI.ViewManagement.UISettings();
+            return uiSettings.AnimationsEnabled;
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    private async Task HandleAutoPauseOnMuteAsync()
+    {
+        if (_settingsManager?.Current.AutoPauseOnMute == true && (_volumeService.IsPlaybackMuted || _volumeService.IsSystemMuted))
+        {
+            if (_mediaMonitor != null && _mediaMonitor.HasActiveSession && _mediaMonitor.CurrentTimeline.Status == MediaPlaybackStatus.Playing)
+            {
+                await _mediaMonitor.TryPauseAsync();
             }
         }
     }
@@ -410,6 +501,17 @@ public sealed partial class MainWindow : Window
             {
                 SliderMasterOpacity.Value = Math.Clamp(settings.MasterOpacity * 100.0, 50.0, 100.0);
                 if (TxtMasterOpacityPercent != null) TxtMasterOpacityPercent.Text = $"{(int)SliderMasterOpacity.Value}%";
+                if (RootShellGrid != null) RootShellGrid.Opacity = Math.Clamp(settings.MasterOpacity, 0.50, 1.0);
+            }
+            if (BorderHomeTrackArtwork != null)
+            {
+                BorderHomeTrackArtwork.CornerRadius = new CornerRadius(settings.ArtworkCornerRadius);
+            }
+            if (HomeAmbientBackgroundLayer != null)
+            {
+                HomeAmbientBackgroundLayer.Visibility = settings.VisualIntegrationEnabled ? Visibility.Visible : Visibility.Collapsed;
+                double baseOp = settings.Theme == ThemeMode.Light ? 0.12 : 0.55;
+                HomeAmbientBackgroundLayer.Opacity = Math.Clamp(baseOp * settings.ArtworkBackgroundSaturation, 0.05, 0.95);
             }
             if (ComboSeekStep != null)
             {
@@ -559,6 +661,7 @@ public sealed partial class MainWindow : Window
             int val = (int)Math.Round(e.NewValue);
             TxtGlowThicknessVal.Text = $"{val} px";
             _settingsManager.Current.GlowThickness = val;
+                SaveCurrentSettingsDebounced();
         };
 
         SliderGlowSensitivity.ValueChanged += (_, e) =>
@@ -568,6 +671,7 @@ public sealed partial class MainWindow : Window
             TxtGlowSensitivityVal.Text = $"{pct}%";
             float sens = Math.Clamp(pct / 100.0f, 0.0f, 5.0f);
             _settingsManager.Current.Glow.Sensitivity = sens;
+                SaveCurrentSettingsDebounced();
             var analyzer = App.Services?.GetService<ISpectrumAnalyzer>();
             if (analyzer != null) analyzer.Sensitivity = sens;
         };
@@ -800,6 +904,7 @@ public sealed partial class MainWindow : Window
             SliderGlowIntensity.Value = val;
             TxtGlowIntensityVal.Text = $"{val}%";
             _settingsManager.Current.GlowIntensity = val;
+                SaveCurrentSettingsDebounced();
         }
         finally
         {
@@ -844,6 +949,21 @@ public sealed partial class MainWindow : Window
             if (TxtSettingsFocusedFontSize != null) TxtSettingsFocusedFontSize.Text = $"{val:0} px";
             if (TxtLyricsPreviewFocused != null) TxtLyricsPreviewFocused.FontSize = val;
             _settingsManager.Current.FocusedLyricFontSize = val;
+
+            // Enforce non-conflicting font size hierarchy
+            if (val < _settingsManager.Current.UnfocusedLyricFontSize + 2)
+            {
+                double newUnfocused = Math.Clamp(val - 2, 14.0, 36.0);
+                _settingsManager.Current.UnfocusedLyricFontSize = newUnfocused;
+                if (SliderUnfocusedFontSize != null) SliderUnfocusedFontSize.Value = newUnfocused;
+                if (TxtUnfocusedFontSize != null) TxtUnfocusedFontSize.Text = $"{newUnfocused:0} px";
+                if (SliderSettingsUnfocusedFontSize != null) SliderSettingsUnfocusedFontSize.Value = newUnfocused;
+                if (TxtSettingsUnfocusedFontSize != null) TxtSettingsUnfocusedFontSize.Text = $"{newUnfocused:0} px";
+                if (TxtLyricsPreviewPrev != null) TxtLyricsPreviewPrev.FontSize = newUnfocused;
+                if (TxtLyricsPreviewNext != null) TxtLyricsPreviewNext.FontSize = newUnfocused;
+            }
+
+            SaveCurrentSettingsDebounced();
         }
         finally
         {
@@ -865,6 +985,20 @@ public sealed partial class MainWindow : Window
             if (TxtLyricsPreviewPrev != null) TxtLyricsPreviewPrev.FontSize = val;
             if (TxtLyricsPreviewNext != null) TxtLyricsPreviewNext.FontSize = val;
             _settingsManager.Current.UnfocusedLyricFontSize = val;
+
+            // Enforce non-conflicting font size hierarchy
+            if (val > _settingsManager.Current.FocusedLyricFontSize - 2)
+            {
+                double newFocused = Math.Clamp(val + 2, 20.0, 48.0);
+                _settingsManager.Current.FocusedLyricFontSize = newFocused;
+                if (SliderFocusedFontSize != null) SliderFocusedFontSize.Value = newFocused;
+                if (TxtFocusedFontSize != null) TxtFocusedFontSize.Text = $"{newFocused:0} px";
+                if (SliderSettingsFocusedFontSize != null) SliderSettingsFocusedFontSize.Value = newFocused;
+                if (TxtSettingsFocusedFontSize != null) TxtSettingsFocusedFontSize.Text = $"{newFocused:0} px";
+                if (TxtLyricsPreviewFocused != null) TxtLyricsPreviewFocused.FontSize = newFocused;
+            }
+
+            SaveCurrentSettingsDebounced();
         }
         finally
         {
@@ -1000,6 +1134,7 @@ public sealed partial class MainWindow : Window
             if (TxtSettingsLyricsOffset != null) TxtSettingsLyricsOffset.Text = $"{val:+0;-0;0} ms";
             _settingsManager.Current.Lyrics.SyncOffsetMs = val;
             _lyricsModule?.SetSyncOffset(val);
+            SaveCurrentSettingsDebounced();
         }
         finally
         {
@@ -1301,6 +1436,8 @@ public sealed partial class MainWindow : Window
                 int pct = (int)Math.Round(e.NewValue);
                 if (TxtMasterOpacityPercent != null) TxtMasterOpacityPercent.Text = $"{pct}%";
                 _settingsManager.Current.MasterOpacity = pct / 100.0;
+                if (RootShellGrid != null) RootShellGrid.Opacity = Math.Clamp(pct / 100.0, 0.50, 1.0);
+                SaveCurrentSettingsDebounced();
             };
         }
 
@@ -1313,6 +1450,7 @@ public sealed partial class MainWindow : Window
                 if (int.TryParse(item.Tag?.ToString(), out int sec))
                 {
                     _settingsManager.Current.SeekStepSeconds = sec;
+                    SaveCurrentSettingsDebounced();
                 }
             };
         }
@@ -1323,6 +1461,8 @@ public sealed partial class MainWindow : Window
             {
                 if (_isUpdatingSettingsUi) return;
                 _settingsManager.Current.AutoPauseOnMute = SwitchAutoPauseOnMute.IsOn;
+                SaveCurrentSettingsDebounced();
+                _ = HandleAutoPauseOnMuteAsync();
             };
         }
 
@@ -1376,6 +1516,7 @@ public sealed partial class MainWindow : Window
                 int val = (int)Math.Round(e.NewValue);
                 if (TxtSettingsGlowThickness != null) TxtSettingsGlowThickness.Text = $"{val} px";
                 _settingsManager.Current.GlowThickness = val;
+                SaveCurrentSettingsDebounced();
                 if (SliderGlowThickness != null) SliderGlowThickness.Value = val;
                 if (TxtGlowThicknessVal != null) TxtGlowThicknessVal.Text = $"{val} px";
                 double t = Math.Max(2.0, val / 4.0);
@@ -1394,6 +1535,7 @@ public sealed partial class MainWindow : Window
                 int val = (int)Math.Round(e.NewValue);
                 if (TxtSettingsGlowIntensity != null) TxtSettingsGlowIntensity.Text = $"{val}%";
                 _settingsManager.Current.GlowIntensity = val;
+                SaveCurrentSettingsDebounced();
                 if (SliderGlowIntensity != null) SliderGlowIntensity.Value = val;
                 if (TxtGlowIntensityVal != null) TxtGlowIntensityVal.Text = $"{val}%";
                 double op = Math.Clamp(val / 100.0, 0.1, 1.0);
@@ -1412,6 +1554,7 @@ public sealed partial class MainWindow : Window
                 float sens = (float)e.NewValue;
                 if (TxtSettingsGlowSensitivity != null) TxtSettingsGlowSensitivity.Text = $"{sens:0.0}x";
                 _settingsManager.Current.Glow.Sensitivity = sens;
+                SaveCurrentSettingsDebounced();
             };
         }
 
@@ -1422,6 +1565,7 @@ public sealed partial class MainWindow : Window
                 if (_isUpdatingSettingsUi || ComboSettingsGlowPalette.SelectedItem is not ComboBoxItem item) return;
                 string mode = item.Tag?.ToString() ?? "AlbumArt";
                 _settingsManager.Current.GlowPaletteMode = mode;
+                SaveCurrentSettingsDebounced();
             };
         }
 
@@ -1433,6 +1577,7 @@ public sealed partial class MainWindow : Window
                 if (_isUpdatingSettingsUi) return;
                 bool enabled = SwitchArtworkDynamicBackground.IsOn;
                 _settingsManager.Current.VisualIntegrationEnabled = enabled;
+                SaveCurrentSettingsDebounced();
                 if (HomeAmbientBackgroundLayer != null)
                 {
                     HomeAmbientBackgroundLayer.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
@@ -1448,6 +1593,7 @@ public sealed partial class MainWindow : Window
                 int val = (int)Math.Round(e.NewValue);
                 if (TxtArtworkSaturationPercent != null) TxtArtworkSaturationPercent.Text = $"{val}%";
                 _settingsManager.Current.ArtworkBackgroundSaturation = val / 100.0;
+                SaveCurrentSettingsDebounced();
                 if (HomeAmbientBackgroundLayer != null)
                 {
                     double baseOpacity = _settingsManager.Current.Theme == ThemeMode.Light ? 0.12 : 0.55;
@@ -1464,6 +1610,7 @@ public sealed partial class MainWindow : Window
                 int val = (int)Math.Round(e.NewValue);
                 if (TxtArtworkRadiusValue != null) TxtArtworkRadiusValue.Text = $"{val} px";
                 _settingsManager.Current.ArtworkCornerRadius = val;
+                SaveCurrentSettingsDebounced();
                 if (BorderHomeTrackArtwork != null)
                 {
                     BorderHomeTrackArtwork.CornerRadius = new CornerRadius(val);
@@ -1480,6 +1627,12 @@ public sealed partial class MainWindow : Window
                 if (int.TryParse(item.Tag?.ToString(), out int fft))
                 {
                     _settingsManager.Current.Glow.FftSize = fft;
+                    var analyzer = App.Services?.GetService<ISpectrumAnalyzer>();
+                    if (analyzer != null)
+                    {
+                        analyzer.FftSize = fft;
+                    }
+                    SaveCurrentSettingsDebounced();
                 }
             };
         }
@@ -1528,7 +1681,16 @@ public sealed partial class MainWindow : Window
         TxtSettingsHeader.Text = loc["Settings_Title"];
 
         // Settings Category Filters
-        BtnFilterAllSettings.Content = "All";
+        BtnFilterAllSettings.Content = loc["Tab_All"];
+        if (BtnFilterAppearance != null) BtnFilterAppearance.Content = loc["Tab_Appearance"];
+        if (BtnFilterPlayback != null) BtnFilterPlayback.Content = loc["Tab_Playback"];
+        if (BtnFilterLyrics != null) BtnFilterLyrics.Content = loc["Tab_Lyrics"];
+        if (BtnFilterGlow != null) BtnFilterGlow.Content = loc["Tab_Glow"];
+        if (BtnFilterArtwork != null) BtnFilterArtwork.Content = loc["Tab_Artwork"];
+        if (BtnFilterAudio != null) BtnFilterAudio.Content = loc["Tab_Audio"];
+        if (BtnFilterSystem != null) BtnFilterSystem.Content = loc["Tab_System"];
+        if (BtnFilterAbout != null) BtnFilterAbout.Content = loc["Tab_About"];
+
         BtnFilterGeneral.Content = loc["Tab_General"];
         BtnFilterUpdates.Content = loc["Tab_Updates"];
         BtnFilterShortcuts.Content = loc["Tab_Shortcuts"];
@@ -1982,7 +2144,9 @@ public sealed partial class MainWindow : Window
     {
         if (HomeAmbientBackgroundLayer != null)
         {
-            HomeAmbientBackgroundLayer.Opacity = mode == ThemeMode.Light ? 0.12 : 0.55;
+            double baseOp = mode == ThemeMode.Light ? 0.12 : 0.55;
+            double sat = _settingsManager?.Current.ArtworkBackgroundSaturation ?? 1.0;
+            HomeAmbientBackgroundLayer.Opacity = Math.Clamp(baseOp * sat, 0.05, 0.95);
         }
 
         if (Content is FrameworkElement root)
@@ -2033,6 +2197,14 @@ public sealed partial class MainWindow : Window
 
     private void OnWindowClosed(object sender, WindowEventArgs e)
     {
+        try
+        {
+            if (_settingsManager != null)
+            {
+                _settingsManager.SaveAsync(_settingsManager.Current, CancellationToken.None).GetAwaiter().GetResult();
+            }
+        }
+        catch { }
         _dashboardTimer.Stop();
 
         if (_mediaMonitor != null)
@@ -2240,7 +2412,8 @@ public sealed partial class MainWindow : Window
             CardLyrics.Visibility = Visibility.Visible;
             BorderHomeTrackArtwork.Width = 84;
             BorderHomeTrackArtwork.Height = 84;
-            BorderHomeTrackArtwork.CornerRadius = new CornerRadius(12);
+            double userR = _settingsManager?.Current.ArtworkCornerRadius ?? 12.0;
+            BorderHomeTrackArtwork.CornerRadius = new CornerRadius(userR);
             HomeTxtTitle.FontSize = 19;
             HomeTxtArtist.FontSize = 13.5;
             CardCurrentTrack.Padding = new Thickness(20);
