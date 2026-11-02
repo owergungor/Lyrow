@@ -12,6 +12,11 @@ public static class LocalDiagnosticLogger
     private static readonly string _logDirectory;
     private static readonly string _logFilePath;
 
+    private static string? _lastEntryText;
+    private static string? _lastEntryLevel;
+    private static DateTime _lastEntryTime = DateTime.MinValue;
+    private static int _duplicateCount = 0;
+
     static LocalDiagnosticLogger()
     {
         string baseDir = AppDomain.CurrentDomain.BaseDirectory;
@@ -50,10 +55,52 @@ public static class LocalDiagnosticLogger
         if (string.IsNullOrEmpty(message)) return string.Empty;
 
         // Mask user profile names in absolute Windows file paths
-        return System.Text.RegularExpressions.Regex.Replace(
+        var sanitized = System.Text.RegularExpressions.Regex.Replace(
             message,
             @"(?i)(Users\\)[^\\]+(\\)",
             "$1***$2");
+
+        // Mask Bearer tokens
+        sanitized = System.Text.RegularExpressions.Regex.Replace(
+            sanitized,
+            @"(?i)(Bearer\s+)[A-Za-z0-9\-._~+/]+=*",
+            "$1[REDACTED]");
+
+        // Mask sensitive key-value pairs (passwords, tokens, api keys, secrets)
+        sanitized = System.Text.RegularExpressions.Regex.Replace(
+            sanitized,
+            @"(?i)(token|password|secret|apikey|client_secret|access_token|refresh_token)\s*([:=])\s*[""']?([^\s,""']+)[""']?",
+            "$1$2[REDACTED]");
+
+        return sanitized;
+    }
+
+    public static void Flush()
+    {
+        try
+        {
+            lock (_fileLock)
+            {
+                if (_duplicateCount > 0 && !string.IsNullOrEmpty(_logFilePath) && Directory.Exists(_logDirectory))
+                {
+                    string dupNotice = $"[{_lastEntryTime:yyyy-MM-dd HH:mm:ss.fff UTC}] [{_lastEntryLevel}] [Suppressed {_duplicateCount} duplicate log entries]{Environment.NewLine}";
+                    File.AppendAllText(_logFilePath, dupNotice, Encoding.UTF8);
+                    _duplicateCount = 0;
+                }
+            }
+        }
+        catch { }
+    }
+
+    public static void ResetForTesting()
+    {
+        lock (_fileLock)
+        {
+            _lastEntryText = null;
+            _lastEntryLevel = null;
+            _lastEntryTime = DateTime.MinValue;
+            _duplicateCount = 0;
+        }
     }
 
     public static void LogInfo(string message) => WriteEntry("INFO", message);
@@ -79,12 +126,35 @@ public static class LocalDiagnosticLogger
         try
         {
             string sanitized = Sanitize(text);
+            DateTime now = DateTime.UtcNow;
+
             lock (_fileLock)
             {
+                // Rate-limiting consecutive duplicate entries within 1 second
+                if (level == _lastEntryLevel &&
+                    sanitized == _lastEntryText &&
+                    (now - _lastEntryTime).TotalMilliseconds < 1000)
+                {
+                    _duplicateCount++;
+                    _lastEntryTime = now;
+                    return;
+                }
+
                 if (!Directory.Exists(_logDirectory))
                 {
                     Directory.CreateDirectory(_logDirectory);
                 }
+
+                if (_duplicateCount > 0)
+                {
+                    string dupNotice = $"[{_lastEntryTime:yyyy-MM-dd HH:mm:ss.fff UTC}] [{_lastEntryLevel}] [Suppressed {_duplicateCount} duplicate log entries]{Environment.NewLine}";
+                    File.AppendAllText(_logFilePath, dupNotice, Encoding.UTF8);
+                    _duplicateCount = 0;
+                }
+
+                _lastEntryLevel = level;
+                _lastEntryText = sanitized;
+                _lastEntryTime = now;
 
                 // Simple log file rotation if exceeding 5 MB
                 var fileInfo = new FileInfo(_logFilePath);
@@ -95,7 +165,7 @@ public static class LocalDiagnosticLogger
                     File.Move(_logFilePath, oldPath);
                 }
 
-                string line = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff UTC}] [{level}] {sanitized}{Environment.NewLine}";
+                string line = $"[{now:yyyy-MM-dd HH:mm:ss.fff UTC}] [{level}] {sanitized}{Environment.NewLine}";
                 File.AppendAllText(_logFilePath, line, Encoding.UTF8);
             }
         }

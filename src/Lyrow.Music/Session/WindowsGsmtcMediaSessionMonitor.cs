@@ -416,6 +416,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         }
         catch
         {
+            DetachCurrentSession();
             return false;
         }
     }
@@ -433,6 +434,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         }
         catch
         {
+            DetachCurrentSession();
             return false;
         }
     }
@@ -467,6 +469,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         }
         catch
         {
+            DetachCurrentSession();
             return false;
         }
     }
@@ -488,6 +491,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         }
         catch
         {
+            DetachCurrentSession();
             return false;
         }
     }
@@ -509,6 +513,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         }
         catch
         {
+            DetachCurrentSession();
             return false;
         }
     }
@@ -541,6 +546,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         }
         catch
         {
+            DetachCurrentSession();
             return false;
         }
     }
