@@ -358,7 +358,7 @@
 
                                         </StackPanel>
 
-                                        <ToggleSwitch x:Name="SwitchHomeGlow" Grid.Column="2" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                        <ToggleSwitch x:Name="SwitchHomeGlow" AutomationProperties.Name="Toggle Ambient Glow" Grid.Column="2" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
 
                                     </Grid>
 
@@ -420,7 +420,7 @@
 
                                         </StackPanel>
 
-                                        <ToggleSwitch x:Name="SwitchHomeLyrics" Grid.Column="2" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                        <ToggleSwitch x:Name="SwitchHomeLyrics" AutomationProperties.Name="Toggle Synchronized Lyrics" Grid.Column="2" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
 
                                     </Grid>
 
@@ -490,7 +490,7 @@
 
                                 </StackPanel>
 
-                                <ToggleSwitch x:Name="SwitchGlowMaster" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                <ToggleSwitch x:Name="SwitchGlowMaster" AutomationProperties.Name="Master Ambient Glow Toggle" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
 
                             </Grid>
 
@@ -516,7 +516,7 @@
 
                                 </Grid>
 
-                                <Slider x:Name="SliderGlowIntensity" Minimum="10" Maximum="100" Value="80" StepFrequency="1" />
+                                <Slider x:Name="SliderGlowIntensity" AutomationProperties.Name="Ambient Glow Intensity" Minimum="10" Maximum="100" Value="80" StepFrequency="1" />
 
 
 
@@ -530,7 +530,7 @@
 
                                 </Grid>
 
-                                <Slider x:Name="SliderGlowThickness" Minimum="0" Maximum="256" Value="24" StepFrequency="2" />
+                                <Slider x:Name="SliderGlowThickness" AutomationProperties.Name="Ambient Glow Edge Thickness" Minimum="0" Maximum="256" Value="24" StepFrequency="2" />
 
 
 
@@ -544,7 +544,7 @@
 
                                 </Grid>
 
-                                <Slider x:Name="SliderGlowSensitivity" Minimum="0" Maximum="500" Value="250" StepFrequency="5" />
+                                <Slider x:Name="SliderGlowSensitivity" AutomationProperties.Name="Ambient Glow Audio Sensitivity" Minimum="0" Maximum="500" Value="250" StepFrequency="5" />
 
                             </StackPanel>
 
@@ -572,7 +572,7 @@
 
                                     </StackPanel>
 
-                                    <ToggleSwitch x:Name="SwitchAlbumArtSync" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                    <ToggleSwitch x:Name="SwitchAlbumArtSync" AutomationProperties.Name="Sync Ambient Glow With Album Artwork" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
 
                                 </Grid>
 
@@ -582,7 +582,7 @@
 
                                     <TextBlock Text="Fallback Palette Preset" FontWeight="Medium" FontSize="13" />
 
-                                    <ComboBox x:Name="ComboPalettePreset" HorizontalAlignment="Stretch" />
+                                    <ComboBox x:Name="ComboPalettePreset" AutomationProperties.Name="Ambient Glow Fallback Palette Preset" HorizontalAlignment="Stretch" />
 
                                 </StackPanel>
 
@@ -610,7 +610,7 @@
 
                                 </StackPanel>
 
-                                <ComboBox x:Name="ComboGlowShutdownDelay" Grid.Column="1" HorizontalAlignment="Stretch">
+                                <ComboBox x:Name="ComboGlowShutdownDelay" AutomationProperties.Name="Ambient Glow Inactivity Shutdown Delay" Grid.Column="1" HorizontalAlignment="Stretch">
 
                                     <ComboBoxItem Content="Immediately (0s)" Tag="0" />
 
@@ -684,7 +684,7 @@
 
                                 </StackPanel>
 
-                                <ToggleSwitch x:Name="SwitchLyricsMaster" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                <ToggleSwitch x:Name="SwitchLyricsMaster" AutomationProperties.Name="Master Synchronized Lyrics Toggle" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
 
                             </Grid>
 
@@ -720,17 +720,17 @@
 
 
 
-                                <Slider x:Name="SliderLyricsOffset" Minimum="-3000" Maximum="3000" Value="0" StepFrequency="50" />
+                                <Slider x:Name="SliderLyricsOffset" AutomationProperties.Name="Lyrics Synchronization Offset" Minimum="-3000" Maximum="3000" Value="0" StepFrequency="50" />
 
 
 
                                 <StackPanel Orientation="Horizontal" Spacing="8">
 
-                                    <Button x:Name="BtnOffsetMinus500" Content="−500 ms" />
+                                    <Button x:Name="BtnOffsetMinus500" AutomationProperties.Name="Decrease Lyrics Offset by 500 ms" Content="−500 ms" />
 
-                                    <Button x:Name="BtnOffsetReset" Content="Reset (0 ms)" />
+                                    <Button x:Name="BtnOffsetReset" AutomationProperties.Name="Reset Lyrics Offset to 0 ms" Content="Reset (0 ms)" />
 
-                                    <Button x:Name="BtnOffsetPlus500" Content="+500 ms" />
+                                    <Button x:Name="BtnOffsetPlus500" AutomationProperties.Name="Increase Lyrics Offset by 500 ms" Content="+500 ms" />
 
                                 </StackPanel>
 
@@ -786,7 +786,7 @@
 
                                     </Grid>
 
-                                    <Slider x:Name="SliderFocusedFontSize" Minimum="20" Maximum="48" Value="28" StepFrequency="1" />
+                                    <Slider x:Name="SliderFocusedFontSize" AutomationProperties.Name="Focused Lyric Line Font Size" Minimum="20" Maximum="48" Value="28" StepFrequency="1" />
 
 
 
@@ -808,7 +808,7 @@
 
                                     </Grid>
 
-                                    <Slider x:Name="SliderUnfocusedFontSize" Minimum="14" Maximum="36" Value="20" StepFrequency="1" />
+                                    <Slider x:Name="SliderUnfocusedFontSize" AutomationProperties.Name="Unfocused Lyric Lines Font Size" Minimum="14" Maximum="36" Value="20" StepFrequency="1" />
 
                                 </StackPanel>
 
@@ -848,7 +848,7 @@
 
                                 </Grid>
 
-                                <Slider x:Name="SliderPagePlaybackVolume" Minimum="0" Maximum="100" Value="78" StepFrequency="1" IsThumbToolTipEnabled="False" />
+                                <Slider x:Name="SliderPagePlaybackVolume" AutomationProperties.Name="Active Media Session Playback Volume" Minimum="0" Maximum="100" Value="78" StepFrequency="1" IsThumbToolTipEnabled="False" />
 
 
 
@@ -862,7 +862,7 @@
 
                                 </Grid>
 
-                                <Slider x:Name="SliderPageSystemVolume" Minimum="0" Maximum="100" Value="78" StepFrequency="1" IsThumbToolTipEnabled="False" />
+                                <Slider x:Name="SliderPageSystemVolume" AutomationProperties.Name="System Endpoint Master Volume" Minimum="0" Maximum="100" Value="78" StepFrequency="1" IsThumbToolTipEnabled="False" />
 
 
 
@@ -924,9 +924,9 @@
                                 <Button x:Name="BtnFilterAbout" AutomationProperties.Name="Filter About Settings" Content="About" CornerRadius="8" />
 
                                 <!-- Backwards compatibility aliases -->
-                                <Button x:Name="BtnFilterGeneral" Content="General" Visibility="Collapsed" />
-                                <Button x:Name="BtnFilterUpdates" Content="Updates" Visibility="Collapsed" />
-                                <Button x:Name="BtnFilterShortcuts" Content="Shortcuts" Visibility="Collapsed" />
+                                <Button x:Name="BtnFilterGeneral" AutomationProperties.Name="Filter General Settings" Content="General" Visibility="Collapsed" />
+                                <Button x:Name="BtnFilterUpdates" AutomationProperties.Name="Filter Updates Settings" Content="Updates" Visibility="Collapsed" />
+                                <Button x:Name="BtnFilterShortcuts" AutomationProperties.Name="Filter Shortcuts Settings" Content="Shortcuts" Visibility="Collapsed" />
                             </StackPanel>
                         </ScrollViewer>
 
@@ -1374,8 +1374,8 @@
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                                        <Button x:Name="BtnDownloadAndInstallUpdate" Content="Download &amp; Install" Visibility="Collapsed" Style="{ThemeResource AccentButtonStyle}" />
-                                        <Button x:Name="BtnOpenUpdateRelease" Content="View Release" Visibility="Collapsed" />
+                                        <Button x:Name="BtnDownloadAndInstallUpdate" AutomationProperties.Name="Download and Install Lyrow Update" Content="Download &amp; Install" Visibility="Collapsed" Style="{ThemeResource AccentButtonStyle}" />
+                                        <Button x:Name="BtnOpenUpdateRelease" AutomationProperties.Name="View Update Release Details on GitHub" Content="View Release" Visibility="Collapsed" />
                                         <Button x:Name="BtnCheckUpdates" AutomationProperties.Name="Check for Updates" Content="Check for Updates" />
                                     </StackPanel>
                                 </Grid>
@@ -1397,10 +1397,10 @@
 
                                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="8">
                                     <TextBlock x:Name="TxtShortcutGlowLabel" Text="Toggle Glow:" VerticalAlignment="Center" />
-                                    <TextBox x:Name="TxtHotkeyGlow" Grid.Column="1" Width="160" PlaceholderText="e.g. Ctrl+Alt+G" />
+                                    <TextBox x:Name="TxtHotkeyGlow" AutomationProperties.Name="Global Shortcut for Ambient Glow Toggle" Grid.Column="1" Width="160" PlaceholderText="e.g. Ctrl+Alt+G" />
 
                                     <TextBlock x:Name="TxtShortcutLyricsLabel" Grid.Row="1" Text="Toggle Lyrics:" VerticalAlignment="Center" />
-                                    <TextBox x:Name="TxtHotkeyLyrics" Grid.Row="1" Grid.Column="1" Width="160" PlaceholderText="e.g. Ctrl+Alt+L" />
+                                    <TextBox x:Name="TxtHotkeyLyrics" AutomationProperties.Name="Global Shortcut for Synchronized Lyrics Toggle" Grid.Row="1" Grid.Column="1" Width="160" PlaceholderText="e.g. Ctrl+Alt+L" />
                                 </Grid>
 
                                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,4,0,0">
@@ -1507,7 +1507,7 @@
                                         <TextBlock Text="Enable smooth visual transitions and interactive physics"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
-                                    <ToggleSwitch x:Name="SwitchWizardAnimations" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                    <ToggleSwitch x:Name="SwitchWizardAnimations" AutomationProperties.Name="Enable Fluid Motion and Animations in Setup Wizard" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
                                 </Grid>
                             </Border>
                         </StackPanel>
@@ -1529,7 +1529,7 @@
                                         </StackPanel>
                                     </Grid>
 
-                                    <Button x:Name="BtnWizardPlayerRefresh" Content="Refresh Detection" HorizontalAlignment="Right" Margin="0,8,0,0" />
+                                    <Button x:Name="BtnWizardPlayerRefresh" AutomationProperties.Name="Refresh Media Player Session in Setup Wizard" Content="Refresh Detection" HorizontalAlignment="Right" Margin="0,8,0,0" />
                                 </StackPanel>
                             </Border>
 
@@ -1587,7 +1587,7 @@
                                         <TextBlock Text="Can also be toggled anytime from the Home page or system tray"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
-                                    <ToggleSwitch x:Name="SwitchWizardGlow" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                    <ToggleSwitch x:Name="SwitchWizardGlow" AutomationProperties.Name="Enable Ambient Edge Glow in Setup Wizard" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
                                 </Grid>
                             </Border>
                         </StackPanel>
@@ -1615,10 +1615,10 @@
 
                     <!-- Wizard Footer Action Buttons -->
                     <Grid Grid.Row="2" Margin="0,20,0,0">
-                        <Button x:Name="BtnWizardSkip" Content="Skip Introduction" Style="{ThemeResource SubtleButtonStyle}" HorizontalAlignment="Left" />
+                        <Button x:Name="BtnWizardSkip" AutomationProperties.Name="Skip Setup Wizard" Content="Skip Introduction" Style="{ThemeResource SubtleButtonStyle}" HorizontalAlignment="Left" />
                         <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
-                            <Button x:Name="BtnWizardBack" Content="Back" Visibility="Collapsed" />
-                            <Button x:Name="BtnWizardNext" Content="Get Started" Style="{ThemeResource AccentButtonStyle}" />
+                            <Button x:Name="BtnWizardBack" AutomationProperties.Name="Previous Step in Setup Wizard" Content="Back" Visibility="Collapsed" />
+                            <Button x:Name="BtnWizardNext" AutomationProperties.Name="Next Step in Setup Wizard" Content="Get Started" Style="{ThemeResource AccentButtonStyle}" />
                         </StackPanel>
                     </Grid>
                 </Grid>

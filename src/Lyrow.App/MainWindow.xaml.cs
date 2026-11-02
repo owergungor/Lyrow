@@ -289,7 +289,7 @@ public sealed partial class MainWindow : Window
                 {
                     if (!_mediaMonitor.CanSeek)
                     {
-                        ShowToast("Seek işlemi aktif medya oynatıcısı (Apple Music) tarafından desteklenmiyor.", InfoBarSeverity.Informational);
+                        ShowToast(LocalizationService.Instance["Lyrics_SeekFailed"], InfoBarSeverity.Informational);
                     }
                     else
                     {
@@ -307,7 +307,7 @@ public sealed partial class MainWindow : Window
                 {
                     if (!_mediaMonitor.CanSeek)
                     {
-                        ShowToast("Seek işlemi aktif medya oynatıcısı (Apple Music) tarafından desteklenmiyor.", InfoBarSeverity.Informational);
+                        ShowToast(LocalizationService.Instance["Lyrics_SeekFailed"], InfoBarSeverity.Informational);
                     }
                     else
                     {
@@ -2662,7 +2662,7 @@ public sealed partial class MainWindow : Window
             bool canSeek = _mediaMonitor?.CanSeek ?? false;
             string toolTip = canSeek
                 ? "Click or drag to seek"
-                : "Seek işlemi aktif medya oynatıcısı (Apple Music) tarafından desteklenmiyor.";
+                : LocalizationService.Instance["Lyrics_SeekFailed"];
             ToolTipService.SetToolTip(GridHomeProgressHitBox, toolTip);
         }
 
@@ -2672,7 +2672,7 @@ public sealed partial class MainWindow : Window
         {
             if (_mediaMonitor != null && !_mediaMonitor.CanSeek)
             {
-                ShowToast("Seek işlemi aktif medya oynatıcısı (Apple Music) tarafından desteklenmiyor.", InfoBarSeverity.Informational);
+                ShowToast(LocalizationService.Instance["Lyrics_SeekFailed"], InfoBarSeverity.Informational);
                 e.Handled = true;
                 return;
             }

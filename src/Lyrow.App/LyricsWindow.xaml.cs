@@ -191,11 +191,34 @@ public sealed partial class LyricsWindow : Window
 
         // Layout and Keyboard Listeners
         RootLayout.SizeChanged += (_, _) => UpdateLayoutForCurrentSize();
-        RootLayout.KeyDown += (_, e) =>
+        RootLayout.KeyDown += async (_, e) =>
         {
             if (e.Key == Windows.System.VirtualKey.F11)
             {
                 ToggleFullscreen();
+                e.Handled = true;
+            }
+            else if (e.Key == Windows.System.VirtualKey.Escape)
+            {
+                if (AppWindow.Presenter.Kind == Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen)
+                {
+                    ToggleFullscreen();
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == Windows.System.VirtualKey.Space)
+            {
+                if (_mediaMonitor != null) await _mediaMonitor.TryTogglePlayPauseAsync();
+                e.Handled = true;
+            }
+            else if (e.Key == Windows.System.VirtualKey.Left)
+            {
+                if (_mediaMonitor != null) await _mediaMonitor.TrySkipPreviousAsync();
+                e.Handled = true;
+            }
+            else if (e.Key == Windows.System.VirtualKey.Right)
+            {
+                if (_mediaMonitor != null) await _mediaMonitor.TrySkipNextAsync();
                 e.Handled = true;
             }
         };
@@ -1340,8 +1363,8 @@ public sealed partial class LyricsWindow : Window
         if (!_mediaMonitor.CanSeek)
         {
             _toastManager?.ShowToast(
-                "Seek işlemi aktif medya oynatıcısı tarafından desteklenmiyor.",
-                title: "Seek Desteklenmiyor",
+                LocalizationService.Instance["Lyrics_SeekFailed"],
+                title: "Seek",
                 severity: InfoBarSeverity.Informational);
             return;
         }
@@ -1382,10 +1405,7 @@ public sealed partial class LyricsWindow : Window
             ThemeMode.Light => ElementTheme.Light,
             _ => ElementTheme.Default
         };
-        if (AmbientBackgroundLayer != null)
-        {
-            AmbientBackgroundLayer.Opacity = mode == ThemeMode.Light ? 0.15 : 1.0;
-        }
+        UpdateBackdropOpacity(_settingsManager.Current.LyricsBackdropOpacity);
     }
 
     private void UpdateScrubberToolTips()
@@ -1393,7 +1413,7 @@ public sealed partial class LyricsWindow : Window
         bool canSeek = _mediaMonitor?.CanSeek ?? false;
         string toolTip = canSeek
             ? "Click or drag to seek"
-            : "Seek işlemi aktif medya oynatıcısı (Apple Music) tarafından desteklenmiyor.";
+            : LocalizationService.Instance["Lyrics_SeekFailed"];
         ToolTipService.SetToolTip(GridProgressHitBox, toolTip);
         ToolTipService.SetToolTip(GridProgressCompactHitBox, toolTip);
     }
