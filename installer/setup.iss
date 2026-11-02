@@ -68,18 +68,64 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
+function HasParam(const Param: String): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 1 to ParamCount do
+  begin
+    if CompareText(ParamStr(I), Param) = 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function GetDataDir: String;
+var
+  I: Integer;
+  P: String;
+begin
+  Result := ExpandConstant('{userappdata}\Lyrow');
+  for I := 1 to ParamCount do
+  begin
+    P := ParamStr(I);
+    if Copy(P, 1, 9) = '/DATADIR=' then
+    begin
+      Result := Copy(P, 10, Length(P) - 9);
+      Exit;
+    end;
+  end;
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   DataDir: String;
   KeepSettings: Integer;
+  ShouldDelete: Boolean;
 begin
   if CurUninstallStep = usUninstall then
   begin
-    DataDir := ExpandConstant('{userappdata}\Lyrow');
+    DataDir := GetDataDir;
     if DirExists(DataDir) then
     begin
-      KeepSettings := MsgBox(CustomMessage('KeepSettingsPrompt'), mbConfirmation, MB_YESNO);
-      if KeepSettings = IDNO then
+      ShouldDelete := False;
+      if HasParam('/REMOVEUSERDATA') then
+      begin
+        ShouldDelete := True;
+      end
+      else if not HasParam('/KEEPUSERDATA') and not WizardSilent then
+      begin
+        KeepSettings := MsgBox(CustomMessage('KeepSettingsPrompt'), mbConfirmation, MB_YESNO);
+        if KeepSettings = IDNO then
+        begin
+          ShouldDelete := True;
+        end;
+      end;
+
+      if ShouldDelete then
       begin
         DelTree(DataDir, True, True, True);
       end;
