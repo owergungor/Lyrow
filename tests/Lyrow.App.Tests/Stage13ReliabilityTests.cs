@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Lyrow.App.Tests;
 
+[Collection("DiagnosticLogger")]
 public class Stage13ReliabilityTests
 {
     [Fact]
@@ -41,22 +42,31 @@ public class Stage13ReliabilityTests
     [Fact]
     public void DiagnosticLogger_RateLimits_ConsecutiveDuplicateMessages()
     {
-        LocalDiagnosticLogger.ResetForTesting();
-        string testMessage = $"Stage13_Throttle_Test_{Guid.NewGuid():N}";
-
-        for (int i = 0; i < 5; i++)
+        string tempLogFile = Path.Combine(Path.GetTempPath(), $"lyrow_throttle_test_{Guid.NewGuid():N}.log");
+        try
         {
-            LocalDiagnosticLogger.LogWarning(testMessage);
+            LocalDiagnosticLogger.SetCustomLogFilePathForTesting(tempLogFile);
+            string testMessage = $"Stage13_Throttle_Test_{Guid.NewGuid():N}";
+
+            for (int i = 0; i < 5; i++)
+            {
+                LocalDiagnosticLogger.LogWarning(testMessage);
+            }
+
+            LocalDiagnosticLogger.Flush();
+
+            File.Exists(tempLogFile).Should().BeTrue();
+            string logContent = File.ReadAllText(tempLogFile);
+
+            int occurrences = Regex.Matches(logContent, Regex.Escape(testMessage)).Count;
+            occurrences.Should().Be(1, "Consecutive identical messages within the throttle window should be suppressed to 1 line");
+            logContent.Should().Contain("Suppressed 4 duplicate log entries");
         }
-
-        LocalDiagnosticLogger.Flush();
-
-        File.Exists(LocalDiagnosticLogger.LogFilePath).Should().BeTrue();
-        string logContent = File.ReadAllText(LocalDiagnosticLogger.LogFilePath);
-
-        int occurrences = Regex.Matches(logContent, Regex.Escape(testMessage)).Count;
-        occurrences.Should().Be(1, "Consecutive identical messages within the throttle window should be suppressed to 1 line");
-        logContent.Should().Contain("Suppressed 4 duplicate log entries");
+        finally
+        {
+            LocalDiagnosticLogger.SetCustomLogFilePathForTesting(null);
+            try { if (File.Exists(tempLogFile)) File.Delete(tempLogFile); } catch { }
+        }
     }
 
     [Fact]

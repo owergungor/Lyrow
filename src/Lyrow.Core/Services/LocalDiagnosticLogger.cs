@@ -11,6 +11,7 @@ public static class LocalDiagnosticLogger
     private static readonly object _fileLock = new();
     private static readonly string _logDirectory;
     private static readonly string _logFilePath;
+    private static string? _customLogFilePath;
 
     private static string? _lastEntryText;
     private static string? _lastEntryLevel;
@@ -48,7 +49,25 @@ public static class LocalDiagnosticLogger
         }
     }
 
-    public static string LogFilePath => _logFilePath;
+    public static string LogFilePath
+    {
+        get
+        {
+            lock (_fileLock)
+            {
+                return _customLogFilePath ?? _logFilePath;
+            }
+        }
+    }
+
+    public static void SetCustomLogFilePathForTesting(string? path)
+    {
+        lock (_fileLock)
+        {
+            _customLogFilePath = path;
+            ResetForTesting();
+        }
+    }
 
     public static string Sanitize(string message)
     {
@@ -81,10 +100,13 @@ public static class LocalDiagnosticLogger
         {
             lock (_fileLock)
             {
-                if (_duplicateCount > 0 && !string.IsNullOrEmpty(_logFilePath) && Directory.Exists(_logDirectory))
+                string targetPath = _customLogFilePath ?? _logFilePath;
+                string targetDir = Path.GetDirectoryName(targetPath) ?? _logDirectory;
+
+                if (_duplicateCount > 0 && !string.IsNullOrEmpty(targetPath) && Directory.Exists(targetDir))
                 {
                     string dupNotice = $"[{_lastEntryTime:yyyy-MM-dd HH:mm:ss.fff UTC}] [{_lastEntryLevel}] [Suppressed {_duplicateCount} duplicate log entries]{Environment.NewLine}";
-                    File.AppendAllText(_logFilePath, dupNotice, Encoding.UTF8);
+                    File.AppendAllText(targetPath, dupNotice, Encoding.UTF8);
                     _duplicateCount = 0;
                 }
             }
@@ -130,6 +152,9 @@ public static class LocalDiagnosticLogger
 
             lock (_fileLock)
             {
+                string targetPath = _customLogFilePath ?? _logFilePath;
+                string targetDir = Path.GetDirectoryName(targetPath) ?? _logDirectory;
+
                 // Rate-limiting consecutive duplicate entries within 1 second
                 if (level == _lastEntryLevel &&
                     sanitized == _lastEntryText &&
@@ -140,15 +165,15 @@ public static class LocalDiagnosticLogger
                     return;
                 }
 
-                if (!Directory.Exists(_logDirectory))
+                if (!Directory.Exists(targetDir))
                 {
-                    Directory.CreateDirectory(_logDirectory);
+                    Directory.CreateDirectory(targetDir);
                 }
 
                 if (_duplicateCount > 0)
                 {
                     string dupNotice = $"[{_lastEntryTime:yyyy-MM-dd HH:mm:ss.fff UTC}] [{_lastEntryLevel}] [Suppressed {_duplicateCount} duplicate log entries]{Environment.NewLine}";
-                    File.AppendAllText(_logFilePath, dupNotice, Encoding.UTF8);
+                    File.AppendAllText(targetPath, dupNotice, Encoding.UTF8);
                     _duplicateCount = 0;
                 }
 
@@ -157,16 +182,16 @@ public static class LocalDiagnosticLogger
                 _lastEntryTime = now;
 
                 // Simple log file rotation if exceeding 5 MB
-                var fileInfo = new FileInfo(_logFilePath);
+                var fileInfo = new FileInfo(targetPath);
                 if (fileInfo.Exists && fileInfo.Length > 5 * 1024 * 1024)
                 {
-                    string oldPath = Path.Combine(_logDirectory, "app.old.log");
+                    string oldPath = Path.Combine(targetDir, "app.old.log");
                     if (File.Exists(oldPath)) File.Delete(oldPath);
-                    File.Move(_logFilePath, oldPath);
+                    File.Move(targetPath, oldPath);
                 }
 
                 string line = $"[{now:yyyy-MM-dd HH:mm:ss.fff UTC}] [{level}] {sanitized}{Environment.NewLine}";
-                File.AppendAllText(_logFilePath, line, Encoding.UTF8);
+                File.AppendAllText(targetPath, line, Encoding.UTF8);
             }
         }
         catch

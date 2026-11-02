@@ -1,4 +1,4 @@
-﻿using Lyrow.Core.Contracts;
+using Lyrow.Core.Contracts;
 using Lyrow.Core.Models;
 
 namespace Lyrow.Core.Modules;
@@ -173,7 +173,7 @@ public sealed class GlowModule : ILyrowModule
 
     private void OnAudioDataAvailable(object? sender, AudioDataAvailableEventArgs e)
     {
-        if (_spectrumAnalyzer == null || State != ModuleState.Running) return;
+        if (_spectrumAnalyzer == null || (State != ModuleState.Running && State != ModuleState.Starting)) return;
         _spectrumAnalyzer.PushSamples(e.Samples.Span, e.Channels, e.SampleRate);
     }
 

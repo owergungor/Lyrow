@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Lyrow.Core.Models;
 using Lyrow.Core.Modules;
 using Lyrow.Core.Services;
@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Lyrow.App.Tests;
 
+[Collection("DiagnosticLogger")]
 public class StartupAndUiRegressionTests
 {
     [Fact]

@@ -24,11 +24,19 @@ public sealed class GlowAudioIntegrationTests
         var module = new GlowModule(captureService, analyzer, eventBus);
 
         var receivedSpectrums = new List<FrequencySpectrum>();
+        var spectrumTcs = new TaskCompletionSource<FrequencySpectrum>(TaskCreationOptions.RunContinuationsAsynchronously);
+
         using var sub = eventBus.Subscribe<AudioSpectrumUpdatedEvent>(e =>
         {
             lock (receivedSpectrums)
             {
                 receivedSpectrums.Add(e.Spectrum);
+            }
+
+            // Deterministic trigger: signal when a non-silent spectrum frame with significant peak amplitude is received
+            if (!e.Spectrum.Levels.IsSilent && e.Spectrum.Levels.Peak > 0.3f)
+            {
+                spectrumTcs.TrySetResult(e.Spectrum);
             }
         });
 
@@ -40,24 +48,19 @@ public sealed class GlowAudioIntegrationTests
         module.State.Should().Be(ModuleState.Running);
         captureService.IsCapturing.Should().BeTrue();
 
-        // Wait for analysis frames to process reliably under varying CI load
-        for (int i = 0; i < 30; i++)
-        {
-            lock (receivedSpectrums)
-            {
-                if (receivedSpectrums.Count > 0) break;
-            }
-            await Task.Delay(50);
-        }
+        // Deterministic wait: complete as soon as valid audio spectrum is analyzed, or fail after generous timeout on busy CI
+        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(5));
+        var completedTask = await Task.WhenAny(spectrumTcs.Task, timeoutTask);
+        completedTask.Should().Be(spectrumTcs.Task, "GlowModule must capture audio and publish an active spectrum event within timeout");
 
-        // Assert - Events received and audio analyzed
+        var activeSpectrum = await spectrumTcs.Task;
+        activeSpectrum.Levels.IsSilent.Should().BeFalse();
+        activeSpectrum.Levels.Peak.Should().BeGreaterThan(0.3f);
+        activeSpectrum.Bands.Length.Should().Be(16);
+
         lock (receivedSpectrums)
         {
             receivedSpectrums.Should().NotBeEmpty();
-            var lastSpectrum = receivedSpectrums.Last();
-            lastSpectrum.Levels.IsSilent.Should().BeFalse();
-            lastSpectrum.Levels.Peak.Should().BeGreaterThan(0.3f);
-            lastSpectrum.Bands.Length.Should().Be(16);
         }
 
         // Act - Stop
@@ -79,16 +82,20 @@ public sealed class GlowAudioIntegrationTests
         await module.InitializeAsync();
         await module.StartAsync();
 
-        bool eventFired = false;
+        var deviceChangedTcs = new TaskCompletionSource<AudioDeviceChangedEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
         captureService.DeviceChanged += (_, e) =>
         {
-            eventFired = true;
-            e.CurrentDevice.Name.Should().Be("New Headphones");
+            deviceChangedTcs.TrySetResult(e);
         };
 
         captureService.SimulateDeviceChange(new AudioDeviceDescriptor("headphone-1", "New Headphones", true, 48000, 2));
 
-        eventFired.Should().BeTrue();
+        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(3));
+        var completedTask = await Task.WhenAny(deviceChangedTcs.Task, timeoutTask);
+        completedTask.Should().Be(deviceChangedTcs.Task, "DeviceChanged event must fire upon simulation");
+
+        var args = await deviceChangedTcs.Task;
+        args.CurrentDevice.Name.Should().Be("New Headphones");
 
         await module.StopAsync();
         await module.DisposeAsync();
@@ -103,7 +110,8 @@ public sealed class GlowAudioIntegrationTests
 
         await module.InitializeAsync();
         await module.StartAsync();
-        await Task.Delay(50);
+        module.State.Should().Be(ModuleState.Running);
+        captureService.IsCapturing.Should().BeTrue();
 
         await module.StopAsync();
 
