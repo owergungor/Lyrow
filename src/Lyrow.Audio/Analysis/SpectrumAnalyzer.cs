@@ -18,6 +18,10 @@ public sealed class SpectrumAnalyzer : ISpectrumAnalyzer
     private float[] _bandsOutput;
     private float[] _rawMagnitudesOutput;
 
+    private readonly float[][] _bandsSnapshots = new float[2][];
+    private readonly float[][] _rawMagnitudesSnapshots = new float[2][];
+    private int _snapshotIndex;
+
     private int _ringWritePos;
     private int _sampleRate = 48000;
     private float _smoothingFactor = 0.65f;
@@ -34,6 +38,11 @@ public sealed class SpectrumAnalyzer : ISpectrumAnalyzer
         _fftInput = new float[fftSize];
         _bandsOutput = new float[barCount];
         _rawMagnitudesOutput = new float[fftSize / 2];
+
+        _bandsSnapshots[0] = new float[barCount];
+        _bandsSnapshots[1] = new float[barCount];
+        _rawMagnitudesSnapshots[0] = new float[fftSize / 2];
+        _rawMagnitudesSnapshots[1] = new float[fftSize / 2];
     }
 
     public int FftSize
@@ -48,6 +57,8 @@ public sealed class SpectrumAnalyzer : ISpectrumAnalyzer
                 _ringBuffer = new float[value * 2];
                 _fftInput = new float[value];
                 _rawMagnitudesOutput = new float[value / 2];
+                _rawMagnitudesSnapshots[0] = new float[value / 2];
+                _rawMagnitudesSnapshots[1] = new float[value / 2];
                 _ringWritePos = 0;
             }
         }
@@ -63,6 +74,8 @@ public sealed class SpectrumAnalyzer : ISpectrumAnalyzer
                 if (value == _bandProcessor.BarCount) return;
                 _bandProcessor.SetBarCount(value);
                 _bandsOutput = new float[value];
+                _bandsSnapshots[0] = new float[value];
+                _bandsSnapshots[1] = new float[value];
             }
         }
     }
@@ -148,9 +161,15 @@ public sealed class SpectrumAnalyzer : ISpectrumAnalyzer
                     smoothing: _smoothingFactor,
                     sensitivity: _sensitivity);
 
+                _snapshotIndex = 1 - _snapshotIndex;
+                var silentBands = _bandsSnapshots[_snapshotIndex];
+                var silentRaw = _rawMagnitudesSnapshots[_snapshotIndex];
+                Array.Copy(_bandsOutput, silentBands, _bandsOutput.Length);
+                Array.Copy(_rawMagnitudesOutput, silentRaw, _rawMagnitudesOutput.Length);
+
                 return new FrequencySpectrum(
-                    rawFrequencies: _rawMagnitudesOutput.ToArray(),
-                    bands: _bandsOutput.ToArray(),
+                    rawFrequencies: silentRaw,
+                    bands: silentBands,
                     subBass: 0f,
                     bass: 0f,
                     mid: 0f,
@@ -174,9 +193,15 @@ public sealed class SpectrumAnalyzer : ISpectrumAnalyzer
                 smoothing: _smoothingFactor,
                 sensitivity: _sensitivity);
 
+            _snapshotIndex = 1 - _snapshotIndex;
+            var activeBands = _bandsSnapshots[_snapshotIndex];
+            var activeRaw = _rawMagnitudesSnapshots[_snapshotIndex];
+            Array.Copy(_bandsOutput, activeBands, _bandsOutput.Length);
+            Array.Copy(_rawMagnitudesOutput, activeRaw, _rawMagnitudesOutput.Length);
+
             return new FrequencySpectrum(
-                rawFrequencies: _rawMagnitudesOutput.ToArray(),
-                bands: _bandsOutput.ToArray(),
+                rawFrequencies: activeRaw,
+                bands: activeBands,
                 subBass: subBass,
                 bass: bass,
                 mid: mid,
@@ -199,6 +224,10 @@ public sealed class SpectrumAnalyzer : ISpectrumAnalyzer
             Array.Clear(_fftInput);
             Array.Clear(_bandsOutput);
             Array.Clear(_rawMagnitudesOutput);
+            if (_bandsSnapshots[0] != null) Array.Clear(_bandsSnapshots[0]);
+            if (_bandsSnapshots[1] != null) Array.Clear(_bandsSnapshots[1]);
+            if (_rawMagnitudesSnapshots[0] != null) Array.Clear(_rawMagnitudesSnapshots[0]);
+            if (_rawMagnitudesSnapshots[1] != null) Array.Clear(_rawMagnitudesSnapshots[1]);
             _ringWritePos = 0;
             _bandProcessor.Reset();
         }
