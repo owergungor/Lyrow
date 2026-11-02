@@ -142,7 +142,7 @@ public sealed class LyrowV23FeatureVerificationTests
         string tempFile = Path.Combine(Path.GetTempPath(), "Lyrow_Test_Update", "Lyrow-2.4-Setup-x64.exe");
         try
         {
-            var progressList = new List<double>();
+            var progressList = new System.Collections.Concurrent.ConcurrentBag<double>();
             var progress = new Progress<double>(pct => progressList.Add(pct));
 
             string downloaded = await updateService.DownloadUpdatePackageAsync(
