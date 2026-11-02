@@ -1,4 +1,4 @@
-﻿# Lyrow SHA-256 Checksum Generator
+# Lyrow SHA-256 Checksum Generator
 # Generates sha256sums.txt for distribution files in dist/ directory
 
 [CmdletBinding()]
@@ -6,6 +6,19 @@ param (
     [string]$DistPath = "$PSScriptRoot\..\dist",
     [string]$OutputFile = "$PSScriptRoot\..\dist\sha256sums.txt"
 )
+
+function Get-FileSha256Hex([string]$filePath) {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    $stream = [System.IO.File]::OpenRead($filePath)
+    try {
+        $hashBytes = $sha.ComputeHash($stream)
+        return [System.BitConverter]::ToString($hashBytes).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $stream.Dispose()
+        $sha.Dispose()
+    }
+}
 
 try {
     if (-not (Test-Path -LiteralPath $DistPath -PathType Container)) {
@@ -32,8 +45,7 @@ try {
     $checksumEntries = [System.Collections.Generic.List[string]]::new()
 
     foreach ($file in $files) {
-        $hashResult = Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256
-        $hash = $hashResult.Hash.ToLowerInvariant()
+        $hash = Get-FileSha256Hex -filePath $file.FullName
         $entry = "$hash  $($file.Name)"
         $checksumEntries.Add($entry)
         [Console]::WriteLine($entry)

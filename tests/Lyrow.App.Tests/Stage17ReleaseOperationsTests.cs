@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -135,8 +135,8 @@ public class Stage17ReleaseOperationsTests : IDisposable
         File.WriteAllText(file1, "Valid executable mock content", Encoding.UTF8);
 
         string checksumFile = Path.Combine(_testTempDir, "sha256sums.txt");
-        var (genExit, _, _) = RunPowerShellScript(_generateScriptPath, $"-DistPath \"{_testTempDir}\" -OutputFile \"{checksumFile}\"");
-        genExit.Should().Be(0);
+        var (genExit, _, genErr) = RunPowerShellScript(_generateScriptPath, $"-DistPath \"{_testTempDir}\" -OutputFile \"{checksumFile}\"");
+        genExit.Should().Be(0, $"Generate script must succeed. Stderr: {genErr}");
 
         var (verifyExit, stdout, stderr) = RunPowerShellScript(_verifyScriptPath, $"-ChecksumFile \"{checksumFile}\" -BaseDir \"{_testTempDir}\"");
 
@@ -152,14 +152,15 @@ public class Stage17ReleaseOperationsTests : IDisposable
         File.WriteAllText(file1, "Original Content", Encoding.UTF8);
 
         string checksumFile = Path.Combine(_testTempDir, "sha256sums.txt");
-        RunPowerShellScript(_generateScriptPath, $"-DistPath \"{_testTempDir}\" -OutputFile \"{checksumFile}\"");
+        var (genExit, _, genErr) = RunPowerShellScript(_generateScriptPath, $"-DistPath \"{_testTempDir}\" -OutputFile \"{checksumFile}\"");
+        genExit.Should().Be(0, $"Generate script must succeed. Stderr: {genErr}");
 
         // Tamper file after checksum generation
         File.WriteAllText(file1, "Tampered Malicious Content", Encoding.UTF8);
 
         var (verifyExit, stdout, stderr) = RunPowerShellScript(_verifyScriptPath, $"-ChecksumFile \"{checksumFile}\" -BaseDir \"{_testTempDir}\"");
 
-        verifyExit.Should().Be(1, "Verify script must return 1 when checksum mismatch occurs");
+        verifyExit.Should().Be(1, $"Verify script must return 1 when checksum mismatch occurs. Stderr: {stderr}");
         stdout.Should().Contain("FAILED");
         stdout.Should().Contain("Checksum mismatch");
     }
@@ -171,14 +172,15 @@ public class Stage17ReleaseOperationsTests : IDisposable
         File.WriteAllText(file1, "Original Content", Encoding.UTF8);
 
         string checksumFile = Path.Combine(_testTempDir, "sha256sums.txt");
-        RunPowerShellScript(_generateScriptPath, $"-DistPath \"{_testTempDir}\" -OutputFile \"{checksumFile}\"");
+        var (genExit, _, genErr) = RunPowerShellScript(_generateScriptPath, $"-DistPath \"{_testTempDir}\" -OutputFile \"{checksumFile}\"");
+        genExit.Should().Be(0, $"Generate script must succeed. Stderr: {genErr}");
 
         // Delete file after checksum generation
         File.Delete(file1);
 
-        var (verifyExit, stdout, _) = RunPowerShellScript(_verifyScriptPath, $"-ChecksumFile \"{checksumFile}\" -BaseDir \"{_testTempDir}\"");
+        var (verifyExit, stdout, stderr) = RunPowerShellScript(_verifyScriptPath, $"-ChecksumFile \"{checksumFile}\" -BaseDir \"{_testTempDir}\"");
 
-        verifyExit.Should().Be(1, "Verify script must return 1 when a target file is missing");
+        verifyExit.Should().Be(1, $"Verify script must return 1 when a target file is missing. Stderr: {stderr}");
         stdout.Should().Contain("MISSING");
     }
 

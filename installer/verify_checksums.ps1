@@ -1,4 +1,4 @@
-﻿# Lyrow SHA-256 Checksum Verifier
+# Lyrow SHA-256 Checksum Verifier
 # Verifies distribution files against sha256sums.txt
 
 [CmdletBinding()]
@@ -6,6 +6,19 @@ param (
     [string]$ChecksumFile = "$PSScriptRoot\..\dist\sha256sums.txt",
     [string]$BaseDir = "$PSScriptRoot\..\dist"
 )
+
+function Get-FileSha256Hex([string]$filePath) {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    $stream = [System.IO.File]::OpenRead($filePath)
+    try {
+        $hashBytes = $sha.ComputeHash($stream)
+        return [System.BitConverter]::ToString($hashBytes).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $stream.Dispose()
+        $sha.Dispose()
+    }
+}
 
 try {
     if (-not (Test-Path -LiteralPath $ChecksumFile -PathType Leaf)) {
@@ -45,7 +58,7 @@ try {
                 continue
             }
 
-            $actualHash = (Get-FileHash -LiteralPath $targetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $actualHash = Get-FileSha256Hex -filePath $targetPath
             if ($actualHash -eq $expectedHash) {
                 [Console]::WriteLine("$fileName : OK")
                 $passed++
