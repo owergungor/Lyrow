@@ -40,28 +40,28 @@ try {
             $targetPath = Join-Path $baseDirResolved $fileName
 
             if (-not (Test-Path -LiteralPath $targetPath -PathType Leaf)) {
-                Write-Host "$fileName : MISSING" -ForegroundColor Yellow
+                [Console]::WriteLine("$fileName : MISSING")
                 $missing++
                 continue
             }
 
             $actualHash = (Get-FileHash -LiteralPath $targetPath -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($actualHash -eq $expectedHash) {
-                Write-Host "$fileName : OK" -ForegroundColor Green
+                [Console]::WriteLine("$fileName : OK")
                 $passed++
             }
             else {
-                Write-Host "$fileName : FAILED (Checksum mismatch! Expected: $expectedHash, Computed: $actualHash)" -ForegroundColor Red
+                [Console]::WriteLine("$fileName : FAILED (Checksum mismatch! Expected: $expectedHash, Computed: $actualHash)")
                 $failed++
             }
         }
         else {
-            Write-Host "Unrecognized line format: $line" -ForegroundColor Red
+            [Console]::WriteLine("Unrecognized line format: $line")
             $failed++
         }
     }
 
-    Write-Host "Verification Summary: Total: $total | Passed: $passed | Failed: $failed | Missing: $missing"
+    [Console]::WriteLine("Verification Summary: Total: $total | Passed: $passed | Failed: $failed | Missing: $missing")
 
     if ($total -eq 0) {
         [Console]::Error.WriteLine("Error: No valid checksum entries found in '$ChecksumFile'.")
@@ -73,7 +73,7 @@ try {
         exit 1
     }
 
-    Write-Host "All $passed file(s) successfully verified."
+    [Console]::WriteLine("All $passed file(s) successfully verified.")
     exit 0
 }
 catch {

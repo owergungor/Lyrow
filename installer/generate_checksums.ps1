@@ -36,11 +36,11 @@ try {
         $hash = $hashResult.Hash.ToLowerInvariant()
         $entry = "$hash  $($file.Name)"
         $checksumEntries.Add($entry)
-        Write-Host "$entry"
+        [Console]::WriteLine($entry)
     }
 
     [System.IO.File]::WriteAllLines([System.IO.Path]::GetFullPath($OutputFile), $checksumEntries, [System.Text.UTF8Encoding]::new($false))
-    Write-Host "Successfully generated SHA-256 checksums for $($checksumEntries.Count) file(s) at: $OutputFile"
+    [Console]::WriteLine("Successfully generated SHA-256 checksums for $($checksumEntries.Count) file(s) at: $OutputFile")
     exit 0
 }
 catch {
