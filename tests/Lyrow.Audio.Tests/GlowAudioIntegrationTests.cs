@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Lyrow.Audio.Analysis;
 using Lyrow.Audio.Capture;
 using Lyrow.Core.Contracts;
@@ -40,8 +40,15 @@ public sealed class GlowAudioIntegrationTests
         module.State.Should().Be(ModuleState.Running);
         captureService.IsCapturing.Should().BeTrue();
 
-        // Wait for a few analysis frames to process
-        await Task.Delay(200);
+        // Wait for analysis frames to process reliably under varying CI load
+        for (int i = 0; i < 30; i++)
+        {
+            lock (receivedSpectrums)
+            {
+                if (receivedSpectrums.Count > 0) break;
+            }
+            await Task.Delay(50);
+        }
 
         // Assert - Events received and audio analyzed
         lock (receivedSpectrums)
