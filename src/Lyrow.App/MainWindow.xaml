@@ -199,6 +199,9 @@
 
                                 <!-- Track Metadata (Title, Artist, Album) -->
                                 <StackPanel x:Name="StackHomeTrackMeta" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="16,0,16,0" Spacing="3">
+                                    <StackPanel.RenderTransform>
+                                        <TranslateTransform x:Name="TransHomeTrackMeta" Y="0" />
+                                    </StackPanel.RenderTransform>
                                     <TextBlock x:Name="HomeTxtTitle" Text="Waiting for playback..."
                                                FontWeight="SemiBold" FontSize="19" TextTrimming="CharacterEllipsis" />
                                     <TextBlock x:Name="HomeTxtArtist" Text="Play music in Spotify, Apple Music, or your browser"

@@ -1911,16 +1911,17 @@ public sealed partial class MainWindow : Window
 
             if (track.IsEmpty)
             {
-                HomeTxtTitle.Text = "Waiting for playback...";
-                HomeTxtArtist.Text = "Play music in Spotify, Apple Music, or your browser";
+                var loc = LocalizationService.Instance;
+                HomeTxtTitle.Text = loc["Lyrics_WaitingPlayback"];
+                HomeTxtArtist.Text = loc["Lyrics_PlayToSeeLyrics"];
                 HomeTxtAlbum.Text = string.Empty;
                 HomeTxtAlbum.Visibility = Visibility.Collapsed;
                 HomeProgressTimeline.Value = 0;
                 HomeTxtTimestamp.Text = "00:00 / 00:00";
                 HomeArtworkPlaceholder.Visibility = Visibility.Visible;
                 HomeTrackArtwork.Source = null;
-                TxtLyricsAvailability.Text = "Waiting for active track...";
-                TxtHomeCurrentLyricLine.Text = "♪ Play a song to see live synchronized lyrics";
+                TxtLyricsAvailability.Text = loc["Lyrics_WaitingPlayback"];
+                TxtHomeCurrentLyricLine.Text = $"♪ {loc["Lyrics_PlayToSeeLyrics"]}";
                 return;
             }
 
@@ -1932,12 +1933,38 @@ public sealed partial class MainWindow : Window
 
             HomeTxtTitle.Text = track.Title;
             HomeTxtArtist.Text = track.Artist;
-            var metaAnim = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation { From = 0.4, To = 1.0, Duration = TimeSpan.FromMilliseconds(200) };
-            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(metaAnim, StackHomeTrackMeta);
-            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(metaAnim, "Opacity");
-            var sbMeta = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
-            sbMeta.Children.Add(metaAnim);
-            sbMeta.Begin();
+            if (_settingsManager.Current.EnableAnimations)
+            {
+                var metaOpacityAnim = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                {
+                    From = 0.35,
+                    To = 1.0,
+                    Duration = TimeSpan.FromMilliseconds(220),
+                    EasingFunction = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut }
+                };
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(metaOpacityAnim, StackHomeTrackMeta);
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(metaOpacityAnim, "Opacity");
+
+                var metaTransAnim = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                {
+                    From = 5.0,
+                    To = 0.0,
+                    Duration = TimeSpan.FromMilliseconds(220),
+                    EasingFunction = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut }
+                };
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(metaTransAnim, TransHomeTrackMeta);
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(metaTransAnim, "Y");
+
+                var sbMeta = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+                sbMeta.Children.Add(metaOpacityAnim);
+                sbMeta.Children.Add(metaTransAnim);
+                sbMeta.Begin();
+            }
+            else
+            {
+                StackHomeTrackMeta.Opacity = 1.0;
+                TransHomeTrackMeta.Y = 0.0;
+            }
             if (!string.IsNullOrWhiteSpace(track.Album))
             {
                 HomeTxtAlbum.Text = track.Album;
@@ -1949,7 +1976,7 @@ public sealed partial class MainWindow : Window
                 HomeTxtAlbum.Visibility = Visibility.Collapsed;
             }
 
-            TxtLyricsAvailability.Text = "Loading synchronized lyrics...";
+            TxtLyricsAvailability.Text = LocalizationService.Instance["Lyrics_Searching"];
             TxtHomeCurrentLyricLine.Text = $"♪ {track.Title} — {track.Artist}";
         });
 

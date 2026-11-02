@@ -390,8 +390,8 @@ public sealed partial class LyricsWindow : Window
             if (_mediaMonitor != null && !_mediaMonitor.CanSeek)
             {
                 _toastManager?.ShowToast(
-                    "Seek işlemi aktif medya oynatıcısı (Apple Music) tarafından desteklenmiyor.",
-                    title: "Seek Desteklenmiyor",
+                LocalizationService.Instance["Lyrics_SeekFailed"],
+                title: LocalizationService.Instance["Lyrics_Title"],
                     severity: InfoBarSeverity.Informational);
                 e.Handled = true;
                 return;
@@ -479,12 +479,9 @@ public sealed partial class LyricsWindow : Window
         // 2. Reset scroll view
         LyricsScrollViewer.ChangeView(null, 0, null, disableAnimation: true);
         LyricsScrollViewer.Visibility = Visibility.Collapsed;
-        TxtEmptyState.Text = newTrack.IsEmpty
-            ? "Waiting for playback..."
-            : "Searching for synchronized lyrics...";
-        TxtEmptyStateSub.Text = newTrack.IsEmpty
-            ? "Play a song in Spotify, Apple Music, or your browser"
-            : $"Looking up lyrics for \"{newTrack.Title}\"...";
+        var loc = LocalizationService.Instance;
+        TxtEmptyState.Text = newTrack.IsEmpty ? loc["Lyrics_WaitingPlayback"] : loc["Lyrics_Searching"];
+        TxtEmptyStateSub.Text = newTrack.IsEmpty ? loc["Lyrics_PlayToSeeLyrics"] : $"{loc["Lyrics_Searching"]} ({newTrack.Title})";
         PanelEmptyState.Visibility = Visibility.Visible;
 
         // 3. Reset progress bars and time labels strictly to 0:00 / clean state
@@ -1385,8 +1382,9 @@ public sealed partial class LyricsWindow : Window
     {
         if (_currentRenderedLines.Count == 0 && string.IsNullOrEmpty(_lastLyrics?.PlainLyrics))
         {
-            TxtEmptyState.Text = "Sözler bulunamadı";
-            TxtEmptyStateSub.Text = !string.IsNullOrWhiteSpace(message) ? message : "Bu parça için senkronize söz bulunamadı.";
+            var loc = LocalizationService.Instance;
+            TxtEmptyState.Text = loc["Lyrics_NotFound"];
+            TxtEmptyStateSub.Text = !string.IsNullOrWhiteSpace(message) ? message : loc["Lyrics_NotFound_Sub"];
             PanelEmptyState.Visibility = Visibility.Visible;
             LyricsScrollViewer.Visibility = Visibility.Collapsed;
         }
