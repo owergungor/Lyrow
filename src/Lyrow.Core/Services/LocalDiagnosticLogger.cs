@@ -69,7 +69,7 @@ public static class LocalDiagnosticLogger
         // Mask sensitive key-value pairs (passwords, tokens, api keys, secrets)
         sanitized = System.Text.RegularExpressions.Regex.Replace(
             sanitized,
-            @"(?i)(token|password|secret|apikey|client_secret|access_token|refresh_token)\s*([:=])\s*[""']?([^\s,""']+)[""']?",
+            @"(?i)(token|password|secret|apikey|client_secret|access_token|refresh_token)\s*([:=])\s*[""']?([^\s,""'&]+)[""']?",
             "$1$2[REDACTED]");
 
         return sanitized;
