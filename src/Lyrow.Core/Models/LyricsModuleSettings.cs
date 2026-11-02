@@ -36,4 +36,19 @@ public sealed class LyricsModuleSettings
     /// Whether the dedicated lyrics window is open.
     /// </summary>
     public bool ShowLyricsWindow { get; set; } = false;
+
+    /// <summary>
+    /// Line spacing between lyric lines in pixels.
+    /// </summary>
+    public int LineSpacing { get; set; } = 20;
+
+    /// <summary>
+    /// Horizontal text alignment for lyrics (Left or Center).
+    /// </summary>
+    public string Alignment { get; set; } = "Left";
+
+    /// <summary>
+    /// Translucency level of the lyrics window background canvas [40, 100].
+    /// </summary>
+    public int BackdropOpacity { get; set; } = 85;
 }

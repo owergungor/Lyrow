@@ -32,6 +32,10 @@ public sealed class GlowBeatEngine
     private float _smoothedMid = 0f;
     private float _smoothedHighMid = 0f;
     private float _smoothedTreble = 0f;
+    private GlowAcousticProfile _acousticProfile = GlowAcousticProfile.Balanced;
+    private float _bassWeight = 1.0f;
+    private float _midWeight = 1.0f;
+    private float _trebleWeight = 1.0f;
     private float _overallGlowIntensity = 0f;
 
     // 4-edge independent envelope states (Top, Bottom, Left, Right)
@@ -78,6 +82,39 @@ public sealed class GlowBeatEngine
     public float EstimatedBpm => _estimatedBpm;
     public float TempoConfidence => _tempoConfidence;
     public float BeatPhase => _beatPhase;
+    public GlowAcousticProfile AcousticProfile => _acousticProfile;
+
+    /// <summary>
+    /// Configures the sub-band frequency responsiveness profile.
+    /// </summary>
+    public void SetAcousticProfile(GlowAcousticProfile profile)
+    {
+        _acousticProfile = profile;
+        switch (profile)
+        {
+            case GlowAcousticProfile.BassBoost:
+                _bassWeight = 1.55f;
+                _midWeight = 0.90f;
+                _trebleWeight = 0.80f;
+                break;
+            case GlowAcousticProfile.VocalFocus:
+                _bassWeight = 0.80f;
+                _midWeight = 1.45f;
+                _trebleWeight = 1.10f;
+                break;
+            case GlowAcousticProfile.HighFidelity:
+                _bassWeight = 1.15f;
+                _midWeight = 1.10f;
+                _trebleWeight = 1.35f;
+                break;
+            case GlowAcousticProfile.Balanced:
+            default:
+                _bassWeight = 1.0f;
+                _midWeight = 1.0f;
+                _trebleWeight = 1.0f;
+                break;
+        }
+    }
 
     /// <summary>
     /// Updates energy, 4-edge envelopes, spectral flux onset detection, and tempo/transient tracking
@@ -159,12 +196,12 @@ public sealed class GlowBeatEngine
         float sens = Math.Clamp(sensitivity, 0.0f, 5.0f);
         float toneMappedSens = sens <= 1.0f ? sens : 1.0f + MathF.Tanh((sens - 1.0f) * 0.75f) * 1.5f;
 
-        // 1. Calculate isolated 5-band energies (Sub/Bass, Low-Mid, Mid, High-Mid, Treble)
-        float instantBass = Math.Clamp((spectrum.Bass * 1.6f + spectrum.SubBass * 1.2f) * toneMappedSens, 0f, 1.5f);
-        float instantLowMid = Math.Clamp(spectrum.LowMid * 1.35f * toneMappedSens, 0f, 1.5f);
-        float instantMid = Math.Clamp(spectrum.Mid * 1.4f * toneMappedSens, 0f, 1.5f);
-        float instantHighMid = Math.Clamp(spectrum.HighMid * 1.3f * toneMappedSens, 0f, 1.5f);
-        float instantTreble = Math.Clamp(spectrum.Treble * 1.2f * toneMappedSens, 0f, 1.5f);
+        // 1. Calculate isolated 5-band energies (Sub/Bass, Low-Mid, Mid, High-Mid, Treble) with acoustic profile weights
+        float instantBass = Math.Clamp((spectrum.Bass * 1.6f + spectrum.SubBass * 1.2f) * toneMappedSens * _bassWeight, 0f, 1.5f);
+        float instantLowMid = Math.Clamp(spectrum.LowMid * 1.35f * toneMappedSens * _midWeight, 0f, 1.5f);
+        float instantMid = Math.Clamp(spectrum.Mid * 1.4f * toneMappedSens * _midWeight, 0f, 1.5f);
+        float instantHighMid = Math.Clamp(spectrum.HighMid * 1.3f * toneMappedSens * _trebleWeight, 0f, 1.5f);
+        float instantTreble = Math.Clamp(spectrum.Treble * 1.2f * toneMappedSens * _trebleWeight, 0f, 1.5f);
 
         // 2. Composite RMS and spectral energy
         float instantEnergy = Math.Clamp(

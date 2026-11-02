@@ -98,6 +98,7 @@ public sealed partial class LyricsWindow : Window
         _lyricsModule = lyricsModule;
         _settingsManager = settingsManager;
         ApplyTheme(_settingsManager.Current.Theme);
+        UpdateBackdropOpacity(_settingsManager.Current.LyricsBackdropOpacity);
         _artworkBitmapManager = artworkBitmapManager;
         _mediaMonitor = mediaMonitor;
         _volumeService = volumeService;
@@ -270,6 +271,24 @@ public sealed partial class LyricsWindow : Window
     /// Toggles lyrics visibility. When inactive, the player centers horizontally in the entire window.
     /// When active, the 50/50 layout is smoothly restored.
     /// </summary>
+    public void UpdateBackdropOpacity(int opacityPercent)
+    {
+        if (AmbientBackgroundLayer != null)
+        {
+            AmbientBackgroundLayer.Opacity = Math.Clamp(opacityPercent, 40, 100) / 100.0;
+        }
+    }
+
+    public void ApplyLyricsPersonalization()
+    {
+        UpdateBackdropOpacity(_settingsManager.Current.LyricsBackdropOpacity);
+        LyricsPanel.Spacing = _settingsManager.Current.LyricsLineSpacing > 0 ? _settingsManager.Current.LyricsLineSpacing : 20;
+        if (_lastLyrics != null)
+        {
+            RebuildLyricsUi(_lastLyrics);
+        }
+    }
+
     public void ToggleLyricsPanel()
     {
         _isLyricsEnabled = !_isLyricsEnabled;
@@ -747,6 +766,10 @@ public sealed partial class LyricsWindow : Window
     private void RebuildLyricsUi(SyncedLyrics lyrics)
     {
         LyricsPanel.Children.Clear();
+        LyricsPanel.Spacing = _settingsManager.Current.LyricsLineSpacing > 0 ? _settingsManager.Current.LyricsLineSpacing : 20;
+        bool isCenter = string.Equals(_settingsManager.Current.LyricsAlignment, "Center", StringComparison.OrdinalIgnoreCase);
+        var horizAlign = isCenter ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+        var textAlign = isCenter ? TextAlignment.Center : TextAlignment.Left;
         _lineContainers.Clear();
         _lineSubBaseBlocks.Clear();
         _lineSubOverlayBlocks.Clear();
@@ -775,8 +798,8 @@ public sealed partial class LyricsWindow : Window
                     LineHeight = 28,
                     TextWrapping = TextWrapping.Wrap,
                     Opacity = 0.88,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    TextAlignment = TextAlignment.Center
+                    HorizontalAlignment = horizAlign,
+                    TextAlignment = textAlign
                 };
                 LyricsPanel.Children.Add(plainBlock);
             }
@@ -814,7 +837,7 @@ public sealed partial class LyricsWindow : Window
             {
                 Orientation = Orientation.Vertical,
                 Spacing = 2,
-                HorizontalAlignment = HorizontalAlignment.Center
+                HorizontalAlignment = horizAlign
             };
 
             foreach (var subText in subLines)
@@ -826,8 +849,8 @@ public sealed partial class LyricsWindow : Window
                     FontSize = target.FontSize,
                     FontWeight = FontWeights.Medium,
                     TextWrapping = TextWrapping.Wrap,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    TextAlignment = TextAlignment.Center,
+                    HorizontalAlignment = horizAlign,
+                    TextAlignment = textAlign,
                     LineHeight = target.FontSize * 1.32,
                     Foreground = InactiveLyricBrush
                 };
@@ -840,8 +863,8 @@ public sealed partial class LyricsWindow : Window
                     FontSize = target.FontSize,
                     FontWeight = FontWeights.Bold,
                     TextWrapping = TextWrapping.Wrap,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    TextAlignment = TextAlignment.Center,
+                    HorizontalAlignment = horizAlign,
+                    TextAlignment = textAlign,
                     LineHeight = target.FontSize * 1.32,
                     Foreground = ActiveLyricBrush,
                     Clip = overlayClip,

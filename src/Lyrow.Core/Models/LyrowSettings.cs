@@ -97,6 +97,14 @@ public sealed class LyrowSettings
 
     public bool AutoPauseOnMute { get; set; } = false;
 
+    public int LyricsLineSpacing { get; set; } = 20;
+
+    public string LyricsAlignment { get; set; } = "Left";
+
+    public GlowAcousticProfile GlowAcousticProfile { get; set; } = GlowAcousticProfile.Balanced;
+
+    public int LyricsBackdropOpacity { get; set; } = 85;
+
     public HotkeySettings Hotkeys { get; set; } = new();
 
     public Dictionary<string, string> ModuleCustomSettings { get; set; } = new(StringComparer.OrdinalIgnoreCase);

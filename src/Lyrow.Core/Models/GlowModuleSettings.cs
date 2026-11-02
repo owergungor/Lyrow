@@ -49,6 +49,11 @@ public sealed class GlowModuleSettings
     public bool ShowVisualizerWindow { get; set; } = false;
 
     /// <summary>
+    /// Acoustic frequency sub-band tuning profile.
+    /// </summary>
+    public GlowAcousticProfile AcousticProfile { get; set; } = GlowAcousticProfile.Balanced;
+
+    /// <summary>
     /// Silence detection threshold in decibels below which analysis enters power-saving idle.
     /// </summary>
     public float SilenceThresholdDb { get; set; } = -65.0f;

@@ -288,6 +288,11 @@ public sealed class GlowOverlayWindow : IDisposable
         {
             var spectrum = _glowModule?.LatestSpectrum ?? FrequencySpectrum.Empty;
             float sensitivity = _settingsManager?.Current.Glow.Sensitivity ?? 1.0f;
+            var acousticProfile = _settingsManager?.Current.GlowAcousticProfile ?? GlowAcousticProfile.Balanced;
+            if (_beatEngine.AcousticProfile != acousticProfile)
+            {
+                _beatEngine.SetAcousticProfile(acousticProfile);
+            }
 
             if (_isPaused)
             {

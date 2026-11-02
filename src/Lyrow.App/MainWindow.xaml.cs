@@ -538,6 +538,25 @@ public sealed partial class MainWindow : Window
             }
             if (TxtLyricsPreviewPrev != null) TxtLyricsPreviewPrev.FontSize = settings.UnfocusedLyricFontSize;
             if (TxtLyricsPreviewNext != null) TxtLyricsPreviewNext.FontSize = settings.UnfocusedLyricFontSize;
+            if (SliderSettingsLyricsLineSpacing != null)
+            {
+                SliderSettingsLyricsLineSpacing.Value = settings.LyricsLineSpacing;
+                if (TxtSettingsLyricsLineSpacing != null) TxtSettingsLyricsLineSpacing.Text = $"{settings.LyricsLineSpacing} px";
+            }
+            if (ComboSettingsLyricsAlignment != null)
+            {
+                ComboSettingsLyricsAlignment.SelectedIndex = string.Equals(settings.LyricsAlignment, "Center", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+            }
+            if (SliderSettingsLyricsBackdropOpacity != null)
+            {
+                SliderSettingsLyricsBackdropOpacity.Value = settings.LyricsBackdropOpacity;
+                if (TxtSettingsLyricsBackdropOpacity != null) TxtSettingsLyricsBackdropOpacity.Text = $"{settings.LyricsBackdropOpacity}%";
+            }
+            if (ComboSettingsGlowAcousticProfile != null)
+            {
+                ComboSettingsGlowAcousticProfile.SelectedIndex = Math.Clamp((int)settings.GlowAcousticProfile, 0, 3);
+            }
+            UpdateLyricsLivePreview(settings.LyricsLineSpacing, settings.LyricsAlignment);
             if (SliderSettingsLyricsOffset != null)
             {
                 SliderSettingsLyricsOffset.Value = settings.Lyrics.SyncOffsetMs;
@@ -1544,6 +1563,63 @@ public sealed partial class MainWindow : Window
         if (BtnSettingsOffsetReset != null) BtnSettingsOffsetReset.Click += (_, _) => OnLyricsOffsetChanged(0);
         if (BtnSettingsOffsetPlus500 != null) BtnSettingsOffsetPlus500.Click += (_, _) => OnLyricsOffsetChanged((SliderSettingsLyricsOffset?.Value ?? 0) + 500);
 
+        if (SliderSettingsLyricsLineSpacing != null)
+        {
+            SliderSettingsLyricsLineSpacing.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                int val = (int)Math.Round(e.NewValue);
+                if (TxtSettingsLyricsLineSpacing != null) TxtSettingsLyricsLineSpacing.Text = $"{val} px";
+                _settingsManager.Current.LyricsLineSpacing = val;
+                _settingsManager.Current.Lyrics.LineSpacing = val;
+                SaveCurrentSettingsDebounced();
+                UpdateLyricsLivePreview(val, _settingsManager.Current.LyricsAlignment);
+                _lyricsWindow?.ApplyLyricsPersonalization();
+            };
+        }
+
+        if (ComboSettingsLyricsAlignment != null)
+        {
+            ComboSettingsLyricsAlignment.SelectionChanged += (_, _) =>
+            {
+                if (_isUpdatingSettingsUi || ComboSettingsLyricsAlignment.SelectedItem is not ComboBoxItem item) return;
+                string align = item.Tag?.ToString() ?? "Left";
+                _settingsManager.Current.LyricsAlignment = align;
+                _settingsManager.Current.Lyrics.Alignment = align;
+                SaveCurrentSettingsDebounced();
+                UpdateLyricsLivePreview(_settingsManager.Current.LyricsLineSpacing, align);
+                _lyricsWindow?.ApplyLyricsPersonalization();
+            };
+        }
+
+        if (SliderSettingsLyricsBackdropOpacity != null)
+        {
+            SliderSettingsLyricsBackdropOpacity.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingSettingsUi) return;
+                int val = (int)Math.Round(e.NewValue);
+                if (TxtSettingsLyricsBackdropOpacity != null) TxtSettingsLyricsBackdropOpacity.Text = $"{val}%";
+                _settingsManager.Current.LyricsBackdropOpacity = val;
+                _settingsManager.Current.Lyrics.BackdropOpacity = val;
+                SaveCurrentSettingsDebounced();
+                _lyricsWindow?.UpdateBackdropOpacity(val);
+            };
+        }
+
+        if (ComboSettingsGlowAcousticProfile != null)
+        {
+            ComboSettingsGlowAcousticProfile.SelectionChanged += (_, _) =>
+            {
+                if (_isUpdatingSettingsUi || ComboSettingsGlowAcousticProfile.SelectedItem is not ComboBoxItem item) return;
+                if (Enum.TryParse<GlowAcousticProfile>(item.Tag?.ToString(), out var profile))
+                {
+                    _settingsManager.Current.GlowAcousticProfile = profile;
+                    _settingsManager.Current.Glow.AcousticProfile = profile;
+                    SaveCurrentSettingsDebounced();
+                }
+            };
+        }
+
         // 4. Ambient Glow Live Preview & Sliders
         if (SliderSettingsGlowThickness != null)
         {
@@ -1706,6 +1782,36 @@ public sealed partial class MainWindow : Window
         if (SectionAbout != null) SectionAbout.Visibility = (category == "All" || category == "About") ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    private void UpdateLyricsLivePreview(int lineSpacing, string alignment)
+    {
+        if (StackLyricsPreview != null)
+        {
+            StackLyricsPreview.Spacing = Math.Clamp(lineSpacing / 2.0, 4.0, 24.0);
+        }
+        var textAlignment = string.Equals(alignment, "Center", StringComparison.OrdinalIgnoreCase)
+            ? TextAlignment.Center
+            : TextAlignment.Left;
+        var horizAlignment = string.Equals(alignment, "Center", StringComparison.OrdinalIgnoreCase)
+            ? HorizontalAlignment.Center
+            : HorizontalAlignment.Left;
+
+        if (TxtLyricsPreviewPrev != null)
+        {
+            TxtLyricsPreviewPrev.TextAlignment = textAlignment;
+            TxtLyricsPreviewPrev.HorizontalAlignment = horizAlignment;
+        }
+        if (TxtLyricsPreviewFocused != null)
+        {
+            TxtLyricsPreviewFocused.TextAlignment = textAlignment;
+            TxtLyricsPreviewFocused.HorizontalAlignment = horizAlignment;
+        }
+        if (TxtLyricsPreviewNext != null)
+        {
+            TxtLyricsPreviewNext.TextAlignment = textAlignment;
+            TxtLyricsPreviewNext.HorizontalAlignment = horizAlignment;
+        }
+    }
+
     private void ApplyLocalization()
     {
         var loc = LocalizationService.Instance;
@@ -1762,6 +1868,22 @@ public sealed partial class MainWindow : Window
         // Diagnostics
         BtnResetSettings.Content = loc["Diag_ResetSettings"];
         BtnOpenLogs.Content = loc["Diag_OpenLogs"];
+
+        // Lyrics & Glow Personalization
+        if (TxtLyricsLineSpacingHeader != null) TxtLyricsLineSpacingHeader.Text = loc["Lyrics_LineSpacing"];
+        if (TxtLyricsLineSpacingDesc != null) TxtLyricsLineSpacingDesc.Text = loc["Lyrics_LineSpacing_Desc"];
+        if (TxtLyricsAlignmentHeader != null) TxtLyricsAlignmentHeader.Text = loc["Lyrics_Alignment"];
+        if (TxtLyricsAlignmentDesc != null) TxtLyricsAlignmentDesc.Text = loc["Lyrics_Alignment_Desc"];
+        if (ComboItemAlignLeft != null) ComboItemAlignLeft.Content = loc["Align_Left"];
+        if (ComboItemAlignCenter != null) ComboItemAlignCenter.Content = loc["Align_Center"];
+        if (TxtLyricsBackdropOpacityHeader != null) TxtLyricsBackdropOpacityHeader.Text = loc["Lyrics_BackdropOpacity"];
+        if (TxtLyricsBackdropOpacityDesc != null) TxtLyricsBackdropOpacityDesc.Text = loc["Lyrics_BackdropOpacity_Desc"];
+        if (TxtGlowAcousticProfileHeader != null) TxtGlowAcousticProfileHeader.Text = loc["Glow_AcousticProfile"];
+        if (TxtGlowAcousticProfileDesc != null) TxtGlowAcousticProfileDesc.Text = loc["Glow_AcousticProfile_Desc"];
+        if (ComboItemProfileBalanced != null) ComboItemProfileBalanced.Content = loc["Profile_Balanced"];
+        if (ComboItemProfileBassBoost != null) ComboItemProfileBassBoost.Content = loc["Profile_BassBoost"];
+        if (ComboItemProfileVocalFocus != null) ComboItemProfileVocalFocus.Content = loc["Profile_VocalFocus"];
+        if (ComboItemProfileHighFidelity != null) ComboItemProfileHighFidelity.Content = loc["Profile_HighFidelity"];
     }
 
     private async Task SetGlowStateAsync(bool active)
