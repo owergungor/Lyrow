@@ -516,7 +516,7 @@
 
                                 </Grid>
 
-                                <Slider x:Name="SliderGlowIntensity" AutomationProperties.Name="Ambient Glow Intensity" Minimum="10" Maximum="100" Value="80" StepFrequency="1" />
+                                <Slider x:Name="SliderGlowIntensity" AutomationProperties.Name="Ambient Glow Brightness Multiplier" Minimum="10" Maximum="100" Value="80" StepFrequency="1" />
 
 
 
@@ -585,6 +585,20 @@
                                     <ComboBox x:Name="ComboPalettePreset" AutomationProperties.Name="Ambient Glow Fallback Palette Preset" HorizontalAlignment="Stretch" />
 
                                 </StackPanel>
+
+                                <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock x:Name="TxtGlowAcousticProfileHeader" Text="Acoustic Frequency Profile" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtGlowAcousticProfileDesc" Text="Tailors ambient edge reactivity to musical sub-bands"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ComboBox x:Name="ComboSettingsGlowAcousticProfile" AutomationProperties.Name="Ambient Glow Acoustic Profile" Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem x:Name="ComboItemProfileBalanced" Content="Balanced" Tag="Balanced" />
+                                        <ComboBoxItem x:Name="ComboItemProfileBassBoost" Content="Bass Boost" Tag="BassBoost" />
+                                        <ComboBoxItem x:Name="ComboItemProfileVocalFocus" Content="Vocal Focus" Tag="VocalFocus" />
+                                        <ComboBoxItem x:Name="ComboItemProfileHighFidelity" Content="High Fidelity" Tag="HighFidelity" />
+                                    </ComboBox>
+                                </Grid>
 
                             </StackPanel>
 
@@ -786,7 +800,7 @@
 
                                     </Grid>
 
-                                    <Slider x:Name="SliderFocusedFontSize" AutomationProperties.Name="Focused Lyric Line Font Size" Minimum="20" Maximum="48" Value="28" StepFrequency="1" />
+                                    <Slider x:Name="SliderFocusedFontSize" AutomationProperties.Name="Focused Lyric Font Size" Minimum="20" Maximum="48" Value="28" StepFrequency="1" />
 
 
 
@@ -808,9 +822,43 @@
 
                                     </Grid>
 
-                                    <Slider x:Name="SliderUnfocusedFontSize" AutomationProperties.Name="Unfocused Lyric Lines Font Size" Minimum="14" Maximum="36" Value="20" StepFrequency="1" />
+                                    <Slider x:Name="SliderUnfocusedFontSize" AutomationProperties.Name="Unfocused Lyric Font Size" Minimum="14" Maximum="36" Value="20" StepFrequency="1" />
 
                                 </StackPanel>
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock x:Name="TxtLyricsLineSpacingHeader" Text="Lyrics Line Spacing" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtLyricsLineSpacingDesc" Text="Vertical distance between adjacent lyric lines"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtSettingsLyricsLineSpacing" Grid.Column="1" Text="20 px" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider x:Name="SliderSettingsLyricsLineSpacing" AutomationProperties.Name="Lyrics Line Spacing" Minimum="8" Maximum="36" Value="20" StepFrequency="2" />
+
+                                <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock x:Name="TxtLyricsAlignmentHeader" Text="Lyrics Alignment" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtLyricsAlignmentDesc" Text="Horizontal alignment of lyric lines in the viewport"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ComboBox x:Name="ComboSettingsLyricsAlignment" AutomationProperties.Name="Lyrics Text Alignment" Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem x:Name="ComboItemAlignLeft" Content="Left" Tag="Left" />
+                                        <ComboBoxItem x:Name="ComboItemAlignCenter" Content="Center" Tag="Center" />
+                                    </ComboBox>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock x:Name="TxtLyricsBackdropOpacityHeader" Text="Lyrics Window Backdrop Opacity" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtLyricsBackdropOpacityDesc" Text="Canvas translucency of the dedicated lyrics window"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtSettingsLyricsBackdropOpacity" Grid.Column="1" Text="85%" FontWeight="SemiBold"
+                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider x:Name="SliderSettingsLyricsBackdropOpacity" AutomationProperties.Name="Lyrics Window Backdrop Opacity" Minimum="40" Maximum="100" Value="85" StepFrequency="5" />
 
                             </StackPanel>
 
@@ -900,6 +948,36 @@
 
                         </Border>
 
+                        <!-- Playback & Transport Preferences -->
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Playback &amp; Transport" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+
+                                <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Seek Step Sensitivity" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Seconds to jump when seeking forward or backward"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ComboBox x:Name="ComboSeekStep" AutomationProperties.Name="Seek Step Sensitivity" Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="5 seconds" Tag="5" />
+                                        <ComboBoxItem Content="10 seconds" Tag="10" />
+                                        <ComboBoxItem Content="15 seconds" Tag="15" />
+                                    </ComboBox>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Auto-Pause on System Mute" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Pause media playback when system volume is muted"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchAutoPauseOnMute" AutomationProperties.Name="Auto Pause Playback on System Mute" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
                     </StackPanel>
 
 
@@ -915,26 +993,26 @@
                             <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,4">
                                 <Button x:Name="BtnFilterAllSettings" AutomationProperties.Name="Filter All Settings" Content="All" CornerRadius="8" Style="{ThemeResource AccentButtonStyle}" />
                                 <Button x:Name="BtnFilterAppearance" AutomationProperties.Name="Filter Appearance Settings" Content="Appearance" CornerRadius="8" />
-                                <Button x:Name="BtnFilterPlayback" AutomationProperties.Name="Filter Playback Settings" Content="Playback" CornerRadius="8" />
-                                <Button x:Name="BtnFilterLyrics" AutomationProperties.Name="Filter Lyrics Settings" Content="Lyrics" CornerRadius="8" />
-                                <Button x:Name="BtnFilterGlow" AutomationProperties.Name="Filter Ambient Glow Settings" Content="Ambient Glow" CornerRadius="8" />
+                                <Button x:Name="BtnFilterSystem" AutomationProperties.Name="Filter System Settings" Content="System" CornerRadius="8" />
                                 <Button x:Name="BtnFilterArtwork" AutomationProperties.Name="Filter Artwork Settings" Content="Artwork" CornerRadius="8" />
                                 <Button x:Name="BtnFilterAudio" AutomationProperties.Name="Filter Audio Settings" Content="Audio" CornerRadius="8" />
-                                <Button x:Name="BtnFilterSystem" AutomationProperties.Name="Filter System Settings" Content="System" CornerRadius="8" />
+                                <Button x:Name="BtnFilterUpdates" AutomationProperties.Name="Filter Updates Settings" Content="Updates" CornerRadius="8" />
+                                <Button x:Name="BtnFilterShortcuts" AutomationProperties.Name="Filter Shortcuts Settings" Content="Shortcuts" CornerRadius="8" />
                                 <Button x:Name="BtnFilterAbout" AutomationProperties.Name="Filter About Settings" Content="About" CornerRadius="8" />
 
-                                <!-- Backwards compatibility aliases -->
+                                <!-- Backwards compatibility aliases (collapsed) -->
+                                <Button x:Name="BtnFilterPlayback" AutomationProperties.Name="Filter Playback Settings" Content="Playback" Visibility="Collapsed" />
+                                <Button x:Name="BtnFilterLyrics" AutomationProperties.Name="Filter Lyrics Settings" Content="Lyrics" Visibility="Collapsed" />
+                                <Button x:Name="BtnFilterGlow" AutomationProperties.Name="Filter Ambient Glow Settings" Content="Ambient Glow" Visibility="Collapsed" />
                                 <Button x:Name="BtnFilterGeneral" AutomationProperties.Name="Filter General Settings" Content="General" Visibility="Collapsed" />
-                                <Button x:Name="BtnFilterUpdates" AutomationProperties.Name="Filter Updates Settings" Content="Updates" Visibility="Collapsed" />
-                                <Button x:Name="BtnFilterShortcuts" AutomationProperties.Name="Filter Shortcuts Settings" Content="Shortcuts" Visibility="Collapsed" />
                             </StackPanel>
                         </ScrollViewer>
 
-                        <!-- 1. Appearance (Theme, Language, Window Opacity, Startup, Tray) -->
+                        <!-- 1. Appearance (Theme, Language, Window Opacity, Fluid Motion) -->
                         <Border x:Name="SectionGeneral" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <StackPanel Spacing="14">
-                                <TextBlock x:Name="TxtSectionGeneral" Text="Appearance &amp; General" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                <TextBlock x:Name="TxtSectionGeneral" Text="Appearance &amp; Window" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
 
                                 <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
                                     <StackPanel Spacing="2">
@@ -977,6 +1055,23 @@
 
                                 <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Spacing="2">
+                                        <TextBlock Text="Fluid Motion &amp; Animations" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock Text="Enable smooth visual transitions, artwork crossfades, and interactive physics"
+                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SwitchEnableAnimations" AutomationProperties.Name="Fluid Motion and Animations" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 2. System & Integration (Startup, Tray, Notifications) -->
+                        <Border x:Name="SectionSystem" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="14">
+                                <TextBlock x:Name="TxtSectionSystem" Text="System &amp; Integration" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
                                         <TextBlock x:Name="TxtStartupLabel" Text="Launch on Windows Startup" FontWeight="Medium" FontSize="14" />
                                         <TextBlock x:Name="TxtStartupDesc" Text="Start Lyrow automatically when signing into Windows"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -991,15 +1086,6 @@
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                     <ToggleSwitch x:Name="SwitchSystemTray" AutomationProperties.Name="System Tray Integration" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
-                                </Grid>
-
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="Fluid Motion &amp; Animations" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Enable smooth visual transitions, artwork crossfades, and interactive physics"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <ToggleSwitch x:Name="SwitchEnableAnimations" AutomationProperties.Name="Fluid Motion and Animations" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
                                 </Grid>
 
                                 <Grid ColumnDefinitions="*,Auto">
@@ -1022,227 +1108,6 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- 2. Playback Behavior -->
-                        <Border x:Name="SectionSettingsPlayback" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                            <StackPanel Spacing="14">
-                                <TextBlock Text="Playback &amp; Transport" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
-
-                                <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="Seek Step Sensitivity" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Seconds to jump when seeking forward or backward"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <ComboBox x:Name="ComboSeekStep" AutomationProperties.Name="Seek Step Sensitivity" Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch">
-                                        <ComboBoxItem Content="5 seconds" Tag="5" />
-                                        <ComboBoxItem Content="10 seconds" Tag="10" />
-                                        <ComboBoxItem Content="15 seconds" Tag="15" />
-                                    </ComboBox>
-                                </Grid>
-
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="Auto-Pause on System Mute" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Pause media playback when system volume is muted"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <ToggleSwitch x:Name="SwitchAutoPauseOnMute" AutomationProperties.Name="Auto Pause Playback on System Mute" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" />
-                                </Grid>
-
-                                <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="Active Media Session" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock x:Name="TxtSettingsPlaybackStatus" Text="Connected to Windows Global System Media Transport Controls (GSMTC)"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <FontIcon Grid.Column="1" Glyph="&#xE768;" FontSize="16" Foreground="{ThemeResource AccentFillColorDefaultBrush}" Margin="8,0" />
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- 3. Lyrics Appearance & Live Preview -->
-                        <Border x:Name="SectionSettingsLyrics" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                            <StackPanel Spacing="14">
-                                <TextBlock Text="Lyrics Appearance &amp; Live Preview" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
-
-                                <!-- Live Interactive Preview Box -->
-                                <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                                    <StackPanel x:Name="StackLyricsPreview" Spacing="8">
-                                        <TextBlock Text="Live Preview" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorTertiaryBrush}" CharacterSpacing="50" />
-                                        <TextBlock x:Name="TxtLyricsPreviewPrev" Text="Walking down this midnight avenue..." FontSize="18" Opacity="0.45" />
-                                        <TextBlock x:Name="TxtLyricsPreviewFocused" Text="Never let me go, spinning in the atmosphere..." FontSize="26" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
-                                        <TextBlock x:Name="TxtLyricsPreviewNext" Text="Underneath the neon glow..." FontSize="18" Opacity="0.45" />
-                                    </StackPanel>
-                                </Border>
-
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="Focused Line Font Size" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Font size of the active playing lyric line"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <TextBlock x:Name="TxtSettingsFocusedFontSize" Grid.Column="1" Text="28 px" FontWeight="SemiBold"
-                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
-                                </Grid>
-                                <Slider x:Name="SliderSettingsFocusedFontSize" AutomationProperties.Name="Focused Lyric Font Size" Minimum="20" Maximum="48" Value="28" StepFrequency="1" />
-
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="Unfocused Lines Font Size" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Font size of surrounding inactive lyric lines"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <TextBlock x:Name="TxtSettingsUnfocusedFontSize" Grid.Column="1" Text="20 px" FontWeight="SemiBold"
-                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
-                                </Grid>
-                                <Slider x:Name="SliderSettingsUnfocusedFontSize" AutomationProperties.Name="Unfocused Lyric Font Size" Minimum="14" Maximum="36" Value="20" StepFrequency="1" />
-
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock x:Name="TxtLyricsLineSpacingHeader" Text="Lyrics Line Spacing" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock x:Name="TxtLyricsLineSpacingDesc" Text="Vertical distance between adjacent lyric lines"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <TextBlock x:Name="TxtSettingsLyricsLineSpacing" Grid.Column="1" Text="20 px" FontWeight="SemiBold"
-                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
-                                </Grid>
-                                <Slider x:Name="SliderSettingsLyricsLineSpacing" AutomationProperties.Name="Lyrics Line Spacing" Minimum="8" Maximum="36" Value="20" StepFrequency="2" />
-
-                                <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock x:Name="TxtLyricsAlignmentHeader" Text="Lyrics Alignment" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock x:Name="TxtLyricsAlignmentDesc" Text="Horizontal alignment of lyric lines in the viewport"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <ComboBox x:Name="ComboSettingsLyricsAlignment" AutomationProperties.Name="Lyrics Text Alignment" Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch">
-                                        <ComboBoxItem x:Name="ComboItemAlignLeft" Content="Left" Tag="Left" />
-                                        <ComboBoxItem x:Name="ComboItemAlignCenter" Content="Center" Tag="Center" />
-                                    </ComboBox>
-                                </Grid>
-
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock x:Name="TxtLyricsBackdropOpacityHeader" Text="Lyrics Window Backdrop Opacity" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock x:Name="TxtLyricsBackdropOpacityDesc" Text="Canvas translucency of the dedicated lyrics window"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <TextBlock x:Name="TxtSettingsLyricsBackdropOpacity" Grid.Column="1" Text="85%" FontWeight="SemiBold"
-                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
-                                </Grid>
-                                <Slider x:Name="SliderSettingsLyricsBackdropOpacity" AutomationProperties.Name="Lyrics Window Backdrop Opacity" Minimum="40" Maximum="100" Value="85" StepFrequency="5" />
-
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="Lyrics Sync Offset" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Adjust timestamp synchronization relative to playback"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <TextBlock x:Name="TxtSettingsLyricsOffset" Grid.Column="1" Text="0 ms" FontWeight="SemiBold"
-                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
-                                </Grid>
-                                <Slider x:Name="SliderSettingsLyricsOffset" AutomationProperties.Name="Lyrics Synchronization Offset" Minimum="-3000" Maximum="3000" Value="0" StepFrequency="50" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button x:Name="BtnSettingsOffsetMinus500" AutomationProperties.Name="Decrease Lyrics Offset by 500 ms" Content="−500 ms" />
-                                    <Button x:Name="BtnSettingsOffsetReset" AutomationProperties.Name="Reset Lyrics Offset to 0 ms" Content="Reset (0 ms)" />
-                                    <Button x:Name="BtnSettingsOffsetPlus500" AutomationProperties.Name="Increase Lyrics Offset by 500 ms" Content="+500 ms" />
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- 4. Ambient Glow & Live Preview -->
-                        <Border x:Name="SectionSettingsGlow" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                            <StackPanel Spacing="14">
-                                <TextBlock Text="Ambient Glow &amp; Live Preview" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
-
-                                <!-- Live Interactive Glow Edge Preview Box -->
-                                <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8" Padding="12" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                                    <Grid Height="90">
-                                        <!-- Bezel frame with glowing 4 edges -->
-                                        <Border x:Name="BorderGlowPreviewFrame" Background="#11111B" CornerRadius="6" BorderBrush="#313244" BorderThickness="1">
-                                            <Grid>
-                                                <!-- Top edge glow -->
-                                                <Rectangle x:Name="GlowPreviewTop" Height="4" VerticalAlignment="Top" HorizontalAlignment="Stretch" Fill="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0.8" />
-                                                <!-- Bottom edge glow -->
-                                                <Rectangle x:Name="GlowPreviewBottom" Height="4" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Fill="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0.8" />
-                                                <!-- Left edge glow -->
-                                                <Rectangle x:Name="GlowPreviewLeft" Width="4" HorizontalAlignment="Left" VerticalAlignment="Stretch" Fill="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0.8" />
-                                                <!-- Right edge glow -->
-                                                <Rectangle x:Name="GlowPreviewRight" Width="4" HorizontalAlignment="Right" VerticalAlignment="Stretch" Fill="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0.8" />
-
-                                                <TextBlock Text="4-Edge Ambient Glow Simulation" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                            </Grid>
-                                        </Border>
-                                    </Grid>
-                                </Border>
-
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="Edge Glow Thickness" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Physical bezel edge thickness in pixels"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <TextBlock x:Name="TxtSettingsGlowThickness" Grid.Column="1" Text="24 px" FontWeight="SemiBold"
-                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
-                                </Grid>
-                                <Slider x:Name="SliderSettingsGlowThickness" AutomationProperties.Name="Ambient Glow Edge Thickness" Minimum="8" Maximum="64" Value="24" StepFrequency="2" />
-
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="Glow Brightness Multiplier" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Intensity of the ambient light emission"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <TextBlock x:Name="TxtSettingsGlowIntensity" Grid.Column="1" Text="80%" FontWeight="SemiBold"
-                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
-                                </Grid>
-                                <Slider x:Name="SliderSettingsGlowIntensity" AutomationProperties.Name="Ambient Glow Brightness Multiplier" Minimum="10" Maximum="100" Value="80" StepFrequency="5" />
-
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="DSP Audio Sensitivity" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Dynamic audio frequency responsiveness multiplier"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <TextBlock x:Name="TxtSettingsGlowSensitivity" Grid.Column="1" Text="2.5x" FontWeight="SemiBold"
-                                               FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
-                                </Grid>
-                                <Slider x:Name="SliderSettingsGlowSensitivity" AutomationProperties.Name="Ambient Glow Audio Sensitivity" Minimum="0.5" Maximum="5.0" Value="2.5" StepFrequency="0.1" />
-
-                                <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="Palette Mode" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Color harmony source for edge illumination"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <ComboBox x:Name="ComboSettingsGlowPalette" AutomationProperties.Name="Ambient Glow Color Palette Mode" Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch">
-                                        <ComboBoxItem Content="Album Art Dynamic" Tag="AlbumArt" />
-                                        <ComboBoxItem Content="Catppuccin Blue" Tag="Blue" />
-                                        <ComboBoxItem Content="Neon Cyan" Tag="Cyan" />
-                                        <ComboBoxItem Content="Sunset Orange" Tag="Orange" />
-                                        <ComboBoxItem Content="Aurora Emerald" Tag="Emerald" />
-                                    </ComboBox>
-                                </Grid>
-
-                                <Grid ColumnDefinitions="*,200" VerticalAlignment="Center">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock x:Name="TxtGlowAcousticProfileHeader" Text="Acoustic Frequency Profile" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock x:Name="TxtGlowAcousticProfileDesc" Text="Tailors ambient edge reactivity to musical sub-bands"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    </StackPanel>
-                                    <ComboBox x:Name="ComboSettingsGlowAcousticProfile" AutomationProperties.Name="Ambient Glow Acoustic Profile" Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch">
-                                        <ComboBoxItem x:Name="ComboItemProfileBalanced" Content="Balanced" Tag="Balanced" />
-                                        <ComboBoxItem x:Name="ComboItemProfileBassBoost" Content="Bass Boost" Tag="BassBoost" />
-                                        <ComboBoxItem x:Name="ComboItemProfileVocalFocus" Content="Vocal Focus" Tag="VocalFocus" />
-                                        <ComboBoxItem x:Name="ComboItemProfileHighFidelity" Content="High Fidelity" Tag="HighFidelity" />
-                                    </ComboBox>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- 5. Artwork & Dynamic Background -->
                         <Border x:Name="SectionSettingsArtwork" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <StackPanel Spacing="14">

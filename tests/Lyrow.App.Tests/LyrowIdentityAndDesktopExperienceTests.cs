@@ -51,70 +51,72 @@ public class LyrowIdentityAndDesktopExperienceTests
     }
 
     [Fact]
-    public void MainWindowXaml_DefinesEightCategorizedSettingsSections()
+    public void MainWindowXaml_DefinesCategorizedSettingsAndSidebarPagesWithoutDuplicates()
     {
         string root = GetSolutionRoot();
         string xamlPath = Path.Combine(root, "src", "Lyrow.App", "MainWindow.xaml");
         string xaml = File.ReadAllText(xamlPath);
 
-        // 1. Appearance / General
+        // 1. Appearance / General in Settings
         xaml.Should().Contain("x:Name=\"SectionGeneral\"");
         xaml.Should().Contain("x:Name=\"SliderMasterOpacity\"");
 
-        // 2. Playback
-        xaml.Should().Contain("x:Name=\"SectionSettingsPlayback\"");
+        // 2. Playback transport settings live in PagePlayback
+        xaml.Should().Contain("x:Name=\"PagePlayback\"");
         xaml.Should().Contain("x:Name=\"ComboSeekStep\"");
         xaml.Should().Contain("x:Name=\"SwitchAutoPauseOnMute\"");
 
-        // 3. Lyrics
-        xaml.Should().Contain("x:Name=\"SectionSettingsLyrics\"");
-        xaml.Should().Contain("x:Name=\"SliderSettingsFocusedFontSize\"");
-        xaml.Should().Contain("x:Name=\"SliderSettingsUnfocusedFontSize\"");
-        xaml.Should().Contain("x:Name=\"SliderSettingsLyricsOffset\"");
+        // 3. Lyrics typography & appearance settings live in PageLyrics
+        xaml.Should().Contain("x:Name=\"PageLyrics\"");
+        xaml.Should().Contain("x:Name=\"SliderSettingsLyricsLineSpacing\"");
+        xaml.Should().Contain("x:Name=\"ComboSettingsLyricsAlignment\"");
+        xaml.Should().Contain("x:Name=\"SliderSettingsLyricsBackdropOpacity\"");
 
-        // 4. Ambient Glow
-        xaml.Should().Contain("x:Name=\"SectionSettingsGlow\"");
-        xaml.Should().Contain("x:Name=\"SliderSettingsGlowThickness\"");
-        xaml.Should().Contain("x:Name=\"SliderSettingsGlowIntensity\"");
-        xaml.Should().Contain("x:Name=\"SliderSettingsGlowSensitivity\"");
-        xaml.Should().Contain("x:Name=\"ComboSettingsGlowPalette\"");
+        // 4. Ambient Glow profile lives in PageGlow
+        xaml.Should().Contain("x:Name=\"PageGlow\"");
+        xaml.Should().Contain("x:Name=\"ComboSettingsGlowAcousticProfile\"");
 
-        // 5. Artwork
+        // 5. System (Startup, Tray, Notifications, Shortcuts, Updates) in Settings
+        xaml.Should().Contain("x:Name=\"SectionSystem\"");
+        xaml.Should().Contain("x:Name=\"SwitchStartWithWindows\"");
+        xaml.Should().Contain("x:Name=\"SwitchSystemTray\"");
+        xaml.Should().Contain("x:Name=\"SectionShortcuts\"");
+        xaml.Should().Contain("x:Name=\"SectionUpdates\"");
+
+        // 6. Artwork & Audio in Settings
         xaml.Should().Contain("x:Name=\"SectionSettingsArtwork\"");
         xaml.Should().Contain("x:Name=\"SwitchArtworkDynamicBackground\"");
         xaml.Should().Contain("x:Name=\"SliderArtworkBackgroundSaturation\"");
         xaml.Should().Contain("x:Name=\"SliderArtworkCornerRadius\"");
-
-        // 6. Audio
         xaml.Should().Contain("x:Name=\"SectionSettingsAudio\"");
         xaml.Should().Contain("x:Name=\"ComboFftSize\"");
 
-        // 7. System (Shortcuts + Updates)
-        xaml.Should().Contain("x:Name=\"SectionShortcuts\"");
-        xaml.Should().Contain("x:Name=\"SectionUpdates\"");
-
-        // 8. About
+        // 7. About in Settings
         xaml.Should().Contain("x:Name=\"SectionAbout\"");
+
+        // 8. Settings page does not contain redundant duplicate sections
+        xaml.Should().NotContain("x:Name=\"SectionSettingsPlayback\"");
+        xaml.Should().NotContain("x:Name=\"SectionSettingsLyrics\"");
+        xaml.Should().NotContain("x:Name=\"SectionSettingsGlow\"");
     }
 
     [Fact]
-    public void MainWindowXaml_DefinesInteractiveLivePreviewElements()
+    public void MainWindowXaml_DefinesLiveInteractivePersonalizationElements()
     {
         string root = GetSolutionRoot();
         string xamlPath = Path.Combine(root, "src", "Lyrow.App", "MainWindow.xaml");
         string xaml = File.ReadAllText(xamlPath);
 
-        // Lyrics Live Preview controls
-        xaml.Should().Contain("x:Name=\"TxtLyricsPreviewFocused\"");
-        xaml.Should().Contain("x:Name=\"TxtLyricsPreviewPrev\"");
-        xaml.Should().Contain("x:Name=\"TxtLyricsPreviewNext\"");
+        // Lyrics interactive elements on PageLyrics
+        xaml.Should().Contain("x:Name=\"SliderFocusedFontSize\"");
+        xaml.Should().Contain("x:Name=\"SliderUnfocusedFontSize\"");
+        xaml.Should().Contain("x:Name=\"SliderLyricsOffset\"");
 
-        // Glow 4-Edge Live Preview controls
-        xaml.Should().Contain("x:Name=\"BorderGlowPreviewFrame\"");
-        xaml.Should().Contain("x:Name=\"GlowPreviewTop\"");
-        xaml.Should().Contain("x:Name=\"GlowPreviewBottom\"");
-        xaml.Should().Contain("x:Name=\"GlowPreviewLeft\"");
-        xaml.Should().Contain("x:Name=\"GlowPreviewRight\"");
+        // Glow interactive elements on PageGlow
+        xaml.Should().Contain("x:Name=\"SliderGlowIntensity\"");
+        xaml.Should().Contain("x:Name=\"SliderGlowThickness\"");
+        xaml.Should().Contain("x:Name=\"SliderGlowSensitivity\"");
+        xaml.Should().Contain("x:Name=\"SwitchAlbumArtSync\"");
     }
 
     [Fact]
