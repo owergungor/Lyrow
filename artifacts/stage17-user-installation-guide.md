@@ -1,76 +1,93 @@
-﻿# Lyrow â€” KullanÄ±cÄ± Kurulum ve BaÅŸlangÄ±Ã§ KÄ±lavuzu (User Installation Guide)
+# Lyrow — Kullanıcı Kurulum ve Başlangıç Kılavuzu (User Installation Guide)
 
-**ÃœrÃ¼n:** Lyrow (Windows iÃ§in Premium MÃ¼zik Deneyimi)
-**Desteklenen Platform:** Windows 10 (SÃ¼rÃ¼m 19041+) ve Windows 11 (x64)
-
----
-
-## 1. Kurulum SeÃ§enekleri
-
-Lyrow iki farklÄ± daÄŸÄ±tÄ±m biÃ§iminde sunulmaktadÄ±r:
-
-### SeÃ§enek A: Kurulum Paketi (Installer - Ã–nerilen)
-- **Dosya:** `Lyrow-3.5-Setup-x64.exe`
-- **Gereken Ä°zin:** Standart kullanÄ±cÄ± izni (YÃ¶netici / UAC yetkisi gerektirmez).
-- **Kurulum Konumu:** `%LOCALAPPDATA%\Programs\Lyrow`
-- **Ã–zellikler:**
-  - BaÅŸlat MenÃ¼sÃ¼ ve isteÄŸe baÄŸlÄ± MasaÃ¼stÃ¼ kÄ±sayolu.
-  - Windows ile birlikte otomatik baÅŸlama seÃ§eneÄŸi.
-  - Temiz kaldÄ±rma ve yÃ¼kseltme desteÄŸi.
-
-#### Kurulum AdÄ±mlarÄ±:
-1. `Lyrow-3.5-Setup-x64.exe` dosyasÄ±nÄ± indirin.
-2. Dosyaya Ã§ift tÄ±klayÄ±n.
-3. Windows Defender SmartScreen "Windows kiÅŸisel bilgisayarÄ±nÄ±zÄ± korudu" ekranÄ± Ã§Ä±karsa:
-   - **â€œEk bilgiâ€** (More info) baÄŸlantÄ±sÄ±na tÄ±klayÄ±n.
-   - **â€œYine de Ã§alÄ±ÅŸtÄ±râ€** (Run anyway) butonuna basÄ±n.
-4. Tercih ettiÄŸiniz kurulum dilini (TÃ¼rkÃ§e, English, FranÃ§ais, EspaÃ±ol, Deutsch) seÃ§in.
-5. Ä°steÄŸe baÄŸlÄ± olarak masaÃ¼stÃ¼ simgesi oluÅŸturma kutusunu iÅŸaretleyin ve **Ä°leri**'ye tÄ±klayarak kurulumu tamamlayÄ±n.
+**Ürün:** Lyrow (Windows için Premium Müzik Deneyimi)
+**Hedef Sürüm:** v3.5
+**Desteklenen Platform:** Windows 10 (Sürüm 19041+) ve Windows 11 (x64)
 
 ---
 
-### SeÃ§enek B: TaÅŸÄ±nabilir SÃ¼rÃ¼m (Portable ZIP)
-- **Dosya:** `Lyrow-3.5-win-x64.zip`
-- **KullanÄ±m:** Ä°ndirilen ZIP arÅŸivini istediÄŸiniz herhangi bir klasÃ¶re (Ã–rn: `D:\Apps\Lyrow`) Ã§Ä±kartÄ±n.
-- **BaÅŸlatma:** KlasÃ¶r iÃ§erisindeki `Lyrow.App.exe` dosyasÄ±nÄ± Ã§alÄ±ÅŸtÄ±rÄ±n.
-- SÄ±fÄ±r kurulum gerektirir; kayÄ±t defterine sistem Ã§apÄ±nda anahtar yazmaz.
+## 1. Kurulum Seçenekleri
+
+Lyrow iki farklı dağıtım biçiminde sunulmaktadır:
+
+### Seçenek A: Kurulum Paketi (Installer — Önerilen)
+- **Dosya Adı:** `Lyrow-3.5-Setup-x64.exe`
+- **Gereken İzin:** Standart kullanıcı izni (Yönetici / UAC yetkisi gerektirmez).
+- **Varsayılan Kurulum Konumu:** `%LOCALAPPDATA%\Programs\Lyrow`
+- **Özellikler:**
+  - Başlat Menüsü ve isteğe bağlı Masaüstü kısayolu.
+  - Windows ile birlikte otomatik başlama seçeneği.
+  - Temiz kaldırma ve sürüm yükseltme desteği.
+
+#### Kurulum Adımları:
+1. `Lyrow-3.5-Setup-x64.exe` dosyasını indirin.
+2. Dosyaya çift tıklayın.
+3. Windows Defender SmartScreen "Windows kişisel bilgisayarınızı korudu" ekranı çıkarsa:
+   - **“Ek bilgi”** (More info) bağlantısına tıklayın.
+   - **“Yine de çalıştır”** (Run anyway) butonuna basın.
+4. Tercih ettiğiniz kurulum dilini (Türkçe, English, Français, Español, Deutsch) seçin.
+5. İsteğe bağlı olarak masaüstü simgesi oluşturma kutusunu işaretleyin ve **İleri**'ye tıklayarak kurulumu tamamlayın.
 
 ---
 
-## 2. Ä°lk Ã‡alÄ±ÅŸtÄ±rma SihirbazÄ± (Welcome Wizard)
-
-Lyrow ilk kez aÃ§Ä±ldÄ±ÄŸÄ±nda kullanÄ±cÄ±yÄ± karÅŸÄ±lama sihirbazÄ± karÅŸÄ±lar:
-1. **Dil SeÃ§imi:** 5 resmi dil arasÄ±ndan tercih yapabilirsiniz (TÃ¼rkÃ§e varsayÄ±lan olarak sunulur).
-2. **GÃ¶rsel Tema:** Koyu (Dark), AÃ§Ä±k (Light) veya Sistem (Windows TemasÄ±) seÃ§eneklerinden birini belirleyin.
-3. **Akustik Tercih:** Ambient Glow iÃ§in frekans profilini (Dengeli, Bas GÃ¼Ã§lendirme, Vokal OdaklÄ±) seÃ§in.
-4. **Tamamlama:** Tercihleriniz anÄ±nda kaydedilir ve ana ekrana yÃ¶nlendirilirsiniz.
+### Seçenek B: Taşınabilir Sürüm (Portable ZIP)
+- **Dosya Adı:** `Lyrow-v3.5-win-x64-portable.zip`
+- **Kullanım:** İndirilen ZIP arşivini istediğiniz herhangi bir klasöre (Örn: `D:\Apps\Lyrow` veya USB bellek) çıkartın.
+- **Başlatma:** Klasör içerisindeki `Lyrow.App.exe` dosyasını çalıştırın.
+- Kurulum gerektirmez; kayıt defterine sistem çapında anahtar yazmaz.
 
 ---
 
-## 3. Windows BaÅŸlangÄ±cÄ±nda Ã‡alÄ±ÅŸma AyarÄ±
+## 2. Paket Bütünlüğü ve SHA-256 Doğrulaması
 
-Lyrow'un bilgisayarÄ±nÄ±z aÃ§Ä±ldÄ±ÄŸÄ±nda otomatik olarak arka planda sistem tepsisinde hazÄ±r beklemesini istiyorsanÄ±z:
-1. Lyrow penceresinde saÄŸ Ã¼stteki **Ayarlar (DiÅŸli Ã§ark)** simgesine tÄ±klayÄ±n.
+İndirdiğiniz dosyaların bütünlüğünü ve orijinalliğini doğrulamak için PowerShell üzerinden SHA-256 özetini kontrol edebilirsiniz:
+
+```powershell
+# Kurulum dosyasının özetini alma:
+Get-FileHash -Algorithm SHA256 "Lyrow-3.5-Setup-x64.exe"
+
+# Taşınabilir paketin özetini alma:
+Get-FileHash -Algorithm SHA256 "Lyrow-v3.5-win-x64-portable.zip"
+```
+
+Hesaplanan değerleri sürümle birlikte yayınlanan `sha256sums.txt` dosyasıyla karşılaştırınız.
+
+---
+
+## 3. İlk Çalıştırma Sihirbazı (Welcome Wizard)
+
+Lyrow ilk kez açıldığında kullanıcıyı karşılama sihirbazı karşılar:
+1. **Dil Seçimi:** 5 resmi dil arasından tercih yapabilirsiniz (Türkçe varsayılan olarak sunulur).
+2. **Görsel Tema:** Koyu (Dark), Açık (Light) veya Sistem (Windows Teması) seçeneklerinden birini belirleyin.
+3. **Akustik Tercih:** Ambient Glow için frekans profilini (Dengeli, Bas Güçlendirme, Vokal Odaklı) seçin.
+4. **Tamamlama:** Tercihleriniz anında kaydedilir ve ana ekrana yönlendirilirsiniz.
+
+---
+
+## 4. Windows Başlangıcında Çalışma Ayarı
+
+Lyrow'un bilgisayarınız açıldığında otomatik olarak arka planda sistem tepsisinde hazır beklemesini istiyorsanız:
+1. Lyrow penceresinde sağ üstteki **Ayarlar (Dişli çark)** simgesine tıklayın.
 2. **Genel** sekmesine gelin.
-3. **â€œWindows ile birlikte baÅŸlatâ€** anahtarÄ±nÄ± aÃ§Ä±k konuma getirin.
-4. Ä°steÄŸe baÄŸlÄ± olarak **â€œSistem tepsisine simge durumuna kÃ¼Ã§Ã¼ltâ€** seÃ§eneÄŸini aktif edebilirsiniz.
+3. **“Windows ile birlikte başlat”** anahtarını açık konuma getirin.
+4. İsteğe bağlı olarak **“Sistem tepsisine simge durumuna küçült”** seçeneğini aktif edebilirsiniz.
 
 ---
 
-## 4. Tema ve Dil AyarlarÄ±nÄ± DeÄŸiÅŸtirme
+## 5. Tema ve Dil Ayarlarını Değiştirme
 
-Kurulum sonrasÄ±nda istediÄŸiniz zaman:
-- **Ayarlar > ArayÃ¼z** sekmesinden dilinizi deÄŸiÅŸtirebilirsiniz (ArayÃ¼z anÄ±nda seÃ§ilen dile Ã§evrilir, yeniden baÅŸlatma gerekmez).
-- **AÃ§Ä±k / Koyu** tema geÃ§iÅŸiyle Windows 11 Fluent tasarÄ±mÄ±nÄ±n ve Akrilik arka plan efektlerinin keyfini Ã§Ä±karabilirsiniz.
+Kurulum sonrasında istediğiniz zaman:
+- **Ayarlar > Arayüz** sekmesinden dilinizi değiştirebilirsiniz (Arayüz anında seçilen dile çevrilir, yeniden başlatma gerekmez).
+- **Açık / Koyu** tema geçişiyle Windows 11 Fluent tasarımının ve Akrilik arka plan efektlerinin keyfini çıkarabilirsiniz.
 
 ---
 
-## 5. UygulamayÄ± KaldÄ±rma ve Veri Koruma
+## 6. Uygulamayı Kaldırma ve Veri Koruma
 
-Lyrow'u kaldÄ±rmak istediÄŸinizde:
-1. Windows **Ayarlar > Uygulamalar > YÃ¼klÃ¼ Uygulamalar** menÃ¼sÃ¼ne gidin.
-2. Listeden **Lyrow** uygulamasÄ±nÄ± bulun ve **KaldÄ±r** butonuna tÄ±klayÄ±n.
-3. KaldÄ±rma sihirbazÄ± size ÅŸu soruyu soracaktÄ±r:
-   > *â€œKiÅŸiselleÅŸtirilmiÅŸ Lyrow ayarlarÄ±nÄ±zÄ± ve ÅŸarkÄ± sÃ¶zÃ¼ Ã¶nbelleÄŸinizi saklamak ister misiniz?â€*
-   - **Evet:** Tercihleriniz ve indirilmiÅŸ sÃ¶zler `%LOCALAPPDATA%\Lyrow` klasÃ¶rÃ¼nde saklanÄ±r. UygulamayÄ± gelecekte tekrar kurduÄŸunuzda kaldÄ±ÄŸÄ±nÄ±z yerden devam edebilirsiniz.
-   - **HayÄ±r:** TÃ¼m ayar dosyalarÄ±, loglar ve ÅŸarkÄ± sÃ¶zÃ¼ Ã¶nbelleÄŸi tamamen silinir.
+Lyrow'u kaldırmak istediğinizde:
+1. Windows **Ayarlar > Uygulamalar > Yüklü Uygulamalar** menüsüne gidin.
+2. Listeden **Lyrow** uygulamasını bulun ve **Kaldır** butonuna tıklayın.
+3. Kaldırma sihirbazı size şu soruyu soracaktır:
+   > *“Kişiselleştirilmiş Lyrow ayarlarınızı ve şarkı sözü önbelleğinizi saklamak ister misiniz?”*
+   - **Evet:** Tercihleriniz ve indirilmiş sözler `%APPDATA%\Lyrow` klasöründe saklanır. Uygulamayı gelecekte tekrar kurduğunuzda kaldığınız yerden devam edebilirsiniz.
+   - **Hayır:** Tüm ayar dosyaları, loglar ve şarkı sözü önbelleği tamamen silinir.
