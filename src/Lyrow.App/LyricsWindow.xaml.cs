@@ -503,7 +503,7 @@ public sealed partial class LyricsWindow : Window
             {
                 var pt = e.GetCurrentPoint(hitBox).Position;
                 var targetTime = LyricsFillProgressCalculator.CalculateSeekTimeFromPointer(pt.X, w, dur);
-                await SeekToLyricLineAsync(targetTime);
+                await SeekToMediaPositionAsync(targetTime);
             }
             e.Handled = true;
         };
@@ -1415,6 +1415,35 @@ public sealed partial class LyricsWindow : Window
         }
     }
 
+    private async Task SeekToMediaPositionAsync(TimeSpan timestamp)
+    {
+        if (_mediaMonitor == null) return;
+        if (!_mediaMonitor.CanSeek)
+        {
+            _toastManager?.ShowToast(
+                LocalizationService.Instance["Lyrics_SeekFailed"],
+                title: "Seek",
+                severity: InfoBarSeverity.Informational);
+            return;
+        }
+
+        if (timestamp < TimeSpan.Zero) timestamp = TimeSpan.Zero;
+
+        bool ok = await _mediaMonitor.TrySeekAsync(timestamp);
+        if (!ok)
+        {
+            _toastManager?.ShowToast(
+                LocalizationService.Instance["Lyrics_SeekFailed"],
+                title: "Seek",
+                severity: InfoBarSeverity.Warning);
+        }
+        else
+        {
+            _lyricsModule.Synchronizer.EvaluatePosition(timestamp);
+            RecalculateCenterScrollTarget(immediate: false);
+        }
+    }
+
     private async Task SeekToLyricLineAsync(TimeSpan timestamp)
     {
         if (_mediaMonitor == null) return;
@@ -1549,6 +1578,10 @@ public sealed partial class LyricsWindow : Window
                     {
                         if (_audioCaptureService != null)
                         {
+                            if (_audioCaptureService.IsCapturing)
+                            {
+                                await _audioCaptureService.StopAsync();
+                            }
                             await _audioCaptureService.StartAsync(dev.Id);
                             UpdateOutputDeviceUi();
                         }

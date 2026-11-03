@@ -366,10 +366,21 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             {
                 var reportedUtc = timelineProps.LastUpdatedTime.UtcDateTime;
                 var delta = DateTime.UtcNow - reportedUtc;
-                // Tight sync threshold: only adopt reportedUtc if within +/- 3.0 seconds.
-                // Desktop players (such as Apple Music Desktop) often report a static or stale
-                // LastUpdatedTime from minutes ago, causing severe extrapolation drift or lag.
-                if (Math.Abs(delta.TotalSeconds) <= 3.0)
+
+                // GSMTC playback position handling:
+                // Desktop players (like Apple Music Desktop or Spotify) only emit TimelineProperties changes
+                // on state transitions (pause, play, track change, seek), leaving LastUpdatedTime anchored at that moment.
+                // When playing, WinRT expects the caller to extrapolate forward: pos + (UtcNow - LastUpdatedTime).
+                if (status == MediaPlaybackStatus.Playing && delta.TotalSeconds >= 0 && delta.TotalHours < 24)
+                {
+                    pos += delta;
+                    if (dur > TimeSpan.Zero && pos > dur)
+                    {
+                        pos = dur;
+                    }
+                    lastUpdatedUtc = DateTime.UtcNow;
+                }
+                else if (Math.Abs(delta.TotalSeconds) <= 3.0)
                 {
                     lastUpdatedUtc = reportedUtc;
                 }
@@ -572,7 +583,10 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 
                 _ = Task.Run(async () =>
                 {
-                    await Task.Delay(120).ConfigureAwait(false);
+                    // Delay allow desktop/web media players (Apple Music Web / Spotify / Edge)
+                    // time to buffer, jump, and update their internal GSMTC timeline properties
+                    // before querying, preventing stale position overwrite snaps.
+                    await Task.Delay(400).ConfigureAwait(false);
                     await UpdatePlaybackAndTimelineAsync(session).ConfigureAwait(false);
                 });
                 return true;
