@@ -2667,6 +2667,13 @@ public sealed partial class MainWindow : Window
         }
 
         UpdateScrubberToolTip();
+        if (_mediaMonitor != null)
+        {
+            _mediaMonitor.TimelineChanged += (_, _) =>
+            {
+                DispatcherQueue.TryEnqueue(UpdateScrubberToolTip);
+            };
+        }
 
         GridHomeProgressHitBox.PointerPressed += (s, e) =>
         {

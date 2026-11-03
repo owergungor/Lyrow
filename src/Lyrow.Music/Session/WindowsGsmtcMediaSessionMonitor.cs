@@ -17,8 +17,10 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
     private readonly IMediaMetadataNormalizer _normalizer;
+    private readonly HashSet<string> _seekUnsupportedAppIds = new(StringComparer.OrdinalIgnoreCase);
     private GlobalSystemMediaTransportControlsSessionManager? _sessionManager;
     private GlobalSystemMediaTransportControlsSession? _currentSession;
+    private CancellationTokenSource? _pollingCts;
     private bool _isMonitoring;
     private bool _isDisposed;
     private long _trackSequence = 0;
@@ -82,6 +84,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             if (!_isMonitoring) return;
 
             _isMonitoring = false;
+            StopTimelinePolling();
             DetachCurrentSession();
 
             if (_sessionManager != null)
@@ -177,6 +180,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         _currentSession = session;
         if (_currentSession == null)
         {
+            StopTimelinePolling();
             CurrentTrack = MediaTrackInfo.Empty;
             CurrentTimeline = MediaTimelineInfo.Zero;
             TrackChanged?.Invoke(this, CurrentTrack);
@@ -189,10 +193,12 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         _currentSession.TimelinePropertiesChanged += OnTimelinePropertiesChanged;
 
         await UpdateAllPropertiesAsync(_currentSession).ConfigureAwait(false);
+        StartTimelinePolling();
     }
 
     private void DetachCurrentSession()
     {
+        StopTimelinePolling();
         if (_currentSession != null)
         {
             try
@@ -286,7 +292,9 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             var duration = endTime > startTime ? (endTime - startTime) : endTime;
 
             var pbInfo = session.GetPlaybackInfo();
-            bool canSeek = pbInfo?.Controls?.IsPlaybackPositionEnabled ?? true;
+            string? appId = session.SourceAppUserModelId;
+            bool isBlacklisted = !string.IsNullOrEmpty(appId) && _seekUnsupportedAppIds.Contains(appId);
+            bool canSeek = pbInfo?.Controls != null && pbInfo.Controls.IsPlaybackPositionEnabled && !isBlacklisted;
 
             if (isTrackSwitch)
             {
@@ -357,15 +365,20 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             if (timelineProps != null && timelineProps.LastUpdatedTime.Year > 2020)
             {
                 var reportedUtc = timelineProps.LastUpdatedTime.UtcDateTime;
-                var age = DateTime.UtcNow - reportedUtc;
-                if (age >= TimeSpan.Zero && age < TimeSpan.FromHours(2))
+                var delta = DateTime.UtcNow - reportedUtc;
+                // Tight sync threshold: only adopt reportedUtc if within +/- 3.0 seconds.
+                // Desktop players (such as Apple Music Desktop) often report a static or stale
+                // LastUpdatedTime from minutes ago, causing severe extrapolation drift or lag.
+                if (Math.Abs(delta.TotalSeconds) <= 3.0)
                 {
                     lastUpdatedUtc = reportedUtc;
                 }
             }
 
             var controls = playbackInfo?.Controls;
-            bool canSeek = controls?.IsPlaybackPositionEnabled ?? true;
+            string? appId = session.SourceAppUserModelId;
+            bool isBlacklisted = !string.IsNullOrEmpty(appId) && _seekUnsupportedAppIds.Contains(appId);
+            bool canSeek = controls != null && controls.IsPlaybackPositionEnabled && !isBlacklisted;
             var timeline = new MediaTimelineInfo(pos, dur, status, lastUpdatedUtc, canSeek);
             CurrentTimeline = timeline;
             TimelineChanged?.Invoke(this, timeline);
@@ -523,26 +536,55 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         var session = await EnsureActiveSessionAsync().ConfigureAwait(false);
         if (session == null) return false;
 
-        var controls = session.GetPlaybackInfo()?.Controls;
-        if (controls != null && !controls.IsPlaybackPositionEnabled)
+        string? appId = session.SourceAppUserModelId;
+        if (!string.IsNullOrEmpty(appId) && _seekUnsupportedAppIds.Contains(appId))
         {
-            // Seeking is unsupported by the active player (e.g. Apple Music on Windows)
+            return false;
+        }
+
+        var controls = session.GetPlaybackInfo()?.Controls;
+        if (controls == null || !controls.IsPlaybackPositionEnabled)
+        {
+            if (!string.IsNullOrEmpty(appId)) _seekUnsupportedAppIds.Add(appId);
+            CurrentTimeline = CurrentTimeline with { CanSeek = false };
+            TimelineChanged?.Invoke(this, CurrentTimeline);
             return false;
         }
 
         try
         {
+            var timelineProps = session.GetTimelineProperties();
+            var startTime = timelineProps?.StartTime ?? TimeSpan.Zero;
+            long targetTicks = (startTime + position).Ticks;
+
             // Windows GSMTC takes requested playback position in 100-nanosecond units (ticks)
-            bool ok = await session.TryChangePlaybackPositionAsync(position.Ticks);
+            bool ok = await session.TryChangePlaybackPositionAsync(targetTicks);
             if (ok)
             {
+                // Immediately anchor current timeline to sought position so UI scrubber does not snap back
+                CurrentTimeline = CurrentTimeline with
+                {
+                    Position = position,
+                    LastUpdatedUtc = DateTime.UtcNow,
+                    CanSeek = true
+                };
+                TimelineChanged?.Invoke(this, CurrentTimeline);
+
                 _ = Task.Run(async () =>
                 {
-                    await Task.Delay(100).ConfigureAwait(false);
+                    await Task.Delay(120).ConfigureAwait(false);
                     await UpdatePlaybackAndTimelineAsync(session).ConfigureAwait(false);
                 });
+                return true;
             }
-            return ok;
+            else
+            {
+                // Active session explicitly reported seek failed (e.g. streaming web session with unsupported seeking)
+                if (!string.IsNullOrEmpty(appId)) _seekUnsupportedAppIds.Add(appId);
+                CurrentTimeline = CurrentTimeline with { CanSeek = false };
+                TimelineChanged?.Invoke(this, CurrentTimeline);
+                return false;
+            }
         }
         catch
         {
@@ -551,11 +593,58 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         }
     }
 
+    private void StartTimelinePolling()
+    {
+        StopTimelinePolling();
+        var cts = new CancellationTokenSource();
+        _pollingCts = cts;
+
+        _ = Task.Run(async () =>
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(500));
+            while (!cts.IsCancellationRequested)
+            {
+                try
+                {
+                    if (!await timer.WaitForNextTickAsync(cts.Token).ConfigureAwait(false)) break;
+                    var session = _currentSession;
+                    if (session != null && _isMonitoring && CurrentTimeline.Status == MediaPlaybackStatus.Playing)
+                    {
+                        await UpdatePlaybackAndTimelineAsync(session).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch
+                {
+                    // Ignore transient exceptions in background polling loop
+                }
+            }
+        }, cts.Token);
+    }
+
+    private void StopTimelinePolling()
+    {
+        try
+        {
+            _pollingCts?.Cancel();
+            _pollingCts?.Dispose();
+        }
+        catch { }
+        finally
+        {
+            _pollingCts = null;
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_isDisposed) return;
         _isDisposed = true;
 
+        StopTimelinePolling();
         await StopAsync().ConfigureAwait(false);
         _lock.Dispose();
     }

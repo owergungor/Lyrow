@@ -53,7 +53,7 @@ public sealed record MediaTimelineInfo(
         Duration: TimeSpan.Zero,
         Status: MediaPlaybackStatus.Stopped,
         LastUpdatedUtc: DateTime.UtcNow,
-        CanSeek: true);
+        CanSeek: false);
 
     /// <summary>
     /// Calculates smoothly interpolated current position by adding elapsed real time if Playing.

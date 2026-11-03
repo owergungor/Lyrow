@@ -37,6 +37,7 @@ public sealed partial class LyricsWindow : Window
     private readonly ArtworkBitmapManager? _artworkBitmapManager;
     private readonly IMediaSessionMonitor? _mediaMonitor;
     private readonly IAudioVolumeService? _volumeService;
+    private readonly IAudioCaptureService? _audioCaptureService;
     private readonly ToastNotificationManager? _toastManager;
     private readonly DispatcherTimer _uiTimer;
     private bool _isUpdatingVolumeUi = false;
@@ -51,6 +52,11 @@ public sealed partial class LyricsWindow : Window
     private readonly List<double> _targetOpacities = new();
     private readonly List<double> _currentScales = new();
     private readonly List<double> _targetScales = new();
+
+    private bool _isCompactLyricsExpanded = false;
+    private SyncedLyrics? _lastCompactLyrics = null;
+    private int _currentCompactActiveIndex = -99;
+    private readonly List<TextBlock> _compactLineBlocks = new();
 
     private long _windowTrackSequence = 0;
     private int _lastArtworkSignature = 0;
@@ -92,7 +98,8 @@ public sealed partial class LyricsWindow : Window
         ArtworkBitmapManager? artworkBitmapManager = null,
         IMediaSessionMonitor? mediaMonitor = null,
         IAudioVolumeService? volumeService = null,
-        ToastNotificationManager? toastManager = null)
+        ToastNotificationManager? toastManager = null,
+        IAudioCaptureService? audioCaptureService = null)
     {
         InitializeComponent();
         _lyricsModule = lyricsModule;
@@ -103,6 +110,7 @@ public sealed partial class LyricsWindow : Window
         _mediaMonitor = mediaMonitor;
         _volumeService = volumeService;
         _toastManager = toastManager;
+        _audioCaptureService = audioCaptureService ?? (App.Services?.GetService(typeof(IAudioCaptureService)) as IAudioCaptureService);
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(LyricsTitleBar);
@@ -115,7 +123,8 @@ public sealed partial class LyricsWindow : Window
         // Mode Switching: Dar Mod <-> Horizontal
         BtnDarMod.Click += (_, _) => SetWindowMode(LyricsWindowMode.Compact);
         BtnNormalModeCompact.Click += (_, _) => SetWindowMode(LyricsWindowMode.Horizontal);
-        BtnExpandFromCompact.Click += (_, _) => SetWindowMode(LyricsWindowMode.Horizontal);
+        BtnExpandFromCompact.Click += (_, _) => ToggleCompactLyrics();
+        SetupDeviceSelectors();
 
         // Interactive Progress Bar Click & Drag Seeking
         WireInteractiveProgressScrubber(GridProgressHitBox, ProgressTimeline);
@@ -272,11 +281,24 @@ public sealed partial class LyricsWindow : Window
             LyricsTitleBar.Title = "Lyrow — Mini Player";
             if (resizeWindow)
             {
-                ResizeForCurrentDpi(500, 232);
+                if (_isCompactLyricsExpanded)
+                {
+                    ResizeCompactWithLyrics();
+                }
+                else
+                {
+                    ResizeForCurrentDpi(500, 232);
+                }
             }
         }
         else
         {
+            if (_isCompactLyricsExpanded)
+            {
+                _isCompactLyricsExpanded = false;
+                GridCompactLyrics.Visibility = Visibility.Collapsed;
+                IconExpandFromCompact.Glyph = "\uEC4F";
+            }
             CompactPlayerView.Visibility = Visibility.Collapsed;
             HorizontalView.Visibility = Visibility.Visible;
             LyricsTitleBar.Title = "Lyrow — Synchronized Lyrics";
@@ -399,6 +421,14 @@ public sealed partial class LyricsWindow : Window
     {
         bool isPointerCaptured = false;
 
+        if (_mediaMonitor != null)
+        {
+            _mediaMonitor.TimelineChanged += (_, _) =>
+            {
+                DispatcherQueue.TryEnqueue(UpdateScrubberToolTips);
+            };
+        }
+
         TimeSpan ResolveActiveTrackDuration()
         {
             var track = !_lyricsModule.CurrentTrack.IsEmpty
@@ -500,6 +530,10 @@ public sealed partial class LyricsWindow : Window
         _lastSongKey = $"{newTrack.Artist}_{newTrack.Title}";
         _lastArtworkSignature = ArtworkBitmapManager.ComputeArtworkSignature(newTrack);
         _lastLyrics = SyncedLyrics.Empty;
+        _lastCompactLyrics = null;
+        _currentCompactActiveIndex = -99;
+        if (CompactLyricsPanel != null) CompactLyricsPanel.Children.Clear();
+        _compactLineBlocks.Clear();
         _currentActiveIndex = -1;
         _currentScrollOffsetY = 0;
         _targetScrollOffsetY = 0;
@@ -712,13 +746,24 @@ public sealed partial class LyricsWindow : Window
             UpdateActiveLineTargets(activeIdx, immediate: _currentActiveIndex == -99);
         }
 
+        if (_currentMode == LyricsWindowMode.Compact && _isCompactLyricsExpanded)
+        {
+            if (!ReferenceEquals(lyrics, _lastCompactLyrics))
+            {
+                RebuildCompactLyricsUi(lyrics);
+            }
+            UpdateCompactActiveLine(activeIdx);
+        }
+
         // 60 FPS smooth visual interpolation
         StepSmoothAnimations();
     }
 
     private void UpdateOutputDeviceUi()
     {
-        string deviceName = _volumeService?.OutputDeviceFriendlyName ?? "Speakers";
+        string deviceName = _audioCaptureService?.CurrentDevice?.Name
+                            ?? _volumeService?.OutputDeviceFriendlyName
+                            ?? "Speakers";
         var category = _volumeService?.OutputDeviceCategory ?? AudioDeviceCategory.Speakers;
 
         string glyph = category switch
@@ -957,9 +1002,20 @@ public sealed partial class LyricsWindow : Window
 
         for (int i = 0; i < _lineContainers.Count; i++)
         {
+            bool isThisLineActive = (i == activeIdx);
             var target = LyricsViewportCalculator.GetLineVisualTarget(i, activeIdx, focusedSize, unfocusedSize);
             _targetOpacities[i] = target.TargetOpacity;
-            _targetScales[i] = target.TargetScale;
+            _targetScales[i] = isThisLineActive ? target.TargetScale : 1.0;
+
+            if (!isThisLineActive && _currentScales[i] > 1.0)
+            {
+                _currentScales[i] = 1.0;
+                if (_lineContainers[i].RenderTransform is ScaleTransform stPrev)
+                {
+                    stPrev.ScaleX = 1.0;
+                    stPrev.ScaleY = 1.0;
+                }
+            }
 
             var baseList = _lineSubBaseBlocks[i];
             for (int s = 0; s < baseList.Count; s++)
@@ -967,9 +1023,7 @@ public sealed partial class LyricsWindow : Window
                 var block = baseList[s];
                 block.FontSize = target.FontSize;
                 block.LineHeight = target.FontSize * 1.32;
-                block.FontWeight = target.IsActive
-                    ? FontWeights.Bold
-                    : (target.Distance == 1 ? FontWeights.SemiBold : FontWeights.Normal);
+                block.FontWeight = isThisLineActive ? FontWeights.Bold : FontWeights.Normal;
             }
 
             if (i < _lineSubOverlayBlocks.Count)
@@ -1008,7 +1062,7 @@ public sealed partial class LyricsWindow : Window
                         var overlay = overlayList[s];
                         overlay.FontSize = target.FontSize;
                         overlay.LineHeight = target.FontSize * 1.32;
-                        overlay.FontWeight = FontWeights.Bold;
+                        overlay.FontWeight = FontWeights.Normal;
                         overlay.Visibility = Visibility.Collapsed;
                         clipList[s].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
                     }
@@ -1018,12 +1072,12 @@ public sealed partial class LyricsWindow : Window
             if (immediate)
             {
                 _currentOpacities[i] = target.TargetOpacity;
-                _currentScales[i] = target.TargetScale;
+                _currentScales[i] = isThisLineActive ? target.TargetScale : 1.0;
                 _lineContainers[i].Opacity = target.TargetOpacity;
                 if (_lineContainers[i].RenderTransform is ScaleTransform st)
                 {
-                    st.ScaleX = target.TargetScale;
-                    st.ScaleY = target.TargetScale;
+                    st.ScaleX = isThisLineActive ? target.TargetScale : 1.0;
+                    st.ScaleY = isThisLineActive ? target.TargetScale : 1.0;
                 }
             }
         }
@@ -1092,10 +1146,14 @@ public sealed partial class LyricsWindow : Window
             }
 
             double curSc = _currentScales[i];
-            double tgtSc = _targetScales[i];
+            double tgtSc = (i == _currentActiveIndex) ? _targetScales[i] : 1.0;
             if (Math.Abs(tgtSc - curSc) > 0.001)
             {
                 double nextSc = LyricsViewportCalculator.InterpolateValue(curSc, tgtSc, 0.20);
+                if (i != _currentActiveIndex && nextSc > 1.0)
+                {
+                    nextSc = 1.0;
+                }
                 _currentScales[i] = nextSc;
                 if (_lineContainers[i].RenderTransform is ScaleTransform st)
                 {
@@ -1368,6 +1426,11 @@ public sealed partial class LyricsWindow : Window
                 severity: InfoBarSeverity.Informational);
             return;
         }
+
+        int offsetMs = _lyricsModule.Synchronizer.SyncOffsetMs;
+        timestamp -= TimeSpan.FromMilliseconds(offsetMs);
+        if (timestamp < TimeSpan.Zero) timestamp = TimeSpan.Zero;
+
         bool ok = await _mediaMonitor.TrySeekAsync(timestamp);
         if (!ok)
         {
@@ -1430,6 +1493,202 @@ public sealed partial class LyricsWindow : Window
             TxtEmptyStateSub.Text = !string.IsNullOrWhiteSpace(message) ? message : loc["Lyrics_NotFound_Sub"];
             PanelEmptyState.Visibility = Visibility.Visible;
             LyricsScrollViewer.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void SetupDeviceSelectors()
+    {
+        BtnDeviceSelector.PointerEntered += (_, _) => BtnDeviceSelector.Opacity = 1.0;
+        BtnDeviceSelector.PointerExited += (_, _) => BtnDeviceSelector.Opacity = 0.75;
+        BtnDeviceSelectorCompact.PointerEntered += (_, _) => BtnDeviceSelectorCompact.Opacity = 1.0;
+        BtnDeviceSelectorCompact.PointerExited += (_, _) => BtnDeviceSelectorCompact.Opacity = 0.75;
+
+        FlyoutAudioDevices.Opening += (_, _) => PopulateAudioDeviceFlyout(FlyoutAudioDevices);
+        FlyoutAudioDevicesCompact.Opening += (_, _) => PopulateAudioDeviceFlyout(FlyoutAudioDevicesCompact);
+    }
+
+    private void PopulateAudioDeviceFlyout(MenuFlyout flyout)
+    {
+        flyout.Items.Clear();
+
+        var header = new MenuFlyoutItem
+        {
+            Text = "Audio Output & Glow Endpoint",
+            IsEnabled = false
+        };
+        flyout.Items.Add(header);
+        flyout.Items.Add(new MenuFlyoutSeparator());
+
+        var devices = _audioCaptureService?.GetAvailableDevices() ?? Array.Empty<AudioDeviceDescriptor>();
+        var activeId = _audioCaptureService?.CurrentDevice?.Id;
+
+        if (devices.Count == 0)
+        {
+            flyout.Items.Add(new MenuFlyoutItem
+            {
+                Text = "Default System Output",
+                IsEnabled = false
+            });
+        }
+        else
+        {
+            foreach (var dev in devices)
+            {
+                bool isCurrent = (!string.IsNullOrEmpty(activeId) && string.Equals(dev.Id, activeId, StringComparison.OrdinalIgnoreCase))
+                                 || (string.IsNullOrEmpty(activeId) && dev.IsDefault);
+
+                var item = new ToggleMenuFlyoutItem
+                {
+                    Text = dev.IsDefault ? $"{dev.Name} (Default)" : dev.Name,
+                    IsChecked = isCurrent
+                };
+
+                item.Click += async (_, _) =>
+                {
+                    try
+                    {
+                        if (_audioCaptureService != null)
+                        {
+                            await _audioCaptureService.StartAsync(dev.Id);
+                            UpdateOutputDeviceUi();
+                        }
+                    }
+                    catch { }
+                };
+
+                flyout.Items.Add(item);
+            }
+        }
+
+        flyout.Items.Add(new MenuFlyoutSeparator());
+        var note = new MenuFlyoutItem
+        {
+            Text = "Note: Lyrow analyzes audio from selected endpoint. Change default sound in Windows Settings.",
+            IsEnabled = false
+        };
+        flyout.Items.Add(note);
+    }
+
+    public void ToggleCompactLyrics()
+    {
+        _isCompactLyricsExpanded = !_isCompactLyricsExpanded;
+        if (_isCompactLyricsExpanded)
+        {
+            GridCompactLyrics.Visibility = Visibility.Visible;
+            IconExpandFromCompact.Glyph = "\uE73E";
+            ResizeCompactWithLyrics();
+            RebuildCompactLyricsUi(_lyricsModule.CurrentLyrics);
+        }
+        else
+        {
+            GridCompactLyrics.Visibility = Visibility.Collapsed;
+            IconExpandFromCompact.Glyph = "\uEC4F";
+            ResizeForCurrentDpi(500, 232);
+        }
+    }
+
+    private void ResizeCompactWithLyrics()
+    {
+        int logicalW = 500;
+        int logicalH = 490;
+        try
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            uint dpi = GetDpiForWindow(hwnd);
+            double scale = dpi > 0 ? (dpi / 96.0) : 1.0;
+            int physW = (int)Math.Round(logicalW * scale);
+            int physH = (int)Math.Round(logicalH * scale);
+
+            var displayArea = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(AppWindow.Id, Microsoft.UI.Windowing.DisplayAreaFallback.Primary);
+            var workArea = displayArea.WorkArea;
+            int curX = AppWindow.Position.X;
+            int curY = AppWindow.Position.Y;
+            if (curY + physH > workArea.Y + workArea.Height)
+            {
+                curY = Math.Max(workArea.Y, workArea.Y + workArea.Height - physH - 12);
+            }
+            AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(curX, curY, physW, physH));
+        }
+        catch
+        {
+            ResizeForCurrentDpi(logicalW, logicalH);
+        }
+    }
+
+    private void RebuildCompactLyricsUi(SyncedLyrics? lyrics)
+    {
+        _lastCompactLyrics = lyrics;
+        CompactLyricsPanel.Children.Clear();
+        _compactLineBlocks.Clear();
+        _currentCompactActiveIndex = -99;
+
+        if (lyrics == null || lyrics.Lines.Count == 0)
+        {
+            var empty = new TextBlock
+            {
+                Text = !string.IsNullOrEmpty(lyrics?.PlainLyrics) ? lyrics.PlainLyrics : "Searching for synchronized lyrics...",
+                FontSize = 13,
+                TextWrapping = TextWrapping.Wrap,
+                Opacity = 0.7,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextAlignment = TextAlignment.Center
+            };
+            CompactLyricsPanel.Children.Add(empty);
+            return;
+        }
+
+        for (int i = 0; i < lyrics.Lines.Count; i++)
+        {
+            var line = lyrics.Lines[i];
+            var block = new TextBlock
+            {
+                Text = line.Text,
+                FontSize = 13,
+                FontWeight = FontWeights.Normal,
+                Opacity = 0.45,
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+
+            var targetLine = line;
+            block.PointerPressed += async (_, _) =>
+            {
+                await SeekToLyricLineAsync(targetLine.Timestamp);
+            };
+
+            _compactLineBlocks.Add(block);
+            CompactLyricsPanel.Children.Add(block);
+        }
+    }
+
+    private void UpdateCompactActiveLine(int activeIdx)
+    {
+        if (_compactLineBlocks.Count == 0 || activeIdx == _currentCompactActiveIndex) return;
+        _currentCompactActiveIndex = activeIdx;
+
+        for (int i = 0; i < _compactLineBlocks.Count; i++)
+        {
+            var b = _compactLineBlocks[i];
+            if (i == activeIdx)
+            {
+                b.FontWeight = FontWeights.Bold;
+                b.Opacity = 1.0;
+                b.FontSize = 14.5;
+            }
+            else
+            {
+                int dist = Math.Abs(i - activeIdx);
+                b.FontWeight = FontWeights.Normal;
+                b.Opacity = dist == 1 ? 0.60 : 0.35;
+                b.FontSize = 13.0;
+            }
+        }
+
+        if (activeIdx >= 0 && activeIdx < _compactLineBlocks.Count)
+        {
+            var target = _compactLineBlocks[activeIdx];
+            target.StartBringIntoView();
         }
     }
 }

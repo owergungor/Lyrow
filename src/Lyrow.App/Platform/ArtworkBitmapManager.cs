@@ -74,9 +74,10 @@ public sealed class ArtworkBitmapManager
             }
             stream.Seek(0);
 
+            bool animationsEnabled = AreSystemAnimationsEnabled();
             var image = new BitmapImage
             {
-                AutoPlay = true
+                AutoPlay = animationsEnabled
             };
             await image.SetSourceAsync(stream);
             return image;
@@ -85,6 +86,23 @@ public sealed class ArtworkBitmapManager
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Checks the Windows OS user preference for animations (Reduced Motion).
+    /// If user has enabled Reduced Motion, animations are disabled and artwork freezes on first frame.
+    /// </summary>
+    public static bool AreSystemAnimationsEnabled()
+    {
+        try
+        {
+            if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041))
+            {
+                return new Windows.UI.ViewManagement.UISettings().AnimationsEnabled;
+            }
+        }
+        catch { }
+        return true;
     }
 
     public async Task<byte[]?> GetArtworkBytesAsync(MediaTrackInfo track, CancellationToken ct = default)
