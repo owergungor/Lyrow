@@ -38,7 +38,9 @@ public sealed class MediaMetadataNormalizer : IMediaMetadataNormalizer
                     if (!string.IsNullOrWhiteSpace(candidateArtist) && !string.IsNullOrWhiteSpace(candidateAlbum))
                     {
                         normalizedArtist = candidateArtist;
-                        normalizedAlbum = candidateAlbum;
+                        normalizedAlbum = string.Equals(candidateAlbum, "Topic", StringComparison.OrdinalIgnoreCase)
+                            ? string.Empty
+                            : candidateAlbum;
                     }
                 }
             }

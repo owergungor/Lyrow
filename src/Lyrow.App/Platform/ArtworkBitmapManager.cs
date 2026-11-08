@@ -89,15 +89,35 @@ public sealed class ArtworkBitmapManager
             {
                 AutoPlay = animationsEnabled
             };
-            await image.SetSourceAsync(stream);
+
+            try
+            {
+                await image.SetSourceAsync(stream);
+            }
+            catch (Exception decodeEx)
+            {
+                // Fallback for browser WebP / custom frames: transcode via WIC BitmapDecoder -> PNG stream
+                LocalDiagnosticLogger.LogWarning($"[ArtworkBitmapManager] Direct BitmapImage.SetSourceAsync failed ({decodeEx.Message}); attempting WIC PNG transcode for '{track.Artist} - {track.Title}'.");
+                stream.Seek(0);
+                var decoder = await BitmapDecoder.CreateAsync(stream);
+                using var softwareBitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+                using var pngStream = new InMemoryRandomAccessStream();
+                var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, pngStream);
+                encoder.SetSoftwareBitmap(softwareBitmap);
+                await encoder.FlushAsync();
+                pngStream.Seek(0);
+                await image.SetSourceAsync(pngStream);
+            }
+
             if (!animationsEnabled)
             {
                 try { image.Stop(); } catch { }
             }
             return image;
         }
-        catch
+        catch (Exception ex)
         {
+            LocalDiagnosticLogger.LogWarning($"[ArtworkBitmapManager] Failed to decode artwork bitmap for '{track.Artist} - {track.Title}': {ex.Message}");
             return null;
         }
     }

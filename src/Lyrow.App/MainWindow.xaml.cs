@@ -1925,7 +1925,7 @@ public sealed partial class MainWindow : Window
         bool isTrackSwitch = !string.Equals(_lastTrackCacheKey, newKey, StringComparison.OrdinalIgnoreCase);
         bool isArtworkUpdated = newArtSig != _lastArtworkSignature;
 
-        if (isTrackSwitch || isArtworkUpdated)
+        if (track.ThumbnailData is { Length: > 0 } && (isTrackSwitch || isArtworkUpdated))
         {
             _artworkBitmapManager.Invalidate(track.Artist, track.Title);
         }
@@ -2184,14 +2184,11 @@ public sealed partial class MainWindow : Window
                 actionLabel: loc["Lyrics_OpenAppleMusicWeb"],
                 onAction: () =>
                 {
-                    try
+                    if (!DefaultWebBrowserLauncher.TryOpenUrlInDefaultBrowser(MediaSessionProfileHelper.AppleMusicWebUrl, out _, out var err))
                     {
-                        Process.Start(new ProcessStartInfo(MediaSessionProfileHelper.AppleMusicWebUrl)
-                        {
-                            UseShellExecute = true
-                        });
+                        LocalDiagnosticLogger.LogWarning($"[MainWindow] {err ?? "Failed to open Apple Music Web in default browser."}");
+                        ShowToast(err ?? "Could not launch default web browser.", InfoBarSeverity.Warning, title: "Apple Music Web");
                     }
-                    catch { }
                 });
         }
         else

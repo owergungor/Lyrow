@@ -120,6 +120,12 @@ public sealed partial class LyricsWindow : Window
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(LyricsTitleBar);
+        if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter overlapped)
+        {
+            overlapped.IsMinimizable = true;
+            overlapped.IsMaximizable = true;
+            overlapped.IsResizable = true;
+        }
         ResizeForCurrentDpi(960, 640);
 
         TxtOffsetMs.Text = $"{_settingsManager.Current.Lyrics.SyncOffsetMs:+0;-0;0} ms";
@@ -184,7 +190,9 @@ public sealed partial class LyricsWindow : Window
                     int val = Math.Clamp((int)Math.Round(e.NewValue), 0, 100);
                     _volumeService.SetPlaybackVolumePercent(val);
                     TxtVolumePercent.Text = $"{val}%";
-                    IconVolumeMute.Glyph = (val == 0 || _volumeService.IsPlaybackMuted) ? "\uE74F" : "\uE767";
+                    string glyph = (val == 0 || _volumeService.IsPlaybackMuted) ? "\uE74F" : "\uE767";
+                    IconVolumeMute.Glyph = glyph;
+                    if (IconVolumeMuteCompact != null) IconVolumeMuteCompact.Glyph = glyph;
                 }
                 finally
                 {
@@ -197,6 +205,15 @@ public sealed partial class LyricsWindow : Window
                 _volumeService.TogglePlaybackMute();
                 SyncVolumeUi();
             };
+
+            if (BtnVolumeMuteCompact != null)
+            {
+                BtnVolumeMuteCompact.Click += (_, _) =>
+                {
+                    _volumeService.TogglePlaybackMute();
+                    SyncVolumeUi();
+                };
+            }
 
             _volumeService.VolumeChanged += (_, _) =>
             {
@@ -414,13 +431,37 @@ public sealed partial class LyricsWindow : Window
             {
                 ResetTrackState(track);
             }
-            else if (artSig != _lastArtworkSignature && !track.IsEmpty)
+            else if (!track.IsEmpty && track.ThumbnailData is { Length: > 0 } && artSig != _lastArtworkSignature)
             {
                 _lastArtworkSignature = artSig;
                 _artworkBitmapManager?.Invalidate(track.Artist, track.Title);
                 _ = UpdateArtworkAsync(track, Interlocked.Read(ref _windowTrackSequence));
             }
         });
+    }
+
+    private MediaTrackInfo ResolveCurrentTrack()
+    {
+        var moduleTrack = _lyricsModule.CurrentTrack;
+        var monitorTrack = _mediaMonitor?.CurrentTrack ?? MediaTrackInfo.Empty;
+
+        if (moduleTrack.IsEmpty) return monitorTrack;
+        if (monitorTrack.IsEmpty) return moduleTrack;
+
+        bool sameSong = string.Equals(moduleTrack.Title, monitorTrack.Title, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(moduleTrack.Artist, monitorTrack.Artist, StringComparison.OrdinalIgnoreCase);
+
+        if (sameSong)
+        {
+            byte[]? bestThumb = (moduleTrack.ThumbnailData is { Length: > 0 })
+                ? moduleTrack.ThumbnailData
+                : monitorTrack.ThumbnailData;
+            TimeSpan bestDur = moduleTrack.Duration > TimeSpan.Zero ? moduleTrack.Duration : monitorTrack.Duration;
+            string? bestUri = !string.IsNullOrWhiteSpace(moduleTrack.AlbumArtUri) ? moduleTrack.AlbumArtUri : monitorTrack.AlbumArtUri;
+            return moduleTrack with { ThumbnailData = bestThumb, Duration = bestDur, AlbumArtUri = bestUri };
+        }
+
+        return monitorTrack;
     }
 
     private void WireInteractiveProgressScrubber(Grid hitBox, ProgressBar progressBar)
@@ -571,8 +612,8 @@ public sealed partial class LyricsWindow : Window
         TxtRemaining.Text = newTrack.Duration > TimeSpan.Zero ? $"-{newTrack.Duration:mm\\:ss}" : "-0:00";
         TxtRemainingCompact.Text = newTrack.Duration > TimeSpan.Zero ? $"-{newTrack.Duration:mm\\:ss}" : "-0:00";
 
-        // 4. Invalidate artwork and reset ambient target
-        if (!newTrack.IsEmpty)
+        // 4. Invalidate artwork only when raw GSMTC thumbnail bytes are provided; preserve online cache otherwise
+        if (!newTrack.IsEmpty && newTrack.ThumbnailData is { Length: > 0 })
         {
             _artworkBitmapManager?.Invalidate(newTrack.Artist, newTrack.Title);
         }
@@ -623,9 +664,7 @@ public sealed partial class LyricsWindow : Window
 
     private void OnUiTimerTick(object? sender, object e)
     {
-        var track = !_lyricsModule.CurrentTrack.IsEmpty
-            ? _lyricsModule.CurrentTrack
-            : (_mediaMonitor?.CurrentTrack ?? MediaTrackInfo.Empty);
+        var track = ResolveCurrentTrack();
 
         var timeline = _lyricsModule.CurrentTimeline.Duration > TimeSpan.Zero || _lyricsModule.CurrentTimeline.Status != MediaPlaybackStatus.Stopped
             ? _lyricsModule.CurrentTimeline
@@ -665,7 +704,7 @@ public sealed partial class LyricsWindow : Window
         }
 
         int currentArtSig = ArtworkBitmapManager.ComputeArtworkSignature(track);
-        if (currentArtSig != _lastArtworkSignature)
+        if (track.ThumbnailData is { Length: > 0 } && currentArtSig != _lastArtworkSignature)
         {
             _lastArtworkSignature = currentArtSig;
             _artworkBitmapManager?.Invalidate(track.Artist, track.Title);
@@ -1311,6 +1350,12 @@ public sealed partial class LyricsWindow : Window
             return;
         }
 
+        if (w <= LyricsViewportCalculator.NormalToCompactWidthThreshold || h <= LyricsViewportCalculator.NormalToCompactHeightThreshold)
+        {
+            SetWindowMode(LyricsWindowMode.Compact, resizeWindow: false);
+            return;
+        }
+
         // Responsive proportional scaling for Horizontal mode
         ApplyResponsiveScaling(w, h);
         UpdateViewportPadding();
@@ -1421,6 +1466,7 @@ public sealed partial class LyricsWindow : Window
             TxtVolumePercent.Text = muted ? "Muted" : $"{vol}%";
             string muteGlyph = (muted || vol == 0) ? "\uE74F" : "\uE767";
             IconVolumeMute.Glyph = muteGlyph;
+            if (IconVolumeMuteCompact != null) IconVolumeMuteCompact.Glyph = muteGlyph;
         }
         finally
         {
@@ -1450,16 +1496,16 @@ public sealed partial class LyricsWindow : Window
         }
     }
 
-    private static void OpenAppleMusicWebInBrowser()
+    private void OpenAppleMusicWebInBrowser()
     {
-        try
+        if (!DefaultWebBrowserLauncher.TryOpenUrlInDefaultBrowser(MediaSessionProfileHelper.AppleMusicWebUrl, out _, out var error))
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(MediaSessionProfileHelper.AppleMusicWebUrl)
-            {
-                UseShellExecute = true
-            });
+            LocalDiagnosticLogger.LogWarning($"[LyricsWindow] {error ?? "Failed to open Apple Music Web in default browser."}");
+            _toastManager?.ShowToast(
+                error ?? "Could not launch default web browser.",
+                title: "Apple Music Web",
+                severity: InfoBarSeverity.Warning);
         }
-        catch { }
     }
 
     private async Task SeekToMediaPositionAsync(TimeSpan timestamp)

@@ -235,10 +235,10 @@
                     </Grid>
                 </Grid>
 
-                <!-- VIEW 2: DAR MOD (Compact Player Window Mode — Apple Music Reference) -->
-                <Grid x:Name="CompactPlayerView" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Padding="12,6,12,10">
-                    <Border CornerRadius="14" Padding="14,12"
-                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                <!-- VIEW 2: DAR MOD (Compact Player Window Mode — Target Horizontal Reference Layout) -->
+                <Grid x:Name="CompactPlayerView" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Padding="14,4,14,8">
+                    <Border x:Name="CompactPlayerCard" CornerRadius="12" Padding="10,8"
+                            Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <Grid x:Name="CompactGridContent" VerticalAlignment="Center">
                             <Grid.RowDefinitions>
@@ -247,14 +247,14 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <!-- Row 0: Left Artwork + Right Song Title, Artist, and Progress Scrubber beneath Artist -->
-                            <Grid Grid.Row="0">
+                            <!-- Row 0: Left Artwork + Right Song Title, Artist/Album, and Progress Scrubber with Elapsed/Remaining Time -->
+                            <Grid x:Name="CompactTopRow" Grid.Row="0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="76"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <!-- Album Artwork on the Left -->
-                                <Border x:Name="BorderTrackArtworkCompact" Width="76" Height="76" CornerRadius="12"
+                                <Border x:Name="BorderTrackArtworkCompact" Width="76" Height="76" CornerRadius="10"
                                         Background="{ThemeResource LayerFillColorDefaultBrush}"
                                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                                         VerticalAlignment="Center" HorizontalAlignment="Left">
@@ -266,27 +266,27 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- Right Side: Song Title, Artist, and Progress Bar directly beneath Artist -->
+                                <!-- Right Side: Song Title (top), Artist/Album (below title), Progress Bar + Timestamps (below artist) -->
                                 <StackPanel x:Name="CompactTrackAndProgressPanel" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Spacing="2" HorizontalAlignment="Stretch">
-                                    <TextBlock x:Name="TxtSongTitleCompact" Text="Waiting for playback..." FontWeight="Bold"
-                                               FontSize="15" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="TxtSongTitleCompact" Text="Waiting for playback..." FontWeight="SemiBold"
+                                               FontSize="15" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                     <TextBlock x:Name="TxtArtistAlbumCompact" Text="No active media session" FontSize="12.5"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" MaxLines="1" />
 
-                                    <!-- Scrubber Progress Bar and Elapsed / Remaining Time directly beneath Artist -->
-                                    <Grid x:Name="GridProgressCompactContainer" Margin="0,4,0,0" HorizontalAlignment="Stretch">
+                                    <!-- Scrubber Progress Bar and Elapsed (bottom-left) / Remaining (bottom-right) Time -->
+                                    <Grid x:Name="GridProgressCompactContainer" Margin="0,5,0,0" HorizontalAlignment="Stretch">
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
-                                        <Grid x:Name="GridProgressCompactHitBox" Height="14" Background="Transparent" HorizontalAlignment="Stretch">
+                                        <Grid x:Name="GridProgressCompactHitBox" Height="12" Background="Transparent" HorizontalAlignment="Stretch">
                                             <ProgressBar x:Name="ProgressTimelineCompact" Height="4" CornerRadius="2"
                                                          Minimum="0" Maximum="100" Value="0" VerticalAlignment="Center" HorizontalAlignment="Stretch" IsHitTestVisible="False" />
                                         </Grid>
-                                        <Grid Grid.Row="1" Margin="0,1,0,0" HorizontalAlignment="Stretch">
-                                            <TextBlock x:Name="TxtElapsedCompact" Text="0:00" FontSize="10.5"
+                                        <Grid Grid.Row="1" Margin="0,2,0,0" HorizontalAlignment="Stretch">
+                                            <TextBlock x:Name="TxtElapsedCompact" Text="0:00" FontSize="11"
                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Left"/>
-                                            <TextBlock x:Name="TxtRemainingCompact" Text="-0:00" FontSize="10.5"
+                                            <TextBlock x:Name="TxtRemainingCompact" Text="-0:00" FontSize="11"
                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Right"/>
                                         </Grid>
                                     </Grid>
@@ -294,68 +294,77 @@
                             </Grid>
 
                             <!-- Row 1: Expandable Middle Lyrics Area (Strictly 3 Lines: Previous, Active, Next) -->
-                            <Grid x:Name="GridCompactLyrics" Grid.Row="1" Visibility="Collapsed" Height="84" Margin="0,8,0,4">
+                            <Grid x:Name="GridCompactLyrics" Grid.Row="1" Visibility="Collapsed" Height="82" Margin="0,6,0,2">
                                 <ScrollViewer x:Name="CompactLyricsScrollViewer" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Hidden"
                                               HorizontalScrollBarVisibility="Disabled">
                                     <StackPanel x:Name="CompactLyricsPanel" Spacing="4" VerticalAlignment="Center"
-                                                HorizontalAlignment="Stretch" Padding="6,4" />
+                                                HorizontalAlignment="Stretch" Padding="6,2" />
                                 </ScrollViewer>
                             </Grid>
 
-                            <!-- Row 2: Bottom Row: Device Info on left, Centered Prev/Play/Next, Normal Mode & Lyrics buttons on right -->
-                            <Grid Grid.Row="2" Margin="0,8,0,0">
-                                <!-- Left: Ghost Dropdown Device Selector -->
-                                <DropDownButton x:Name="BtnDeviceSelectorCompact"
-                                                HorizontalAlignment="Left" VerticalAlignment="Center"
-                                                Padding="6,3,6,3"
-                                                CornerRadius="6"
-                                                Background="Transparent"
-                                                BorderBrush="Transparent"
-                                                BorderThickness="0"
-                                                Opacity="0.75"
-                                                ToolTipService.ToolTip="Audio Output &amp; Analysis Endpoint (Click to change)">
-                                    <DropDownButton.Content>
-                                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                            <FontIcon x:Name="IconDeviceCompact" Glyph="&#xE767;" FontSize="11"
-                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                            <TextBlock x:Name="TxtDeviceCompact" Text="Speakers" FontSize="11"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxWidth="130" TextTrimming="CharacterEllipsis" />
-                                        </StackPanel>
-                                    </DropDownButton.Content>
-                                    <DropDownButton.Flyout>
-                                        <MenuFlyout x:Name="FlyoutAudioDevicesCompact" Placement="Bottom">
-                                        </MenuFlyout>
-                                    </DropDownButton.Flyout>
-                                </DropDownButton>
+                            <!-- Row 2: Bottom Horizontal Control Bar: Left Volume/Device, Center Prev/Play-Pause/Next, Right Lyrics & Normal Mode -->
+                            <Grid x:Name="CompactControlsRow" Grid.Row="2" Margin="0,6,0,0" ColumnDefinitions="*,Auto,*">
+                                <!-- Left: Volume/Mute + Audio Output Device Selector -->
+                                <StackPanel x:Name="CompactLeftControlsPanel" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="2">
+                                    <Button x:Name="BtnVolumeMuteCompact" Width="28" Height="28" Padding="0" CornerRadius="6"
+                                            Background="Transparent" BorderThickness="0"
+                                            ToolTipService.ToolTip="Mute / Unmute"
+                                            AutomationProperties.Name="Mute or Unmute">
+                                        <FontIcon x:Name="IconVolumeMuteCompact" Glyph="&#xE767;" FontSize="12"
+                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </Button>
+                                    <DropDownButton x:Name="BtnDeviceSelectorCompact"
+                                                    HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                    Padding="5,3,5,3"
+                                                    CornerRadius="6"
+                                                    Background="Transparent"
+                                                    BorderBrush="Transparent"
+                                                    BorderThickness="0"
+                                                    Opacity="0.8"
+                                                    ToolTipService.ToolTip="Audio Output &amp; Analysis Endpoint (Click to change)">
+                                        <DropDownButton.Content>
+                                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <FontIcon x:Name="IconDeviceCompact" Glyph="&#xE767;" FontSize="11"
+                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock x:Name="TxtDeviceCompact" Text="Speakers" FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxWidth="105" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </DropDownButton.Content>
+                                        <DropDownButton.Flyout>
+                                            <MenuFlyout x:Name="FlyoutAudioDevicesCompact" Placement="Bottom">
+                                            </MenuFlyout>
+                                        </DropDownButton.Flyout>
+                                    </DropDownButton>
+                                </StackPanel>
 
                                 <!-- Center: Prev, Play/Pause, Next -->
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-                                    <Button x:Name="BtnPrevCompact" Width="32" Height="32" Padding="0" CornerRadius="8"
+                                <StackPanel x:Name="CompactCenterTransportPanel" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+                                    <Button x:Name="BtnPrevCompact" Width="30" Height="30" Padding="0" CornerRadius="8"
                                             ToolTipService.ToolTip="Previous Track" AutomationProperties.Name="Previous Track">
                                         <FontIcon Glyph="&#xE892;" FontSize="12" />
                                     </Button>
-                                    <Button x:Name="BtnPlayPauseCompact" Width="38" Height="38" Padding="0" CornerRadius="10"
+                                    <Button x:Name="BtnPlayPauseCompact" Width="36" Height="36" Padding="0" CornerRadius="10"
                                             Style="{ThemeResource AccentButtonStyle}" ToolTipService.ToolTip="Play / Pause"
                                             AutomationProperties.Name="Play or Pause">
                                         <FontIcon x:Name="IconPlayPauseCompact" Glyph="&#xE768;" FontSize="14" />
                                     </Button>
-                                    <Button x:Name="BtnNextCompact" Width="32" Height="32" Padding="0" CornerRadius="8"
+                                    <Button x:Name="BtnNextCompact" Width="30" Height="30" Padding="0" CornerRadius="8"
                                             ToolTipService.ToolTip="Next Track" AutomationProperties.Name="Next Track">
                                         <FontIcon Glyph="&#xE893;" FontSize="12" />
                                     </Button>
                                 </StackPanel>
 
-                                <!-- Right: Normal Mode button & Toggle Compact Lyrics button -->
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="6">
-                                    <Button x:Name="BtnNormalModeCompact" Width="30" Height="30" Padding="0" CornerRadius="6"
-                                            ToolTipService.ToolTip="Normal mode"
-                                            AutomationProperties.Name="Normal mode">
-                                        <FontIcon x:Name="IconNormalModeCompact" Glyph="&#xE740;" FontSize="12" />
-                                    </Button>
+                                <!-- Right: Lyrics Toggle button & Normal Mode / List View button -->
+                                <StackPanel x:Name="CompactRightControlsPanel" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="6">
                                     <Button x:Name="BtnExpandFromCompact" Width="30" Height="30" Padding="0" CornerRadius="6"
                                             ToolTipService.ToolTip="Toggle Compact Lyrics"
                                             AutomationProperties.Name="Toggle Compact Lyrics">
                                         <FontIcon x:Name="IconExpandFromCompact" Glyph="&#xEC4F;" FontSize="12" />
+                                    </Button>
+                                    <Button x:Name="BtnNormalModeCompact" Width="30" Height="30" Padding="0" CornerRadius="6"
+                                            ToolTipService.ToolTip="Normal mode"
+                                            AutomationProperties.Name="Normal mode">
+                                        <FontIcon x:Name="IconNormalModeCompact" Glyph="&#xE8FD;" FontSize="12" />
                                     </Button>
                                 </StackPanel>
                             </Grid>

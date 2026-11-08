@@ -272,7 +272,9 @@ public sealed class LyricsModule : ILyrowModule
 
         // If GSMTC emits a secondary property update for the exact same track (e.g. ThumbnailData or Album or Duration arrived 50ms later)
         // and we are already fetching or have already loaded lyrics for this track, update metadata in-place without aborting the active fetch!
-        if (isSameTitleAndArtist && (_currentLyrics.Lines.Count > 0 || !string.IsNullOrWhiteSpace(_currentLyrics.PlainLyrics) || (_currentTrackCts != null && !_currentTrackCts.IsCancellationRequested)))
+        bool isMetadataEnrichment = (track.ThumbnailData != null && track.ThumbnailData.Length > 0 && (_currentTrack.ThumbnailData == null || _currentTrack.ThumbnailData.Length != track.ThumbnailData.Length)) ||
+                                    (track.Duration > TimeSpan.Zero && _currentTrack.Duration <= TimeSpan.Zero);
+        if (isSameTitleAndArtist && (isMetadataEnrichment || _currentLyrics.Lines.Count > 0 || !string.IsNullOrWhiteSpace(_currentLyrics.PlainLyrics) || (_currentTrackCts != null && !_currentTrackCts.IsCancellationRequested)))
         {
             var updatedDur = track.Duration > TimeSpan.Zero ? track.Duration : _currentTrack.Duration;
             var updatedThumb = (track.ThumbnailData != null && track.ThumbnailData.Length > 0) ? track.ThumbnailData : _currentTrack.ThumbnailData;

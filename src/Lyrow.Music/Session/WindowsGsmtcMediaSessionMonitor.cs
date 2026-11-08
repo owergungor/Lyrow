@@ -233,6 +233,63 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         await UpdatePlaybackAndTimelineAsync(session).ConfigureAwait(false);
     }
 
+    public static async Task<byte[]?> ReadThumbnailStreamAsync(IRandomAccessStreamReference? thumbnailRef)
+    {
+        if (thumbnailRef == null) return null;
+
+        try
+        {
+            using var stream = await thumbnailRef.OpenReadAsync();
+            if (stream != null)
+            {
+                try
+                {
+                    if (stream.CanRead && stream.Size > 0)
+                    {
+                        stream.Seek(0);
+                    }
+                }
+                catch { }
+
+                using var netStream = stream.AsStreamForRead();
+                using var ms = new MemoryStream();
+                await netStream.CopyToAsync(ms).ConfigureAwait(false);
+                var bytes = ms.ToArray();
+                if (bytes.Length > 0)
+                {
+                    return bytes;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Lyrow.Core.Services.LocalDiagnosticLogger.LogWarning($"[GSMTC] Primary thumbnail stream read failed: {ex.Message}");
+        }
+
+        try
+        {
+            using var stream = await thumbnailRef.OpenReadAsync();
+            if (stream != null && stream.Size > 0)
+            {
+                stream.Seek(0);
+                var thumbnailBytes = new byte[stream.Size];
+                using var dataReader = new DataReader(stream);
+                await dataReader.LoadAsync((uint)stream.Size);
+                dataReader.ReadBytes(thumbnailBytes);
+                if (thumbnailBytes.Length > 0)
+                {
+                    return thumbnailBytes;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Lyrow.Core.Services.LocalDiagnosticLogger.LogWarning($"[GSMTC] Fallback DataReader thumbnail read failed: {ex.Message}");
+        }
+
+        return null;
+    }
+
     private async Task UpdateMediaPropertiesAsync(GlobalSystemMediaTransportControlsSession session)
     {
         long currentSeq = Interlocked.Increment(ref _trackSequence);
@@ -241,38 +298,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             var props = await session.TryGetMediaPropertiesAsync();
             if (props == null || Interlocked.Read(ref _trackSequence) != currentSeq) return;
 
-            byte[]? thumbnailBytes = null;
-            if (props.Thumbnail != null)
-            {
-                try
-                {
-                    using var stream = await props.Thumbnail.OpenReadAsync();
-                    if (stream != null && stream.Size > 0)
-                    {
-                        stream.Seek(0);
-                        using var netStream = stream.AsStreamForRead();
-                        using var ms = new MemoryStream();
-                        await netStream.CopyToAsync(ms).ConfigureAwait(false);
-                        thumbnailBytes = ms.ToArray();
-                    }
-                }
-                catch
-                {
-                    try
-                    {
-                        using var stream = await props.Thumbnail.OpenReadAsync();
-                        if (stream != null && stream.Size > 0)
-                        {
-                            stream.Seek(0);
-                            thumbnailBytes = new byte[stream.Size];
-                            using var dataReader = new DataReader(stream);
-                            await dataReader.LoadAsync((uint)stream.Size);
-                            dataReader.ReadBytes(thumbnailBytes);
-                        }
-                    }
-                    catch { }
-                }
-            }
+            byte[]? thumbnailBytes = await ReadThumbnailStreamAsync(props.Thumbnail).ConfigureAwait(false);
 
             string rawTitle = props.Title ?? string.Empty;
             string rawArtist = props.Artist ?? string.Empty;
@@ -285,6 +311,13 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 
             bool isTrackSwitch = !string.Equals(CurrentTrack.Title, newTitle, StringComparison.OrdinalIgnoreCase) ||
                                  !string.Equals(CurrentTrack.Artist, newArtist, StringComparison.OrdinalIgnoreCase);
+
+            // Preserve already-loaded artwork if browser emits a secondary metadata update with null Thumbnail for the same track
+            if (!isTrackSwitch && (thumbnailBytes == null || thumbnailBytes.Length == 0) &&
+                CurrentTrack.ThumbnailData != null && CurrentTrack.ThumbnailData.Length > 0)
+            {
+                thumbnailBytes = CurrentTrack.ThumbnailData;
+            }
 
             var timelineProps = session.GetTimelineProperties();
             var startTime = timelineProps?.StartTime ?? TimeSpan.Zero;
@@ -317,10 +350,58 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 
             CurrentTrack = track;
             TrackChanged?.Invoke(this, track);
+
+            // Web players (YouTube Music Web / Apple Music Web) often populate GSMTC Thumbnail 300ms-1500ms after MediaPropertiesChanged
+            if (!track.IsEmpty && (thumbnailBytes == null || thumbnailBytes.Length == 0))
+            {
+                Lyrow.Core.Services.LocalDiagnosticLogger.LogInfo($"[GSMTC] Track '{newTitle}' by '{newArtist}' (App={appId}) has no initial GSMTC thumbnail; scheduling delayed thumbnail re-probes.");
+                _ = ProbeDelayedThumbnailAsync(session, currentSeq, newTitle, newArtist);
+            }
         }
         catch (Exception ex)
         {
             MonitorFaulted?.Invoke(this, ex);
+        }
+    }
+
+    private async Task ProbeDelayedThumbnailAsync(
+        GlobalSystemMediaTransportControlsSession session,
+        long expectedSeq,
+        string expectedTitle,
+        string expectedArtist)
+    {
+        int[] delaysMs = [350, 1200, 2500];
+        foreach (int delay in delaysMs)
+        {
+            try
+            {
+                await Task.Delay(delay).ConfigureAwait(false);
+                if (!_isMonitoring || Interlocked.Read(ref _trackSequence) != expectedSeq) return;
+                if (CurrentTrack.ThumbnailData != null && CurrentTrack.ThumbnailData.Length > 0) return;
+
+                var props = await session.TryGetMediaPropertiesAsync();
+                if (props == null || Interlocked.Read(ref _trackSequence) != expectedSeq) return;
+
+                var norm = _normalizer.Normalize(props.Title, props.Artist, props.AlbumTitle);
+                if (!string.Equals(norm.Title, expectedTitle, StringComparison.OrdinalIgnoreCase) ||
+                    !string.Equals(norm.Artist, expectedArtist, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                var lateBytes = await ReadThumbnailStreamAsync(props.Thumbnail).ConfigureAwait(false);
+                if (lateBytes != null && lateBytes.Length > 0 && Interlocked.Read(ref _trackSequence) == expectedSeq)
+                {
+                    Lyrow.Core.Services.LocalDiagnosticLogger.LogInfo($"[GSMTC] Delayed thumbnail arrived after {delay}ms for '{expectedTitle}' ({lateBytes.Length} bytes).");
+                    CurrentTrack = CurrentTrack with { ThumbnailData = lateBytes };
+                    TrackChanged?.Invoke(this, CurrentTrack);
+                    return;
+                }
+            }
+            catch
+            {
+                // Ignore transient WinRT errors during delayed probe
+            }
         }
     }
 
