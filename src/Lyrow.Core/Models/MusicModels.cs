@@ -15,6 +15,62 @@ public enum MediaPlaybackStatus
 }
 
 /// <summary>
+/// Classification of the active media session source.
+/// Distinguishes Apple Music Desktop (which lacks GSMTC seek) from Apple Music Web, YouTube Music Web, and Spotify.
+/// </summary>
+public enum MediaSessionSourceProfile
+{
+    Unknown,
+    SpotifyDesktop,
+    AppleMusicDesktop,
+    BrowserSession
+}
+
+/// <summary>
+/// Helper utilities for classifying media session identifiers and providing Apple Music Web redirect actions.
+/// </summary>
+public static class MediaSessionProfileHelper
+{
+    public const string AppleMusicWebUrl = "https://music.apple.com/";
+
+    public static MediaSessionSourceProfile ClassifySourceAppId(string? sourceAppId)
+    {
+        if (string.IsNullOrWhiteSpace(sourceAppId))
+        {
+            return MediaSessionSourceProfile.Unknown;
+        }
+
+        string id = sourceAppId.Trim();
+        if (id.Contains("AppleMusic", StringComparison.OrdinalIgnoreCase) ||
+            id.Contains("AppleInc.AppleMusicWin", StringComparison.OrdinalIgnoreCase) ||
+            id.Contains("iTunes", StringComparison.OrdinalIgnoreCase))
+        {
+            return MediaSessionSourceProfile.AppleMusicDesktop;
+        }
+
+        if (id.Contains("Spotify", StringComparison.OrdinalIgnoreCase))
+        {
+            return MediaSessionSourceProfile.SpotifyDesktop;
+        }
+
+        if (id.Contains("msedge", StringComparison.OrdinalIgnoreCase) ||
+            id.Contains("chrome", StringComparison.OrdinalIgnoreCase) ||
+            id.Contains("firefox", StringComparison.OrdinalIgnoreCase) ||
+            id.Contains("brave", StringComparison.OrdinalIgnoreCase) ||
+            id.Contains("opera", StringComparison.OrdinalIgnoreCase) ||
+            id.Contains("vivaldi", StringComparison.OrdinalIgnoreCase))
+        {
+            return MediaSessionSourceProfile.BrowserSession;
+        }
+
+        return MediaSessionSourceProfile.Unknown;
+    }
+
+    public static bool IsAppleMusicDesktop(string? sourceAppId) =>
+        ClassifySourceAppId(sourceAppId) == MediaSessionSourceProfile.AppleMusicDesktop;
+}
+
+/// <summary>
 /// Snapshot of metadata describing the currently playing music track.
 /// </summary>
 public sealed record MediaTrackInfo(

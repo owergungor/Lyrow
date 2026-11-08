@@ -236,19 +236,18 @@
                 </Grid>
 
                 <!-- VIEW 2: DAR MOD (Compact Player Window Mode — Apple Music Reference) -->
-                <Grid x:Name="CompactPlayerView" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Padding="14,10,14,14">
-                    <Border CornerRadius="14" Padding="16,14"
+                <Grid x:Name="CompactPlayerView" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Padding="12,6,12,10">
+                    <Border CornerRadius="14" Padding="14,12"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                        <Grid x:Name="CompactGridContent">
+                        <Grid x:Name="CompactGridContent" VerticalAlignment="Center">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <!-- Row 0: Top Artwork & Track Info -->
+                            <!-- Row 0: Left Artwork + Right Song Title, Artist, and Progress Scrubber beneath Artist -->
                             <Grid Grid.Row="0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="76"/>
@@ -267,44 +266,44 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- Right Side: Song Title & Artist -->
-                                <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Spacing="2">
+                                <!-- Right Side: Song Title, Artist, and Progress Bar directly beneath Artist -->
+                                <StackPanel x:Name="CompactTrackAndProgressPanel" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Spacing="2" HorizontalAlignment="Stretch">
                                     <TextBlock x:Name="TxtSongTitleCompact" Text="Waiting for playback..." FontWeight="Bold"
                                                FontSize="15" TextTrimming="CharacterEllipsis" />
                                     <TextBlock x:Name="TxtArtistAlbumCompact" Text="No active media session" FontSize="12.5"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+
+                                    <!-- Scrubber Progress Bar and Elapsed / Remaining Time directly beneath Artist -->
+                                    <Grid x:Name="GridProgressCompactContainer" Margin="0,4,0,0" HorizontalAlignment="Stretch">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid x:Name="GridProgressCompactHitBox" Height="14" Background="Transparent" HorizontalAlignment="Stretch">
+                                            <ProgressBar x:Name="ProgressTimelineCompact" Height="4" CornerRadius="2"
+                                                         Minimum="0" Maximum="100" Value="0" VerticalAlignment="Center" HorizontalAlignment="Stretch" IsHitTestVisible="False" />
+                                        </Grid>
+                                        <Grid Grid.Row="1" Margin="0,1,0,0" HorizontalAlignment="Stretch">
+                                            <TextBlock x:Name="TxtElapsedCompact" Text="0:00" FontSize="10.5"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Left"/>
+                                            <TextBlock x:Name="TxtRemainingCompact" Text="-0:00" FontSize="10.5"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                    </Grid>
                                 </StackPanel>
                             </Grid>
 
-                            <!-- Row 1: Expandable Middle Lyrics Area (Apple Music Reference) -->
-                            <Grid x:Name="GridCompactLyrics" Grid.Row="1" Visibility="Collapsed" Height="250" Margin="0,10,0,6">
-                                <ScrollViewer x:Name="CompactLyricsScrollViewer" VerticalScrollBarVisibility="Hidden"
+                            <!-- Row 1: Expandable Middle Lyrics Area (Strictly 3 Lines: Previous, Active, Next) -->
+                            <Grid x:Name="GridCompactLyrics" Grid.Row="1" Visibility="Collapsed" Height="84" Margin="0,8,0,4">
+                                <ScrollViewer x:Name="CompactLyricsScrollViewer" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Hidden"
                                               HorizontalScrollBarVisibility="Disabled">
-                                    <StackPanel x:Name="CompactLyricsPanel" Spacing="8" VerticalAlignment="Center"
-                                                HorizontalAlignment="Stretch" Padding="6,10" />
+                                    <StackPanel x:Name="CompactLyricsPanel" Spacing="4" VerticalAlignment="Center"
+                                                HorizontalAlignment="Stretch" Padding="6,4" />
                                 </ScrollViewer>
                             </Grid>
 
-                            <!-- Row 2: Scrubber Progress Bar and Elapsed / Remaining Time -->
-                            <Grid Grid.Row="2" Margin="0,10,0,0">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <Grid x:Name="GridProgressCompactHitBox" Height="16" Background="Transparent">
-                                    <ProgressBar x:Name="ProgressTimelineCompact" Height="4" CornerRadius="2"
-                                                 Minimum="0" Maximum="100" Value="0" VerticalAlignment="Center" IsHitTestVisible="False" />
-                                </Grid>
-                                <Grid Grid.Row="1" Margin="0,2,0,0">
-                                    <TextBlock x:Name="TxtElapsedCompact" Text="0:00" FontSize="11"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Left"/>
-                                    <TextBlock x:Name="TxtRemainingCompact" Text="-0:00" FontSize="11"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Right"/>
-                                </Grid>
-                            </Grid>
-
-                            <!-- Row 3: Bottom Row: Device Info on left, Centered Prev/Play/Next, Normal Mode & Lyrics buttons on right -->
-                            <Grid Grid.Row="3" Margin="0,12,0,0">
+                            <!-- Row 2: Bottom Row: Device Info on left, Centered Prev/Play/Next, Normal Mode & Lyrics buttons on right -->
+                            <Grid Grid.Row="2" Margin="0,8,0,0">
                                 <!-- Left: Ghost Dropdown Device Selector -->
                                 <DropDownButton x:Name="BtnDeviceSelectorCompact"
                                                 HorizontalAlignment="Left" VerticalAlignment="Center"
@@ -363,6 +362,14 @@
                         </Grid>
                     </Border>
                 </Grid>
+
+                <!-- Window-Scoped Toast Notification Overlay for LyricsWindow & Compact Player -->
+                <StackPanel x:Name="LyricsToastContainer"
+                            VerticalAlignment="Top"
+                            HorizontalAlignment="Right"
+                            Margin="0,12,16,0"
+                            Spacing="8"
+                            Canvas.ZIndex="1000" />
             </Grid>
         </Grid>
     </Grid>

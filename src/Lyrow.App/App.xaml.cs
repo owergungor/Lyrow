@@ -136,6 +136,15 @@ public partial class App : Application
             mainWindow.ApplyTheme(settings.Theme);
             mainWindow.Activate();
             LocalDiagnosticLogger.LogInfo("MainWindow created and displayed successfully.");
+            if (IsSmokeTestMode)
+            {
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(1200).ConfigureAwait(false);
+                    LocalDiagnosticLogger.LogInfo("Smoke test verified MainWindow startup; requesting clean exit (0).");
+                    mainWindow.DispatcherQueue.TryEnqueue(() => mainWindow.RequestExit());
+                });
+            }
         }
         catch (Exception ex)
         {
@@ -246,6 +255,15 @@ public partial class App : Application
         });
 
         services.AddSingleton<ISpectrumAnalyzer>(sp => new Lyrow.Audio.Analysis.SpectrumAnalyzer(fftSize: 2048, barCount: 32));
+
+        services.AddSingleton<IAudioRoutingService>(sp =>
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return new Lyrow.Audio.Routing.WindowsAudioRoutingService();
+            }
+            return new Lyrow.Audio.Routing.SyntheticAudioRoutingService();
+        });
 
         services.AddSingleton<GlowModule>(sp => new GlowModule(
             sp.GetRequiredService<IAudioCaptureService>(),

@@ -131,13 +131,16 @@ public static class LyricsFillProgressCalculator
 
     /// <summary>
     /// Computes progress using word-level timing timestamps if available,
-    /// falling back to character-interpolated line progress if word timings are omitted.
+    /// weighting each word proportionally by its character length in the line so the visual pixel clip
+    /// aligns with words of varying lengths, parenthetical segments, and repeated words.
+    /// Falls back to character-interpolated line progress if word timings are omitted.
     /// </summary>
     public static double CalculateWordTimingProgress(
         TimeSpan currentPosition,
         TimeSpan lineTimestamp,
         TimeSpan? nextLineTimestamp,
-        IReadOnlyList<LyricWordTiming>? wordTimings)
+        IReadOnlyList<LyricWordTiming>? wordTimings,
+        string? lineText = null)
     {
         if (wordTimings == null || wordTimings.Count == 0)
         {
@@ -156,13 +159,33 @@ public static class LyricsFillProgressCalculator
         }
 
         int totalWords = wordTimings.Count;
+        Span<double> weights = totalWords <= 128 ? stackalloc double[totalWords] : new double[totalWords];
+        double totalWeight = 0.0;
+
+        for (int i = 0; i < totalWords; i++)
+        {
+            int charLen = Math.Max(1, wordTimings[i].Word?.Trim().Length ?? 1);
+            double w = charLen;
+            weights[i] = w;
+            totalWeight += w;
+        }
+
+        if (totalWeight <= 0.0)
+        {
+            totalWeight = totalWords;
+            for (int i = 0; i < totalWords; i++) weights[i] = 1.0;
+        }
+
+        double cumulativeWeight = 0.0;
         for (int i = 0; i < totalWords; i++)
         {
             var w = wordTimings[i];
+            double wordWeight = weights[i];
+
             if (currentPosition < w.Start)
             {
                 // Between words i-1 and i
-                return (double)i / totalWords;
+                return Math.Clamp(cumulativeWeight / totalWeight, 0.0, 1.0);
             }
 
             if (currentPosition >= w.Start && currentPosition <= w.End)
@@ -172,9 +195,11 @@ public static class LyricsFillProgressCalculator
                     ? (currentPosition - w.Start).TotalMilliseconds / wordDuration.TotalMilliseconds
                     : 1.0;
 
-                double totalWordProgress = (i + Math.Clamp(withinWord, 0.0, 1.0)) / totalWords;
-                return Math.Clamp(totalWordProgress, 0.0, 1.0);
+                double weightedProgress = (cumulativeWeight + (Math.Clamp(withinWord, 0.0, 1.0) * wordWeight)) / totalWeight;
+                return Math.Clamp(weightedProgress, 0.0, 1.0);
             }
+
+            cumulativeWeight += wordWeight;
         }
 
         return 1.0;
@@ -374,6 +399,55 @@ public static class LyricsFillProgressCalculator
         else
         {
             endTime = line.ResolvedEndTime;
+        }
+
+        if (line.Words != null && line.Words.Count > 0)
+        {
+            double overallWordProg = CalculateWordTimingProgress(currentPosition, line.StartTime, endTime, line.Words, line.Text);
+            if (subLines.Count == 1)
+            {
+                return new[] { overallWordProg };
+            }
+
+            int count = subLines.Count;
+            var results = new double[count];
+            if (overallWordProg <= 0.0) return results;
+            if (overallWordProg >= 1.0)
+            {
+                Array.Fill(results, 1.0);
+                return results;
+            }
+
+            int totalChars = 0;
+            for (int i = 0; i < count; i++)
+            {
+                totalChars += Math.Max(1, subLines[i]?.Trim().Length ?? 1);
+            }
+
+            double cumulativeRatio = 0.0;
+            for (int i = 0; i < count; i++)
+            {
+                int charWeight = Math.Max(1, subLines[i]?.Trim().Length ?? 1);
+                double subRatio = (double)charWeight / totalChars;
+                double subEndRatio = (i == count - 1) ? 1.0 : (cumulativeRatio + subRatio);
+
+                if (overallWordProg <= cumulativeRatio)
+                {
+                    results[i] = 0.0;
+                }
+                else if (overallWordProg >= subEndRatio || subRatio <= 0.0001)
+                {
+                    results[i] = 1.0;
+                }
+                else
+                {
+                    results[i] = Math.Clamp((overallWordProg - cumulativeRatio) / subRatio, 0.0, 1.0);
+                }
+
+                cumulativeRatio = subEndRatio;
+            }
+
+            return results;
         }
 
         return CalculateSequentialSubLineProgresses(subLines, currentPosition, line.StartTime, endTime);

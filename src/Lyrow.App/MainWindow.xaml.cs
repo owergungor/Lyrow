@@ -289,7 +289,7 @@ public sealed partial class MainWindow : Window
                 {
                     if (!_mediaMonitor.CanSeek)
                     {
-                        ShowToast(LocalizationService.Instance["Lyrics_SeekFailed"], InfoBarSeverity.Informational);
+                        ShowSeekUnsupportedWarning();
                     }
                     else
                     {
@@ -307,7 +307,7 @@ public sealed partial class MainWindow : Window
                 {
                     if (!_mediaMonitor.CanSeek)
                     {
-                        ShowToast(LocalizationService.Instance["Lyrics_SeekFailed"], InfoBarSeverity.Informational);
+                        ShowSeekUnsupportedWarning();
                     }
                     else
                     {
@@ -1946,6 +1946,9 @@ public sealed partial class MainWindow : Window
 
             if (bitmap != null)
             {
+                bool allowAnim = ArtworkBitmapManager.AreSystemAnimationsEnabled() && _settingsManager.Current.EnableAnimations;
+                bitmap.AutoPlay = allowAnim;
+                if (!allowAnim) { try { bitmap.Stop(); } catch { } }
                 HomeTrackArtwork.Opacity = 0.0;
                 HomeTrackArtwork.Source = bitmap;
                 var anim = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation { From = 0.0, To = 1.0, Duration = TimeSpan.FromMilliseconds(240) };
@@ -2166,6 +2169,35 @@ public sealed partial class MainWindow : Window
     public void ShowToast(string message, InfoBarSeverity severity = InfoBarSeverity.Informational, string? title = null, string? actionLabel = null, Action? onAction = null)
     {
         _toastManager?.ShowToast(message, title, severity, actionLabel, onAction);
+    }
+
+    private void ShowSeekUnsupportedWarning()
+    {
+        var loc = LocalizationService.Instance;
+        string? sourceAppId = _mediaMonitor?.SourceAppId;
+        if (MediaSessionProfileHelper.IsAppleMusicDesktop(sourceAppId))
+        {
+            ShowToast(
+                loc["Lyrics_AppleMusicDesktopSeekWarning"],
+                severity: InfoBarSeverity.Warning,
+                title: "Apple Music",
+                actionLabel: loc["Lyrics_OpenAppleMusicWeb"],
+                onAction: () =>
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo(MediaSessionProfileHelper.AppleMusicWebUrl)
+                        {
+                            UseShellExecute = true
+                        });
+                    }
+                    catch { }
+                });
+        }
+        else
+        {
+            ShowToast(loc["Lyrics_SeekFailed"], InfoBarSeverity.Informational);
+        }
     }
 
     public void ShowAndActivate()
@@ -2485,7 +2517,7 @@ public sealed partial class MainWindow : Window
         {
             if (_mediaMonitor != null && !_mediaMonitor.CanSeek)
             {
-                ShowToast(LocalizationService.Instance["Lyrics_SeekFailed"], InfoBarSeverity.Informational);
+                ShowSeekUnsupportedWarning();
                 e.Handled = true;
                 return;
             }
@@ -2522,7 +2554,8 @@ public sealed partial class MainWindow : Window
             {
                 var pt = e.GetCurrentPoint(GridHomeProgressHitBox).Position;
                 var targetTime = LyricsFillProgressCalculator.CalculateSeekTimeFromPointer(pt.X, w, dur);
-                await _mediaMonitor.TrySeekAsync(targetTime);
+                bool ok = await _mediaMonitor.TrySeekAsync(targetTime);
+                if (!ok) ShowSeekUnsupportedWarning();
             }
             e.Handled = true;
         };

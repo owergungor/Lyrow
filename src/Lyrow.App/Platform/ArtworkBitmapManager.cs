@@ -38,6 +38,16 @@ public sealed class ArtworkBitmapManager
         byte[]? rawBytes = track.ThumbnailData;
         if (rawBytes != null && rawBytes.Length > 0 && ArtworkService.IsValidImageData(rawBytes))
         {
+            if (ArtworkService.IsLowResolutionThumbnail(rawBytes))
+            {
+                // Attempt to upgrade low-resolution browser thumbnail (e.g. YouTube Music Web / Apple Music Web)
+                var upgraded = await _artworkService.GetArtworkBytesAsync(track, ct).ConfigureAwait(false);
+                if (upgraded != null && upgraded.Length > rawBytes.Length && ArtworkService.IsValidImageData(upgraded))
+                {
+                    rawBytes = upgraded;
+                }
+            }
+
             // If we have a cached version with greater or equal byte size, avoid overwriting with a lower-res thumbnail
             if (!_rawBytesCache.TryGetValue(key, out var existing) || existing == null || existing.Length <= rawBytes.Length)
             {
@@ -80,6 +90,10 @@ public sealed class ArtworkBitmapManager
                 AutoPlay = animationsEnabled
             };
             await image.SetSourceAsync(stream);
+            if (!animationsEnabled)
+            {
+                try { image.Stop(); } catch { }
+            }
             return image;
         }
         catch

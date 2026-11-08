@@ -187,6 +187,69 @@ public static class LyricsViewportCalculator
     public const double NormalToCompactHeightThreshold = 260.0;
 
     /// <summary>
+    /// Computes the exact required window size (logical and physical DPI-scaled pixels) for Compact Mode
+    /// with or without the 3-line expanded lyrics view, guaranteeing zero vertical or horizontal clipping.
+    /// </summary>
+    public static (int LogicalWidth, int LogicalHeight, int PhysicalWidth, int PhysicalHeight) CalculateCompactWindowSize(
+        bool isLyricsExpanded,
+        double dpiScale = 1.0)
+    {
+        double safeScale = Math.Clamp(dpiScale > 0 ? dpiScale : 1.0, 1.0, 4.0);
+        int logicalW = 500;
+        int logicalH = isLyricsExpanded ? 316 : 232;
+        int physW = (int)Math.Ceiling(logicalW * safeScale);
+        int physH = (int)Math.Ceiling(logicalH * safeScale);
+        return (logicalW, logicalH, physW, physH);
+    }
+
+    /// <summary>
+    /// Resolves the strictly 3-line compact lyrics viewport window (Previous, Active, Next) for a given active line index.
+    /// Returns empty strings for Previous at the start of the song or Next at the end of the song so the 3-slot layout never overflows.
+    /// </summary>
+    public static (string PreviousLine, string ActiveLine, string NextLine, int? PreviousIndex, int? ActiveIndex, int? NextIndex) GetCompactThreeLineWindow(
+        IReadOnlyList<Lyrow.Core.Models.LyricLine>? lines,
+        int activeIndex,
+        string? plainLyricsFallback = null)
+    {
+        if (lines == null || lines.Count == 0)
+        {
+            if (!string.IsNullOrWhiteSpace(plainLyricsFallback))
+            {
+                var split = plainLyricsFallback
+                    .Replace("\r\n", "\n")
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                string l0 = split.Length > 0 ? split[0] : string.Empty;
+                string l1 = split.Length > 1 ? split[1] : string.Empty;
+                string l2 = split.Length > 2 ? split[2] : string.Empty;
+                return (string.Empty, l0, !string.IsNullOrEmpty(l1) ? l1 : l2, null, null, null);
+            }
+            return (string.Empty, "♪", string.Empty, null, null, null);
+        }
+
+        if (activeIndex < 0)
+        {
+            // Before first timestamp begins: Active slot shows line 0, Next slot shows line 1, Previous is empty
+            string first = string.IsNullOrWhiteSpace(lines[0].Text) ? "♪" : lines[0].Text;
+            string second = lines.Count > 1 ? (string.IsNullOrWhiteSpace(lines[1].Text) ? "♪" : lines[1].Text) : string.Empty;
+            return (string.Empty, first, second, null, 0, lines.Count > 1 ? 1 : null);
+        }
+
+        int clampedActive = Math.Clamp(activeIndex, 0, lines.Count - 1);
+        int? prevIdx = clampedActive > 0 ? clampedActive - 1 : null;
+        int? nextIdx = clampedActive + 1 < lines.Count ? clampedActive + 1 : null;
+
+        string prevText = prevIdx.HasValue
+            ? (string.IsNullOrWhiteSpace(lines[prevIdx.Value].Text) ? "♪" : lines[prevIdx.Value].Text)
+            : string.Empty;
+        string activeText = string.IsNullOrWhiteSpace(lines[clampedActive].Text) ? "♪" : lines[clampedActive].Text;
+        string nextText = nextIdx.HasValue
+            ? (string.IsNullOrWhiteSpace(lines[nextIdx.Value].Text) ? "♪" : lines[nextIdx.Value].Text)
+            : string.Empty;
+
+        return (prevText, activeText, nextText, prevIdx, clampedActive, nextIdx);
+    }
+
+    /// <summary>
     /// Computes responsive player and lyrics metrics from the current window dimensions.
     /// Maintains 1:1 square artwork, aligns progress and volume bar widths with artwork width,
     /// and scales typography and control dimensions proportionally.
@@ -204,10 +267,10 @@ public static class LyricsViewportCalculator
         double playerAvailableW = isLyricsPanelVisible ? (safeW * 0.50) - 56.0 : safeW - 80.0;
         double playerAvailableH = safeH - 44.0; // Exclude title bar
 
-        // Artwork takes proportional height and width while leaving room for metadata + controls below it (~210-250px)
-        double maxArtByWidth = Math.Clamp(playerAvailableW * 0.78, 180.0, 560.0);
-        double maxArtByHeight = Math.Clamp(playerAvailableH - 225.0, 180.0, 560.0);
-        double artworkSize = Math.Round(Math.Clamp(Math.Min(maxArtByWidth, maxArtByHeight), 180.0, 560.0));
+        // Artwork takes proportional height and width while leaving room for metadata + controls below it (~235-260px)
+        double maxArtByWidth = Math.Clamp(playerAvailableW * 0.78, 160.0, 560.0);
+        double maxArtByHeight = Math.Clamp(playerAvailableH - 250.0, 160.0, 560.0);
+        double artworkSize = Math.Round(Math.Clamp(Math.Min(maxArtByWidth, maxArtByHeight), 160.0, 560.0));
 
         double scaleRatio = Math.Clamp(artworkSize / 300.0, 0.72, 1.75);
 

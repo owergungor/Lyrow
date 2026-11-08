@@ -38,6 +38,7 @@ public sealed partial class LyricsWindow : Window
     private readonly IMediaSessionMonitor? _mediaMonitor;
     private readonly IAudioVolumeService? _volumeService;
     private readonly IAudioCaptureService? _audioCaptureService;
+    private readonly IAudioRoutingService? _audioRoutingService;
     private readonly ToastNotificationManager? _toastManager;
     private readonly DispatcherTimer _uiTimer;
     private bool _isUpdatingVolumeUi = false;
@@ -99,7 +100,8 @@ public sealed partial class LyricsWindow : Window
         IMediaSessionMonitor? mediaMonitor = null,
         IAudioVolumeService? volumeService = null,
         ToastNotificationManager? toastManager = null,
-        IAudioCaptureService? audioCaptureService = null)
+        IAudioCaptureService? audioCaptureService = null,
+        IAudioRoutingService? audioRoutingService = null)
     {
         InitializeComponent();
         _lyricsModule = lyricsModule;
@@ -109,8 +111,12 @@ public sealed partial class LyricsWindow : Window
         _artworkBitmapManager = artworkBitmapManager;
         _mediaMonitor = mediaMonitor;
         _volumeService = volumeService;
-        _toastManager = toastManager;
+        // Window-scoped notification ownership: LyricsWindow owns its own ToastNotificationManager bound to LyricsToastContainer
+        _toastManager = LyricsToastContainer != null
+            ? new ToastNotificationManager(LyricsToastContainer, DispatcherQueue)
+            : toastManager;
         _audioCaptureService = audioCaptureService ?? (App.Services?.GetService(typeof(IAudioCaptureService)) as IAudioCaptureService);
+        _audioRoutingService = audioRoutingService ?? (App.Services?.GetService(typeof(IAudioRoutingService)) as IAudioRoutingService);
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(LyricsTitleBar);
@@ -461,10 +467,7 @@ public sealed partial class LyricsWindow : Window
         {
             if (_mediaMonitor != null && !_mediaMonitor.CanSeek)
             {
-                _toastManager?.ShowToast(
-                LocalizationService.Instance["Lyrics_SeekFailed"],
-                title: LocalizationService.Instance["Lyrics_Title"],
-                    severity: InfoBarSeverity.Informational);
+                ShowSeekUnsupportedWarning();
                 e.Handled = true;
                 return;
             }
@@ -789,6 +792,13 @@ public sealed partial class LyricsWindow : Window
 
             if (bitmap != null)
             {
+                bool allowAnim = ArtworkBitmapManager.AreSystemAnimationsEnabled() && _settingsManager.Current.EnableAnimations;
+                bitmap.AutoPlay = allowAnim;
+                if (!allowAnim)
+                {
+                    try { bitmap.Stop(); } catch { }
+                }
+
                 ImgTrackArtwork.Opacity = 0.0;
                 ImgTrackArtworkCompact.Opacity = 0.0;
                 ImgTrackArtwork.Source = bitmap;
@@ -1036,7 +1046,8 @@ public sealed partial class LyricsWindow : Window
                 {
                     var renderLine = _currentRenderedLines[i];
                     var tline = _lyricsModule.CurrentTimeline;
-                    var cPos = tline.GetInterpolatedPosition();
+                    var cPos = tline.GetInterpolatedPosition() + TimeSpan.FromMilliseconds(_lyricsModule.Synchronizer.SyncOffsetMs);
+                    if (cPos < TimeSpan.Zero) cPos = TimeSpan.Zero;
                     TimeSpan? nTs = (i + 1 < _currentRenderedLines.Count) ? _currentRenderedLines[i + 1].Timestamp : null;
                     var subProgresses = LyricsFillProgressCalculator.CalculateSequentialSubLineProgresses(renderLine, subStrings, cPos, nTs);
 
@@ -1169,7 +1180,8 @@ public sealed partial class LyricsWindow : Window
             ? _lyricsModule.CurrentTimeline
             : (_mediaMonitor?.CurrentTimeline ?? MediaTimelineInfo.Zero);
 
-        var currentPos = timeline.GetInterpolatedPosition();
+        var currentPos = timeline.GetInterpolatedPosition() + TimeSpan.FromMilliseconds(_lyricsModule.Synchronizer.SyncOffsetMs);
+        if (currentPos < TimeSpan.Zero) currentPos = TimeSpan.Zero;
         var trackDur = _lyricsModule.CurrentTrack.Duration > TimeSpan.Zero
             ? _lyricsModule.CurrentTrack.Duration
             : (timeline.Duration > TimeSpan.Zero ? timeline.Duration : (TimeSpan?)null);
@@ -1214,7 +1226,8 @@ public sealed partial class LyricsWindow : Window
                             currentPos,
                             line.StartTime,
                             nextTimestamp,
-                            line.Words);
+                            line.Words,
+                            line.Text);
                         clipList[0].Rect = new Windows.Foundation.Rect(0, 0, progress * actualW, actualH);
                     }
                     continue;
@@ -1291,7 +1304,7 @@ public sealed partial class LyricsWindow : Window
         // automatically switch back to Horizontal normal mode while preserving user's resized window dimensions.
         if (_currentMode == LyricsWindowMode.Compact)
         {
-            if (w >= LyricsViewportCalculator.CompactToNormalWidthThreshold && h >= 320.0)
+            if (!_isCompactLyricsExpanded && w >= LyricsViewportCalculator.CompactToNormalWidthThreshold && h >= 320.0)
             {
                 SetWindowMode(LyricsWindowMode.Horizontal, resizeWindow: false);
             }
@@ -1415,15 +1428,46 @@ public sealed partial class LyricsWindow : Window
         }
     }
 
+    private void ShowSeekUnsupportedWarning()
+    {
+        var loc = LocalizationService.Instance;
+        string? sourceAppId = _mediaMonitor?.SourceAppId;
+        if (MediaSessionProfileHelper.IsAppleMusicDesktop(sourceAppId))
+        {
+            _toastManager?.ShowToast(
+                loc["Lyrics_AppleMusicDesktopSeekWarning"],
+                title: "Apple Music",
+                severity: InfoBarSeverity.Warning,
+                actionLabel: loc["Lyrics_OpenAppleMusicWeb"],
+                onAction: OpenAppleMusicWebInBrowser);
+        }
+        else
+        {
+            _toastManager?.ShowToast(
+                loc["Lyrics_SeekFailed"],
+                title: loc["Lyrics_Title"],
+                severity: InfoBarSeverity.Informational);
+        }
+    }
+
+    private static void OpenAppleMusicWebInBrowser()
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(MediaSessionProfileHelper.AppleMusicWebUrl)
+            {
+                UseShellExecute = true
+            });
+        }
+        catch { }
+    }
+
     private async Task SeekToMediaPositionAsync(TimeSpan timestamp)
     {
         if (_mediaMonitor == null) return;
         if (!_mediaMonitor.CanSeek)
         {
-            _toastManager?.ShowToast(
-                LocalizationService.Instance["Lyrics_SeekFailed"],
-                title: "Seek",
-                severity: InfoBarSeverity.Informational);
+            ShowSeekUnsupportedWarning();
             return;
         }
 
@@ -1432,10 +1476,7 @@ public sealed partial class LyricsWindow : Window
         bool ok = await _mediaMonitor.TrySeekAsync(timestamp);
         if (!ok)
         {
-            _toastManager?.ShowToast(
-                LocalizationService.Instance["Lyrics_SeekFailed"],
-                title: "Seek",
-                severity: InfoBarSeverity.Warning);
+            ShowSeekUnsupportedWarning();
         }
         else
         {
@@ -1449,10 +1490,7 @@ public sealed partial class LyricsWindow : Window
         if (_mediaMonitor == null) return;
         if (!_mediaMonitor.CanSeek)
         {
-            _toastManager?.ShowToast(
-                LocalizationService.Instance["Lyrics_SeekFailed"],
-                title: "Seek",
-                severity: InfoBarSeverity.Informational);
+            ShowSeekUnsupportedWarning();
             return;
         }
 
@@ -1463,10 +1501,7 @@ public sealed partial class LyricsWindow : Window
         bool ok = await _mediaMonitor.TrySeekAsync(timestamp);
         if (!ok)
         {
-            _toastManager?.ShowToast(
-                LocalizationService.Instance["Lyrics_SeekFailed"],
-                title: "Seek",
-                severity: InfoBarSeverity.Warning);
+            ShowSeekUnsupportedWarning();
         }
         else
         {
@@ -1534,6 +1569,33 @@ public sealed partial class LyricsWindow : Window
 
         FlyoutAudioDevices.Opening += (_, _) => PopulateAudioDeviceFlyout(FlyoutAudioDevices);
         FlyoutAudioDevicesCompact.Opening += (_, _) => PopulateAudioDeviceFlyout(FlyoutAudioDevicesCompact);
+
+        if (_audioCaptureService != null)
+        {
+            _audioCaptureService.DeviceChanged += (_, dev) =>
+            {
+                DispatcherQueue?.TryEnqueue(() =>
+                {
+                    _volumeService?.RefreshAndReconnect();
+                    SyncVolumeUi();
+                    UpdateOutputDeviceUi();
+                });
+            };
+
+            _audioCaptureService.CaptureFaulted += (_, err) =>
+            {
+                DispatcherQueue?.TryEnqueue(() =>
+                {
+                    _volumeService?.RefreshAndReconnect();
+                    SyncVolumeUi();
+                    UpdateOutputDeviceUi();
+                    _toastManager?.ShowToast(
+                        err.Message,
+                        title: "Audio Output",
+                        severity: InfoBarSeverity.Warning);
+                });
+            };
+        }
     }
 
     private void PopulateAudioDeviceFlyout(MenuFlyout flyout)
@@ -1576,6 +1638,10 @@ public sealed partial class LyricsWindow : Window
                 {
                     try
                     {
+                        bool switchedSystemOutput = _audioRoutingService?.SetDefaultPlaybackDevice(dev.Id) ?? false;
+                        _settingsManager.Current.Glow.PreferredDeviceId = dev.Id;
+                        _ = _settingsManager.SaveAsync(_settingsManager.Current);
+
                         if (_audioCaptureService != null)
                         {
                             if (_audioCaptureService.IsCapturing)
@@ -1583,10 +1649,26 @@ public sealed partial class LyricsWindow : Window
                                 await _audioCaptureService.StopAsync();
                             }
                             await _audioCaptureService.StartAsync(dev.Id);
-                            UpdateOutputDeviceUi();
                         }
+
+                        _volumeService?.RefreshAndReconnect();
+                        SyncVolumeUi();
+                        UpdateOutputDeviceUi();
+
+                        _toastManager?.ShowToast(
+                            switchedSystemOutput
+                                ? $"Switched audio output to {dev.Name}"
+                                : $"Bound audio analysis to {dev.Name}",
+                            title: "Audio Output",
+                            severity: InfoBarSeverity.Success);
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        _toastManager?.ShowToast(
+                            $"Could not switch audio device: {ex.Message}",
+                            title: "Audio Output",
+                            severity: InfoBarSeverity.Warning);
+                    }
                 };
 
                 flyout.Items.Add(item);
@@ -1622,15 +1704,13 @@ public sealed partial class LyricsWindow : Window
 
     private void ResizeCompactWithLyrics()
     {
-        int logicalW = 500;
-        int logicalH = 490;
+        var (logicalW, logicalH, _, _) = LyricsViewportCalculator.CalculateCompactWindowSize(true, 1.0);
         try
         {
             var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             uint dpi = GetDpiForWindow(hwnd);
             double scale = dpi > 0 ? (dpi / 96.0) : 1.0;
-            int physW = (int)Math.Round(logicalW * scale);
-            int physH = (int)Math.Round(logicalH * scale);
+            var (_, _, physW, physH) = LyricsViewportCalculator.CalculateCompactWindowSize(true, scale);
 
             var displayArea = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(AppWindow.Id, Microsoft.UI.Windowing.DisplayAreaFallback.Primary);
             var workArea = displayArea.WorkArea;
@@ -1655,73 +1735,72 @@ public sealed partial class LyricsWindow : Window
         _compactLineBlocks.Clear();
         _currentCompactActiveIndex = -99;
 
-        if (lyrics == null || lyrics.Lines.Count == 0)
+        // Strictly 3 lines: [0] Previous Line, [1] Active Line, [2] Next Line
+        for (int slot = 0; slot < 3; slot++)
         {
-            var empty = new TextBlock
-            {
-                Text = !string.IsNullOrEmpty(lyrics?.PlainLyrics) ? lyrics.PlainLyrics : "Searching for synchronized lyrics...",
-                FontSize = 13,
-                TextWrapping = TextWrapping.Wrap,
-                Opacity = 0.7,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                TextAlignment = TextAlignment.Center
-            };
-            CompactLyricsPanel.Children.Add(empty);
-            return;
-        }
-
-        for (int i = 0; i < lyrics.Lines.Count; i++)
-        {
-            var line = lyrics.Lines[i];
+            bool isMiddleActive = slot == 1;
             var block = new TextBlock
             {
-                Text = line.Text,
-                FontSize = 13,
-                FontWeight = FontWeights.Normal,
-                Opacity = 0.45,
+                Text = string.Empty,
+                FontSize = isMiddleActive ? 14.5 : 12.5,
+                FontWeight = isMiddleActive ? FontWeights.Bold : FontWeights.Normal,
+                Opacity = isMiddleActive ? 1.0 : 0.48,
                 TextAlignment = TextAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxLines = 1
             };
 
-            var targetLine = line;
+            int capturedSlot = slot;
             block.PointerPressed += async (_, _) =>
             {
-                await SeekToLyricLineAsync(targetLine.Timestamp);
+                var currentLyrics = _lastCompactLyrics;
+                if (currentLyrics == null || currentLyrics.Lines.Count == 0) return;
+                int baseIdx = _lyricsModule.ActiveLineIndex >= 0 ? _lyricsModule.ActiveLineIndex : 0;
+                int targetIdx = baseIdx + (capturedSlot - 1);
+                if (targetIdx >= 0 && targetIdx < currentLyrics.Lines.Count)
+                {
+                    await SeekToLyricLineAsync(currentLyrics.Lines[targetIdx].Timestamp);
+                }
             };
 
             _compactLineBlocks.Add(block);
             CompactLyricsPanel.Children.Add(block);
         }
+
+        UpdateCompactActiveLine(_lyricsModule.ActiveLineIndex);
     }
 
     private void UpdateCompactActiveLine(int activeIdx)
     {
-        if (_compactLineBlocks.Count == 0 || activeIdx == _currentCompactActiveIndex) return;
+        if (_compactLineBlocks.Count < 3)
+        {
+            RebuildCompactLyricsUi(_lyricsModule.CurrentLyrics);
+            if (_compactLineBlocks.Count < 3) return;
+        }
+
+        if (activeIdx == _currentCompactActiveIndex && _lastCompactLyrics != null) return;
         _currentCompactActiveIndex = activeIdx;
 
-        for (int i = 0; i < _compactLineBlocks.Count; i++)
-        {
-            var b = _compactLineBlocks[i];
-            if (i == activeIdx)
-            {
-                b.FontWeight = FontWeights.Bold;
-                b.Opacity = 1.0;
-                b.FontSize = 14.5;
-            }
-            else
-            {
-                int dist = Math.Abs(i - activeIdx);
-                b.FontWeight = FontWeights.Normal;
-                b.Opacity = dist == 1 ? 0.60 : 0.35;
-                b.FontSize = 13.0;
-            }
-        }
+        var lyrics = _lastCompactLyrics ?? _lyricsModule.CurrentLyrics;
+        var (prevText, activeText, nextText, _, _, _) = LyricsViewportCalculator.GetCompactThreeLineWindow(
+            lyrics?.Lines,
+            activeIdx,
+            lyrics?.PlainLyrics);
 
-        if (activeIdx >= 0 && activeIdx < _compactLineBlocks.Count)
-        {
-            var target = _compactLineBlocks[activeIdx];
-            target.StartBringIntoView();
-        }
+        _compactLineBlocks[0].Text = prevText;
+        _compactLineBlocks[0].FontWeight = FontWeights.Normal;
+        _compactLineBlocks[0].Opacity = 0.48;
+        _compactLineBlocks[0].FontSize = 12.5;
+
+        _compactLineBlocks[1].Text = activeText;
+        _compactLineBlocks[1].FontWeight = FontWeights.Bold;
+        _compactLineBlocks[1].Opacity = 1.0;
+        _compactLineBlocks[1].FontSize = 14.5;
+
+        _compactLineBlocks[2].Text = nextText;
+        _compactLineBlocks[2].FontWeight = FontWeights.Normal;
+        _compactLineBlocks[2].Opacity = 0.48;
+        _compactLineBlocks[2].FontSize = 12.5;
     }
 }

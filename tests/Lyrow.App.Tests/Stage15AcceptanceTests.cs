@@ -139,6 +139,7 @@ public class Stage15AcceptanceTests
             "github.com",
             "api.github.com",
             "lrclib.net",
+            "apple.com",
             "schemas.microsoft.com",
             "go.microsoft.com",
             "xceed.com" // FluentAssertions license header
