@@ -303,15 +303,14 @@
                             </Grid>
 
                             <!-- Row 2: Bottom Horizontal Control Bar: Left Volume/Device, Center Prev/Play-Pause/Next, Right Lyrics & Normal Mode -->
-                            <Grid x:Name="CompactControlsRow" Grid.Row="2" Margin="0,4,0,0" ColumnDefinitions="*,Auto,*">
+                            <Grid x:Name="CompactControlsRow" Grid.Row="2" Margin="0,4,0,0" ColumnDefinitions="Auto,*,Auto">
                                 <!-- Left: Volume/Mute + Audio Output Device Selector -->
-                                <StackPanel x:Name="CompactLeftControlsPanel" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="2">
+                                <StackPanel x:Name="CompactLeftControlsPanel" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="3">
                                     <Button x:Name="BtnVolumeMuteCompact" Width="26" Height="26" Padding="0" CornerRadius="6"
-                                            Background="Transparent" BorderThickness="0"
-                                            ToolTipService.ToolTip="Volume"
-                                            AutomationProperties.Name="Volume">
+                                            ToolTipService.ToolTip="Volume &amp; Mute"
+                                            AutomationProperties.Name="Volume and Mute">
                                         <FontIcon x:Name="IconVolumeMuteCompact" Glyph="&#xE767;" FontSize="11"
-                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                  Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                                         <Button.Flyout>
                                             <Flyout x:Name="FlyoutVolumeCompact" Placement="TopEdgeAlignedLeft" ShouldConstrainToRootBounds="False">
                                                 <Flyout.FlyoutPresenterStyle>
@@ -331,15 +330,15 @@
                                                             CornerRadius="6" Background="Transparent" BorderThickness="0"
                                                             ToolTipService.ToolTip="Mute / Unmute" AutomationProperties.Name="Mute or Unmute">
                                                         <FontIcon x:Name="IconPopupMuteCompact" Glyph="&#xE74F;" FontSize="12"
-                                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                                  Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                                                     </Button>
                                                     <Slider x:Name="SliderVolumeCompact" Grid.Column="1" Minimum="0" Maximum="100" Value="80"
                                                             VerticalAlignment="Center" HorizontalAlignment="Stretch" />
                                                     <Button x:Name="BtnPopupVolumeMaxCompact" Grid.Column="2" Width="26" Height="26" Padding="0"
                                                             CornerRadius="6" Background="Transparent" BorderThickness="0"
-                                                            ToolTipService.ToolTip="Volume" AutomationProperties.Name="Max Volume">
+                                                            ToolTipService.ToolTip="Max Volume" AutomationProperties.Name="Max Volume">
                                                         <FontIcon x:Name="IconPopupVolumeRightCompact" Glyph="&#xE767;" FontSize="12"
-                                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                                  Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                                                     </Button>
                                                 </Grid>
                                             </Flyout>
@@ -352,14 +351,14 @@
                                                     Background="Transparent"
                                                     BorderBrush="Transparent"
                                                     BorderThickness="0"
-                                                    Opacity="0.8"
-                                                    ToolTipService.ToolTip="Audio Output &amp; Analysis Endpoint (Click to change)">
+                                                    Opacity="0.85"
+                                                    ToolTipService.ToolTip="Audio Output Endpoint (Click to change)">
                                         <DropDownButton.Content>
                                             <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
                                                 <FontIcon x:Name="IconDeviceCompact" Glyph="&#xE767;" FontSize="10"
-                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                <TextBlock x:Name="TxtDeviceCompact" Text="Speakers" FontSize="10.5"
-                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxWidth="82" TextTrimming="CharacterEllipsis" />
+                                                          Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                <TextBlock x:Name="TxtDeviceCompact" Text="Speakers" FontSize="10"
+                                                           Foreground="{ThemeResource TextFillColorPrimaryBrush}" MaxWidth="60" TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
                                         </DropDownButton.Content>
                                         <DropDownButton.Flyout>

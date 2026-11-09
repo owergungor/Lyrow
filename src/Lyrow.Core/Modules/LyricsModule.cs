@@ -22,6 +22,7 @@ public sealed class LyricsModule : ILyrowModule
     private CancellationTokenSource? _currentTrackCts;
     private long _trackSequence = 0;
     private SyncedLyrics _currentLyrics = SyncedLyrics.Empty;
+    private string _currentLyricsSongKey = string.Empty;
     private MediaTrackInfo _currentTrack = MediaTrackInfo.Empty;
     private MediaTimelineInfo _currentTimeline = MediaTimelineInfo.Zero;
     private int _activeLineIndex = -1;
@@ -53,6 +54,7 @@ public sealed class LyricsModule : ILyrowModule
     public Exception? LastFault { get; private set; }
 
     public SyncedLyrics CurrentLyrics => _currentLyrics;
+    public string CurrentLyricsSongKey => _currentLyricsSongKey;
     public MediaTrackInfo CurrentTrack => _currentTrack;
     public MediaTimelineInfo CurrentTimeline => _currentTimeline;
     public int ActiveLineIndex => _synchronizer.CurrentActiveIndex;
@@ -218,6 +220,12 @@ public sealed class LyricsModule : ILyrowModule
     private void OnTrackChanged(object? sender, MediaTrackInfo track)
     {
         if (State != ModuleState.Running) return;
+        // Invalidate previous track lyrics immediately on event dispatch
+        _currentLyrics = SyncedLyrics.Empty;
+        _currentLyricsSongKey = string.Empty;
+        _activeLineIndex = -1;
+        _synchronizer.Reset();
+        _synchronizer.SetLyrics(SyncedLyrics.Empty);
         _ = HandleTrackChangedAsync(track, _activeCts?.Token ?? CancellationToken.None);
     }
 
@@ -313,6 +321,7 @@ public sealed class LyricsModule : ILyrowModule
         _synchronizer.SetLyrics(SyncedLyrics.Empty);
         _synchronizer.UpdateTimeline(_currentTimeline);
         _currentLyrics = SyncedLyrics.Empty;
+        _currentLyricsSongKey = string.Empty;
 
         trackCts = _activeCts != null
             ? CancellationTokenSource.CreateLinkedTokenSource(ct, _activeCts.Token)
@@ -348,6 +357,7 @@ public sealed class LyricsModule : ILyrowModule
             if (cached != null)
             {
                 _currentLyrics = cached;
+                _currentLyricsSongKey = $"{incomingArtist}_{incomingTitle}";
                 _synchronizer.SetLyrics(cached);
                 _synchronizer.UpdateTimeline(_currentTimeline);
 
@@ -386,6 +396,7 @@ public sealed class LyricsModule : ILyrowModule
             if (result.Found && result.Lyrics != null)
             {
                 _currentLyrics = result.Lyrics;
+                _currentLyricsSongKey = $"{incomingArtist}_{incomingTitle}";
                 _synchronizer.SetLyrics(result.Lyrics);
                 _synchronizer.UpdateTimeline(_currentTimeline);
 

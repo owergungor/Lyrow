@@ -1751,7 +1751,15 @@ public sealed partial class MainWindow : Window
 
                 if (_lyricsWindow == null && _lyricsModule != null)
                 {
-                    _lyricsWindow = new LyricsWindow(_lyricsModule, _settingsManager, _artworkBitmapManager, _mediaMonitor, _volumeService, _toastManager);
+                    _lyricsWindow = new LyricsWindow(
+                        _lyricsModule,
+                        _settingsManager,
+                        _artworkBitmapManager,
+                        _mediaMonitor,
+                        _volumeService,
+                        _toastManager,
+                        App.Services?.GetService<IAudioCaptureService>(),
+                        App.Services?.GetService<IAudioRoutingService>());
                     _lyricsWindow.Closed += (_, _) =>
                     {
                         _lyricsWindow = null;

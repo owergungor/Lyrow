@@ -406,18 +406,16 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             return (pos, nowUtc);
         }
 
-        // 2. Protect automatic track transition window: if track switched recently without a seek on the new track
-        // and GSMTC still reports the previous track's end position, reset to elapsed time since the switch.
-        bool isPostSwitchWindow = lastTrackSwitchUtc != DateTime.MinValue &&
-                                  lastSeekUtc <= lastTrackSwitchUtc &&
-                                  (nowUtc - lastTrackSwitchUtc).TotalSeconds is >= 0 and <= 2.5;
-        if (isPostSwitchWindow && pos > TimeSpan.FromSeconds(5.0))
+        // 2. Protect track session: if track switched and no user seek occurred on the new track,
+        // the track's elapsed position can NEVER exceed the elapsed real-time since the track switch.
+        // This eliminates cumulative playlist / video compilation / carryover time from previous tracks
+        // (e.g. Song A 2 min + Song B 19s = 2:19 clamped cleanly to 00:19).
+        if (lastTrackSwitchUtc != DateTime.MinValue && lastSeekUtc <= lastTrackSwitchUtc)
         {
-            if (!gsmtcReportedUtc.HasValue || gsmtcReportedUtc.Value <= lastTrackSwitchUtc)
+            var maxPossibleElapsed = nowUtc > lastTrackSwitchUtc ? (nowUtc - lastTrackSwitchUtc) : TimeSpan.Zero;
+            if (pos > maxPossibleElapsed + TimeSpan.FromSeconds(2.0))
             {
-                pos = status == MediaPlaybackStatus.Playing
-                    ? (nowUtc - lastTrackSwitchUtc)
-                    : TimeSpan.Zero;
+                pos = status == MediaPlaybackStatus.Playing ? maxPossibleElapsed : TimeSpan.Zero;
                 if (trackDuration > TimeSpan.Zero && pos > trackDuration)
                 {
                     pos = trackDuration;
@@ -444,7 +442,10 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             var delta = nowUtc - effectiveReportedUtc;
             if (status == MediaPlaybackStatus.Playing && delta.TotalSeconds >= 0 && delta.TotalHours < 24)
             {
-                pos += delta;
+                if (delta.TotalSeconds is > 0.05 and <= 5.0)
+                {
+                    pos += delta;
+                }
                 if (trackDuration > TimeSpan.Zero && pos > trackDuration)
                 {
                     pos = trackDuration;

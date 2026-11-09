@@ -66,6 +66,7 @@ public sealed partial class LyricsWindow : Window
     private int _lastFontScaleIndex = -1;
     private double _lastFocusedSize = -1;
     private double _lastUnfocusedSize = -1;
+    private DateTime _trackResetUtc = DateTime.MinValue;
     private double _lastAppliedResponsiveArtworkSize = -1;
     private double _lastResponsiveFocusedSize = 28.0;
     private double _lastResponsiveUnfocusedSize = 20.0;
@@ -618,6 +619,7 @@ public sealed partial class LyricsWindow : Window
     public void ResetTrackState(MediaTrackInfo newTrack)
     {
         UpdateScrubberToolTips();
+        _trackResetUtc = DateTime.UtcNow;
         long currentSeq = Interlocked.Increment(ref _windowTrackSequence);
         _lastSongKey = $"{newTrack.Artist}_{newTrack.Title}";
         _lastArtworkSignature = ArtworkBitmapManager.ComputeArtworkSignature(newTrack);
@@ -779,6 +781,16 @@ public sealed partial class LyricsWindow : Window
         var pos = timeline.GetInterpolatedPosition();
         var dur = track.Duration > TimeSpan.Zero ? track.Duration : timeline.Duration;
 
+        // Guard against elapsed time carryover from previous track during the post-transition window
+        if (!_isDraggingProgressBar && _trackResetUtc != DateTime.MinValue && (DateTime.UtcNow - _trackResetUtc).TotalSeconds < 3.0)
+        {
+            var maxAllowedPos = DateTime.UtcNow - _trackResetUtc;
+            if (pos > maxAllowedPos + TimeSpan.FromSeconds(2.0))
+            {
+                pos = maxAllowedPos;
+            }
+        }
+
         if (dur > TimeSpan.Zero && pos > dur) pos = dur;
         if (pos < TimeSpan.Zero) pos = TimeSpan.Zero;
 
@@ -826,30 +838,54 @@ public sealed partial class LyricsWindow : Window
         double unfocusedSize = _settingsManager.Current.UnfocusedLyricFontSize > 0 ? _settingsManager.Current.UnfocusedLyricFontSize : 20.0;
         int fontScaleIndex = _settingsManager.Current.LyricsFontScaleIndex;
 
-        if (!ReferenceEquals(lyrics, _lastLyrics) || fontScaleIndex != _lastFontScaleIndex ||
-            Math.Abs(focusedSize - _lastFocusedSize) > 0.5 || Math.Abs(unfocusedSize - _lastUnfocusedSize) > 0.5)
-        {
-            _lastLyrics = lyrics;
-            _lastFontScaleIndex = fontScaleIndex;
-            _lastFocusedSize = focusedSize;
-            _lastUnfocusedSize = unfocusedSize;
-            RebuildLyricsUi(lyrics);
-        }
+        // Strictly guard against previous track lyrics remaining on screen
+        string expectedSongKey = $"{track.Artist}_{track.Title}";
+        bool lyricsBelongsToCurrentTrack = !string.IsNullOrEmpty(_lyricsModule.CurrentLyricsSongKey) &&
+                                           string.Equals(_lyricsModule.CurrentLyricsSongKey, expectedSongKey, StringComparison.OrdinalIgnoreCase);
 
-        // Active line synchronization
-        int activeIdx = _lyricsModule.ActiveLineIndex;
-        if (activeIdx != _currentActiveIndex)
+        if (!lyricsBelongsToCurrentTrack || lyrics == null || lyrics.Lines.Count == 0)
         {
-            UpdateActiveLineTargets(activeIdx, immediate: _currentActiveIndex == -99);
-        }
-
-        if (_currentMode == LyricsWindowMode.Compact && _isCompactLyricsExpanded)
-        {
-            if (!ReferenceEquals(lyrics, _lastCompactLyrics))
+            if (_currentRenderedLines.Count > 0)
             {
-                RebuildCompactLyricsUi(lyrics);
+                LyricsPanel.Children.Clear();
+                _lineContainers.Clear();
+                _currentRenderedLines.Clear();
+                LyricsScrollViewer.Visibility = Visibility.Collapsed;
+                PanelEmptyState.Visibility = Visibility.Visible;
             }
-            UpdateCompactActiveLine(activeIdx);
+            if (_compactLineBlocks.Count > 0)
+            {
+                CompactLyricsPanel.Children.Clear();
+                _compactLineBlocks.Clear();
+            }
+        }
+        else
+        {
+            if (!ReferenceEquals(lyrics, _lastLyrics) || fontScaleIndex != _lastFontScaleIndex ||
+                Math.Abs(focusedSize - _lastFocusedSize) > 0.5 || Math.Abs(unfocusedSize - _lastUnfocusedSize) > 0.5)
+            {
+                _lastLyrics = lyrics;
+                _lastFontScaleIndex = fontScaleIndex;
+                _lastFocusedSize = focusedSize;
+                _lastUnfocusedSize = unfocusedSize;
+                RebuildLyricsUi(lyrics);
+            }
+
+            // Active line synchronization
+            int activeIdx = _lyricsModule.ActiveLineIndex;
+            if (activeIdx != _currentActiveIndex)
+            {
+                UpdateActiveLineTargets(activeIdx, immediate: _currentActiveIndex == -99);
+            }
+
+            if (_currentMode == LyricsWindowMode.Compact && _isCompactLyricsExpanded)
+            {
+                if (!ReferenceEquals(lyrics, _lastCompactLyrics))
+                {
+                    RebuildCompactLyricsUi(lyrics);
+                }
+                UpdateCompactActiveLine(activeIdx);
+            }
         }
 
         // 60 FPS smooth visual interpolation
@@ -1749,6 +1785,16 @@ public sealed partial class LyricsWindow : Window
                 {
                     try
                     {
+                        // 1. Immediately update UI labels & glyph for immediate tactile feedback
+                        TxtDevice.Text = dev.Name;
+                        TxtDeviceCompact.Text = dev.Name;
+                        string immediateGlyph = dev.Name.ToLowerInvariant().Contains("headphone") || dev.Name.ToLowerInvariant().Contains("headset")
+                            ? "\uE7F6"
+                            : (dev.Name.ToLowerInvariant().Contains("bluetooth") ? "\uE702" : "\uE767");
+                        IconDevice.Glyph = immediateGlyph;
+                        IconDeviceCompact.Glyph = immediateGlyph;
+
+                        // 2. Set default Windows audio playback device endpoint
                         bool switchedSystemOutput = _audioRoutingService?.SetDefaultPlaybackDevice(dev.Id) ?? false;
                         _settingsManager.Current.Glow.PreferredDeviceId = dev.Id;
                         _ = _settingsManager.SaveAsync(_settingsManager.Current);
@@ -1761,6 +1807,9 @@ public sealed partial class LyricsWindow : Window
                             }
                             await _audioCaptureService.StartAsync(dev.Id);
                         }
+
+                        // Allow CoreAudio endpoint change to settle before polling new default
+                        await Task.Delay(100);
 
                         _volumeService?.RefreshAndReconnect();
                         SyncVolumeUi();

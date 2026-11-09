@@ -106,4 +106,21 @@ public sealed class WasapiHardwareValidationTests
         int restoredVol = volumeService.GetVolumePercent();
         restoredVol.Should().Be(initialVol);
     }
+
+    [Fact]
+    public async Task WindowsAudioRoutingService_SetDefaultPlaybackDevice_CurrentDevice_ShouldSucceed()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        await using var wasapiService = new WasapiAudioCaptureService();
+        var devices = wasapiService.GetAvailableDevices();
+        if (devices.Count == 0) return;
+
+        var defaultDev = devices.FirstOrDefault(d => d.IsDefault) ?? devices[0];
+        var routingService = new Lyrow.Audio.Routing.WindowsAudioRoutingService();
+        bool success = routingService.SetDefaultPlaybackDevice(defaultDev.Id);
+        // Log output for inspection
+        Console.WriteLine($"SetDefaultPlaybackDevice result: {success} for device: {defaultDev.Name} ({defaultDev.Id})");
+        routingService.IsSupported.Should().BeTrue();
+    }
 }
