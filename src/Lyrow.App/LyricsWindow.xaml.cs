@@ -58,6 +58,7 @@ public sealed partial class LyricsWindow : Window
     private SyncedLyrics? _lastCompactLyrics = null;
     private int _currentCompactActiveIndex = -99;
     private readonly List<TextBlock> _compactLineBlocks = new();
+    private readonly int?[] _compactSlotLineIndices = new int?[3];
 
     private long _windowTrackSequence = 0;
     private int _lastArtworkSignature = 0;
@@ -207,11 +208,56 @@ public sealed partial class LyricsWindow : Window
                 SyncVolumeUi();
             };
 
-            if (BtnVolumeMuteCompact != null)
+            if (FlyoutVolumeCompact != null)
             {
-                BtnVolumeMuteCompact.Click += (_, _) =>
+                FlyoutVolumeCompact.Opening += (_, _) => SyncVolumeUi();
+            }
+
+            if (SliderVolumeCompact != null)
+            {
+                SliderVolumeCompact.ValueChanged += (_, e) =>
+                {
+                    if (_isUpdatingVolumeUi) return;
+                    _isUpdatingVolumeUi = true;
+                    try
+                    {
+                        int val = Math.Clamp((int)Math.Round(e.NewValue), 0, 100);
+                        _volumeService.SetPlaybackVolumePercent(val);
+                        SliderVolume.Value = val;
+                        TxtVolumePercent.Text = $"{val}%";
+                        string glyph = (val == 0 || _volumeService.IsPlaybackMuted) ? "\uE74F" : "\uE767";
+                        IconVolumeMute.Glyph = glyph;
+                        if (IconVolumeMuteCompact != null) IconVolumeMuteCompact.Glyph = glyph;
+                        if (IconPopupMuteCompact != null) IconPopupMuteCompact.Glyph = (val == 0 || _volumeService.IsPlaybackMuted) ? "\uE74F" : "\uE992";
+                    }
+                    finally
+                    {
+                        _isUpdatingVolumeUi = false;
+                    }
+                };
+            }
+
+            if (BtnPopupMuteCompact != null)
+            {
+                BtnPopupMuteCompact.Click += (_, _) =>
                 {
                     _volumeService.TogglePlaybackMute();
+                    SyncVolumeUi();
+                };
+            }
+
+            if (BtnPopupVolumeMaxCompact != null)
+            {
+                BtnPopupVolumeMaxCompact.Click += (_, _) =>
+                {
+                    if (_volumeService.IsPlaybackMuted)
+                    {
+                        _volumeService.TogglePlaybackMute();
+                    }
+                    else
+                    {
+                        _volumeService.SetPlaybackVolumePercent(100);
+                    }
                     SyncVolumeUi();
                 };
             }
@@ -833,10 +879,12 @@ public sealed partial class LyricsWindow : Window
     private async Task UpdateArtworkAsync(MediaTrackInfo track, long sequenceId = 0)
     {
         if (_artworkBitmapManager == null) return;
+        string expectedSongKey = $"{track.Artist}_{track.Title}";
         try
         {
             var bitmap = await _artworkBitmapManager.GetArtworkBitmapAsync(track);
             if (sequenceId > 0 && Interlocked.Read(ref _windowTrackSequence) != sequenceId) return;
+            if (!string.Equals(_lastSongKey, expectedSongKey, StringComparison.OrdinalIgnoreCase)) return;
 
             if (bitmap != null)
             {
@@ -936,6 +984,10 @@ public sealed partial class LyricsWindow : Window
         _lastFocusedSize = _settingsManager.Current.FocusedLyricFontSize > 0 ? _settingsManager.Current.FocusedLyricFontSize : 28.0;
         _lastUnfocusedSize = _settingsManager.Current.UnfocusedLyricFontSize > 0 ? _settingsManager.Current.UnfocusedLyricFontSize : 20.0;
 
+        // Constant layout typography per line guarantees zero line-height/rewrap jitter when active line transitions!
+        double layoutFontSize = Math.Round(Math.Clamp((focusedSize * 0.45) + (unfocusedSize * 0.55), 14.0, 42.0), 1);
+        double layoutLineHeight = Math.Round(layoutFontSize * 1.34, 1);
+
         for (int i = 0; i < lyrics.Lines.Count; i++)
         {
             var line = lyrics.Lines[i];
@@ -957,16 +1009,16 @@ public sealed partial class LyricsWindow : Window
 
             foreach (var subText in subLines)
             {
-                // Base TextBlock (dim/secondary inactive color)
+                // Base TextBlock (dim/secondary inactive color) — constant FontSize/LineHeight/FontWeight prevents layout shift
                 var baseBlock = new TextBlock
                 {
                     Text = subText,
-                    FontSize = target.FontSize,
-                    FontWeight = FontWeights.Medium,
+                    FontSize = layoutFontSize,
+                    FontWeight = FontWeights.SemiBold,
                     TextWrapping = TextWrapping.Wrap,
                     HorizontalAlignment = horizAlign,
                     TextAlignment = textAlign,
-                    LineHeight = target.FontSize * 1.32,
+                    LineHeight = layoutLineHeight,
                     Foreground = InactiveLyricBrush
                 };
 
@@ -975,20 +1027,20 @@ public sealed partial class LyricsWindow : Window
                 var overlayBlock = new TextBlock
                 {
                     Text = subText,
-                    FontSize = target.FontSize,
-                    FontWeight = FontWeights.Bold,
+                    FontSize = layoutFontSize,
+                    FontWeight = FontWeights.SemiBold,
                     TextWrapping = TextWrapping.Wrap,
                     HorizontalAlignment = horizAlign,
                     TextAlignment = textAlign,
-                    LineHeight = target.FontSize * 1.32,
+                    LineHeight = layoutLineHeight,
                     Foreground = ActiveLyricBrush,
                     Clip = overlayClip,
-                    Visibility = Visibility.Collapsed
+                    Visibility = Visibility.Visible
                 };
 
                 var subGrid = new Grid
                 {
-                    HorizontalAlignment = HorizontalAlignment.Center
+                    HorizontalAlignment = horizAlign
                 };
                 subGrid.Children.Add(baseBlock);
                 subGrid.Children.Add(overlayBlock);
@@ -1068,8 +1120,6 @@ public sealed partial class LyricsWindow : Window
             for (int s = 0; s < baseList.Count; s++)
             {
                 var block = baseList[s];
-                block.FontSize = target.FontSize;
-                block.LineHeight = target.FontSize * 1.32;
                 block.FontWeight = isThisLineActive ? FontWeights.Bold : FontWeights.Normal;
             }
 
@@ -1091,11 +1141,7 @@ public sealed partial class LyricsWindow : Window
                     for (int s = 0; s < overlayList.Count; s++)
                     {
                         var overlay = overlayList[s];
-                        overlay.FontSize = target.FontSize;
-                        overlay.LineHeight = target.FontSize * 1.32;
-                        overlay.FontWeight = FontWeights.Bold;
                         overlay.Visibility = Visibility.Visible;
-
                         double sp = (s < subProgresses.Count) ? subProgresses[s] : 0.0;
                         double clipW = sp * (overlay.ActualWidth > 0 ? overlay.ActualWidth : 2000.0);
                         double clipH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
@@ -1104,13 +1150,9 @@ public sealed partial class LyricsWindow : Window
                 }
                 else
                 {
-                    // Single canonical visual text: overlay collapsed for all inactive surrounding lines
                     for (int s = 0; s < overlayList.Count; s++)
                     {
                         var overlay = overlayList[s];
-                        overlay.FontSize = target.FontSize;
-                        overlay.LineHeight = target.FontSize * 1.32;
-                        overlay.FontWeight = FontWeights.Normal;
                         overlay.Visibility = Visibility.Collapsed;
                         clipList[s].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
                     }
@@ -1130,7 +1172,6 @@ public sealed partial class LyricsWindow : Window
             }
         }
 
-        LyricsPanel.UpdateLayout();
         RecalculateCenterScrollTarget(immediate);
     }
 
@@ -1236,10 +1277,6 @@ public sealed partial class LyricsWindow : Window
                 {
                     for (int s = 0; s < overlayList.Count; s++)
                     {
-                        if (overlayList[s].Visibility != Visibility.Collapsed)
-                        {
-                            overlayList[s].Visibility = Visibility.Collapsed;
-                        }
                         if (clipList[s].Rect.Width > 0 || clipList[s].Rect.Height > 0)
                         {
                             clipList[s].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
@@ -1422,14 +1459,14 @@ public sealed partial class LyricsWindow : Window
             LyricsPanel.Spacing = metrics.LyricLineSpacing;
         }
 
-        if (Math.Abs(metrics.FocusedLyricFontSize - _lastResponsiveFocusedSize) >= 0.5 ||
-            Math.Abs(metrics.UnfocusedLyricFontSize - _lastResponsiveUnfocusedSize) >= 0.5)
+        if (Math.Abs(metrics.FocusedLyricFontSize - _lastResponsiveFocusedSize) >= 1.0 ||
+            Math.Abs(metrics.UnfocusedLyricFontSize - _lastResponsiveUnfocusedSize) >= 1.0)
         {
             _lastResponsiveFocusedSize = metrics.FocusedLyricFontSize;
             _lastResponsiveUnfocusedSize = metrics.UnfocusedLyricFontSize;
-            if (_lineContainers.Count > 0)
+            if (_lastLyrics != null && _lineContainers.Count > 0)
             {
-                UpdateActiveLineTargets(_currentActiveIndex, immediate: false);
+                RebuildLyricsUi(_lastLyrics);
             }
         }
     }
@@ -1462,10 +1499,12 @@ public sealed partial class LyricsWindow : Window
             int vol = _volumeService.GetPlaybackVolumePercent();
             bool muted = _volumeService.IsPlaybackMuted;
             SliderVolume.Value = vol;
+            if (SliderVolumeCompact != null) SliderVolumeCompact.Value = vol;
             TxtVolumePercent.Text = muted ? "Muted" : $"{vol}%";
             string muteGlyph = (muted || vol == 0) ? "\uE74F" : "\uE767";
             IconVolumeMute.Glyph = muteGlyph;
             if (IconVolumeMuteCompact != null) IconVolumeMuteCompact.Glyph = muteGlyph;
+            if (IconPopupMuteCompact != null) IconPopupMuteCompact.Glyph = (muted || vol == 0) ? "\uE74F" : "\uE992";
         }
         finally
         {
@@ -1525,7 +1564,19 @@ public sealed partial class LyricsWindow : Window
         }
         else
         {
+            var updatedTimeline = _mediaMonitor.CurrentTimeline with
+            {
+                Position = timestamp,
+                LastUpdatedUtc = DateTime.UtcNow,
+                CanSeek = true
+            };
+            _lyricsModule.UpdateTimelineExternal(updatedTimeline);
             _lyricsModule.Synchronizer.EvaluatePosition(timestamp);
+            UpdateActiveLineTargets(_lyricsModule.ActiveLineIndex, immediate: false);
+            if (_currentMode == LyricsWindowMode.Compact && _isCompactLyricsExpanded)
+            {
+                UpdateCompactActiveLine(_lyricsModule.ActiveLineIndex);
+            }
             RecalculateCenterScrollTarget(immediate: false);
         }
     }
@@ -1539,9 +1590,12 @@ public sealed partial class LyricsWindow : Window
             return;
         }
 
+        var dur = _lyricsModule.CurrentTrack.Duration > TimeSpan.Zero
+            ? _lyricsModule.CurrentTrack.Duration
+            : _lyricsModule.CurrentTimeline.Duration;
         int offsetMs = _lyricsModule.Synchronizer.SyncOffsetMs;
         timestamp -= TimeSpan.FromMilliseconds(offsetMs);
-        if (timestamp < TimeSpan.Zero) timestamp = TimeSpan.Zero;
+        timestamp = LyricsViewportCalculator.CalculateTargetMediaSeekPosition(timestamp, 0, dur);
 
         bool ok = await _mediaMonitor.TrySeekAsync(timestamp);
         if (!ok)
@@ -1550,7 +1604,19 @@ public sealed partial class LyricsWindow : Window
         }
         else
         {
+            var updatedTimeline = _mediaMonitor.CurrentTimeline with
+            {
+                Position = timestamp,
+                LastUpdatedUtc = DateTime.UtcNow,
+                CanSeek = true
+            };
+            _lyricsModule.UpdateTimelineExternal(updatedTimeline);
             _lyricsModule.Synchronizer.EvaluatePosition(timestamp);
+            UpdateActiveLineTargets(_lyricsModule.ActiveLineIndex, immediate: false);
+            if (_currentMode == LyricsWindowMode.Compact && _isCompactLyricsExpanded)
+            {
+                UpdateCompactActiveLine(_lyricsModule.ActiveLineIndex);
+            }
             RecalculateCenterScrollTarget(immediate: false);
         }
     }
@@ -1828,13 +1894,12 @@ public sealed partial class LyricsWindow : Window
             int capturedSlot = slot;
             block.PointerPressed += async (_, _) =>
             {
-                var currentLyrics = _lastCompactLyrics;
+                var currentLyrics = _lastCompactLyrics ?? _lyricsModule.CurrentLyrics;
                 if (currentLyrics == null || currentLyrics.Lines.Count == 0) return;
-                int baseIdx = _lyricsModule.ActiveLineIndex >= 0 ? _lyricsModule.ActiveLineIndex : 0;
-                int targetIdx = baseIdx + (capturedSlot - 1);
-                if (targetIdx >= 0 && targetIdx < currentLyrics.Lines.Count)
+                int? slotLineIdx = _compactSlotLineIndices[capturedSlot];
+                if (slotLineIdx.HasValue && slotLineIdx.Value >= 0 && slotLineIdx.Value < currentLyrics.Lines.Count)
                 {
-                    await SeekToLyricLineAsync(currentLyrics.Lines[targetIdx].Timestamp);
+                    await SeekToLyricLineAsync(currentLyrics.Lines[slotLineIdx.Value].Timestamp);
                 }
             };
 
@@ -1857,10 +1922,14 @@ public sealed partial class LyricsWindow : Window
         _currentCompactActiveIndex = activeIdx;
 
         var lyrics = _lastCompactLyrics ?? _lyricsModule.CurrentLyrics;
-        var (prevText, activeText, nextText, _, _, _) = LyricsViewportCalculator.GetCompactThreeLineWindow(
+        var (prevText, activeText, nextText, prevIdx, actIdx, nextIdx) = LyricsViewportCalculator.GetCompactThreeLineWindow(
             lyrics?.Lines,
             activeIdx,
             lyrics?.PlainLyrics);
+
+        _compactSlotLineIndices[0] = prevIdx;
+        _compactSlotLineIndices[1] = actIdx;
+        _compactSlotLineIndices[2] = nextIdx;
 
         _compactLineBlocks[0].Text = prevText;
         _compactLineBlocks[0].FontWeight = FontWeights.Normal;

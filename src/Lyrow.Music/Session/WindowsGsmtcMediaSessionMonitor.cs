@@ -24,6 +24,13 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
     private bool _isMonitoring;
     private bool _isDisposed;
     private long _trackSequence = 0;
+    private long _sessionGeneration = 0;
+    private DateTime _lastTrackSwitchUtc = DateTime.MinValue;
+    private DateTime _lastSeekUtc = DateTime.MinValue;
+    private TimeSpan _lastSeekTargetPosition = TimeSpan.Zero;
+    private int _lastTrackThumbnailHash = 0;
+    private int _lastTrackThumbnailLength = 0;
+    private string _lastTrackAlbum = string.Empty;
 
     public WindowsGsmtcMediaSessionMonitor(IMediaMetadataNormalizer? normalizer = null)
     {
@@ -113,7 +120,11 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 try
                 {
                     var curInfo = current.GetPlaybackInfo();
-                    if (curInfo?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                    var curStatus = curInfo?.PlaybackStatus;
+                    // Keep OS current session when Playing, Changing (track transition/seek), or Opened
+                    if (curStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing ||
+                        curStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Changing ||
+                        curStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Opened)
                     {
                         return current;
                     }
@@ -196,6 +207,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 
     private async Task AttachSessionInternalAsync(GlobalSystemMediaTransportControlsSession? session)
     {
+        Interlocked.Increment(ref _sessionGeneration);
         _currentSession = session;
         if (_currentSession == null)
         {
@@ -217,6 +229,8 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 
     private void DetachCurrentSession()
     {
+        Interlocked.Increment(ref _sessionGeneration);
+        Interlocked.Increment(ref _trackSequence);
         StopTimelinePolling();
         if (_currentSession != null)
         {
@@ -309,14 +323,162 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         return null;
     }
 
+    public static int ComputeThumbnailHash(byte[]? bytes)
+    {
+        if (bytes == null || bytes.Length == 0) return 0;
+        unchecked
+        {
+            uint hash = 2166136261u;
+            int step = Math.Max(1, bytes.Length / 512);
+            for (int i = 0; i < bytes.Length; i += step)
+            {
+                hash ^= bytes[i];
+                hash *= 16777619u;
+            }
+            hash ^= (uint)bytes.Length;
+            hash *= 16777619u;
+            return (int)hash;
+        }
+    }
+
+    /// <summary>
+    /// Detects when GSMTC emits a new track's Title/Artist while still holding the previous track's exact thumbnail bytes.
+    /// Unless both tracks explicitly share the same non-empty album title, identical bytes across a track switch are rejected as stale carryover.
+    /// </summary>
+    public static bool IsStaleCarryoverThumbnail(
+        bool isTrackSwitch,
+        string? previousAlbum,
+        string? newAlbum,
+        byte[]? newThumbnailBytes,
+        int previousThumbnailHash,
+        int previousThumbnailLength)
+    {
+        if (!isTrackSwitch || newThumbnailBytes == null || newThumbnailBytes.Length == 0 || previousThumbnailLength <= 0)
+        {
+            return false;
+        }
+
+        if (newThumbnailBytes.Length != previousThumbnailLength)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(newAlbum) &&
+            !string.IsNullOrWhiteSpace(previousAlbum) &&
+            string.Equals(newAlbum.Trim(), previousAlbum.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return ComputeThumbnailHash(newThumbnailBytes) == previousThumbnailHash;
+    }
+
+    /// <summary>
+    /// Reconciles raw GSMTC timeline position and LastUpdatedTime against track-switch and seek boundaries
+    /// so previous-track elapsed time is never added to a newly started track and post-seek positions never jump or snap back.
+    /// </summary>
+    public static (TimeSpan Position, DateTime LastUpdatedUtc) ReconcileTimelinePosition(
+        TimeSpan rawPositionSinceStart,
+        TimeSpan trackDuration,
+        MediaPlaybackStatus status,
+        DateTime? gsmtcReportedUtc,
+        DateTime nowUtc,
+        DateTime lastTrackSwitchUtc,
+        DateTime lastSeekUtc,
+        TimeSpan lastSeekTargetPosition)
+    {
+        var pos = rawPositionSinceStart < TimeSpan.Zero ? TimeSpan.Zero : rawPositionSinceStart;
+        bool hasRecentSeek = lastSeekUtc > lastTrackSwitchUtc &&
+                             lastSeekUtc != DateTime.MinValue &&
+                             (nowUtc - lastSeekUtc).TotalMilliseconds is >= -50 and <= 2400;
+
+        // 1. Protect post-seek window: if GSMTC hasn't updated Position to near the seek target yet, hold/extrapolate from seek target
+        if (hasRecentSeek && Math.Abs((pos - lastSeekTargetPosition).TotalSeconds) > 3.5)
+        {
+            var elapsedSinceSeek = nowUtc > lastSeekUtc ? (nowUtc - lastSeekUtc) : TimeSpan.Zero;
+            pos = status == MediaPlaybackStatus.Playing
+                ? (lastSeekTargetPosition + elapsedSinceSeek)
+                : lastSeekTargetPosition;
+            if (trackDuration > TimeSpan.Zero && pos > trackDuration)
+            {
+                pos = trackDuration;
+            }
+            return (pos, nowUtc);
+        }
+
+        // 2. Protect automatic track transition window: if track switched recently without a seek on the new track
+        // and GSMTC still reports the previous track's end position, reset to elapsed time since the switch.
+        bool isPostSwitchWindow = lastTrackSwitchUtc != DateTime.MinValue &&
+                                  lastSeekUtc <= lastTrackSwitchUtc &&
+                                  (nowUtc - lastTrackSwitchUtc).TotalSeconds is >= 0 and <= 2.5;
+        if (isPostSwitchWindow && pos > TimeSpan.FromSeconds(5.0))
+        {
+            if (!gsmtcReportedUtc.HasValue || gsmtcReportedUtc.Value <= lastTrackSwitchUtc)
+            {
+                pos = status == MediaPlaybackStatus.Playing
+                    ? (nowUtc - lastTrackSwitchUtc)
+                    : TimeSpan.Zero;
+                if (trackDuration > TimeSpan.Zero && pos > trackDuration)
+                {
+                    pos = trackDuration;
+                }
+                return (pos, nowUtc);
+            }
+        }
+
+        var lastUpdatedUtc = nowUtc;
+        if (gsmtcReportedUtc.HasValue && gsmtcReportedUtc.Value.Year > 2020)
+        {
+            var effectiveReportedUtc = gsmtcReportedUtc.Value;
+
+            // Clamp anchor so delta NEVER includes time before the current track started or before the last seek!
+            if (lastTrackSwitchUtc != DateTime.MinValue && effectiveReportedUtc < lastTrackSwitchUtc)
+            {
+                effectiveReportedUtc = lastTrackSwitchUtc;
+            }
+            if (lastSeekUtc != DateTime.MinValue && effectiveReportedUtc < lastSeekUtc)
+            {
+                effectiveReportedUtc = lastSeekUtc;
+            }
+
+            var delta = nowUtc - effectiveReportedUtc;
+            if (status == MediaPlaybackStatus.Playing && delta.TotalSeconds >= 0 && delta.TotalHours < 24)
+            {
+                pos += delta;
+                if (trackDuration > TimeSpan.Zero && pos > trackDuration)
+                {
+                    pos = trackDuration;
+                }
+                lastUpdatedUtc = nowUtc;
+            }
+            else if (Math.Abs(delta.TotalSeconds) <= 3.0)
+            {
+                lastUpdatedUtc = effectiveReportedUtc;
+            }
+        }
+
+        if (trackDuration > TimeSpan.Zero && pos > trackDuration)
+        {
+            pos = trackDuration;
+        }
+
+        return (pos, lastUpdatedUtc);
+    }
+
     private async Task UpdateMediaPropertiesAsync(GlobalSystemMediaTransportControlsSession session)
     {
         if (_currentSession != null && !ReferenceEquals(session, _currentSession)) return;
+        long expectedSessionGen = Interlocked.Read(ref _sessionGeneration);
         long currentSeq = Interlocked.Increment(ref _trackSequence);
         try
         {
             var props = await session.TryGetMediaPropertiesAsync();
-            if (props == null || Interlocked.Read(ref _trackSequence) != currentSeq) return;
+            if (props == null ||
+                Interlocked.Read(ref _trackSequence) != currentSeq ||
+                Interlocked.Read(ref _sessionGeneration) != expectedSessionGen)
+            {
+                return;
+            }
             if (_currentSession != null && !ReferenceEquals(session, _currentSession)) return;
 
             byte[]? thumbnailBytes = await ReadThumbnailStreamAsync(props.Thumbnail).ConfigureAwait(false);
@@ -333,11 +495,38 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             bool isTrackSwitch = !string.Equals(CurrentTrack.Title, newTitle, StringComparison.OrdinalIgnoreCase) ||
                                  !string.Equals(CurrentTrack.Artist, newArtist, StringComparison.OrdinalIgnoreCase);
 
-            // Preserve already-loaded artwork if browser emits a secondary metadata update with null Thumbnail for the same track
-            if (!isTrackSwitch && (thumbnailBytes == null || thumbnailBytes.Length == 0) &&
-                CurrentTrack.ThumbnailData != null && CurrentTrack.ThumbnailData.Length > 0)
+            int rejectedStaleHash = 0;
+            if (isTrackSwitch)
             {
-                thumbnailBytes = CurrentTrack.ThumbnailData;
+                // If GSMTC still holds the previous song's exact thumbnail bytes during a track switch, discard it so it never leaks into the new track
+                if (IsStaleCarryoverThumbnail(isTrackSwitch, _lastTrackAlbum, newAlbum, thumbnailBytes, _lastTrackThumbnailHash, _lastTrackThumbnailLength))
+                {
+                    rejectedStaleHash = _lastTrackThumbnailHash;
+                    Lyrow.Core.Services.LocalDiagnosticLogger.LogInfo(
+                        $"[GSMTC] Discarded stale carryover thumbnail ({thumbnailBytes?.Length ?? 0} bytes) from previous track when switching to '{newArtist} - {newTitle}'.");
+                    thumbnailBytes = null;
+                }
+
+                if (thumbnailBytes != null && thumbnailBytes.Length > 0)
+                {
+                    _lastTrackThumbnailHash = ComputeThumbnailHash(thumbnailBytes);
+                    _lastTrackThumbnailLength = thumbnailBytes.Length;
+                }
+                _lastTrackAlbum = newAlbum;
+            }
+            else
+            {
+                // Preserve already-loaded artwork if browser emits a secondary metadata update with null Thumbnail for the same track
+                if ((thumbnailBytes == null || thumbnailBytes.Length == 0) &&
+                    CurrentTrack.ThumbnailData != null && CurrentTrack.ThumbnailData.Length > 0)
+                {
+                    thumbnailBytes = CurrentTrack.ThumbnailData;
+                }
+                else if (thumbnailBytes != null && thumbnailBytes.Length > 0)
+                {
+                    _lastTrackThumbnailHash = ComputeThumbnailHash(thumbnailBytes);
+                    _lastTrackThumbnailLength = thumbnailBytes.Length;
+                }
             }
 
             var timelineProps = session.GetTimelineProperties();
@@ -352,8 +541,12 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 
             if (isTrackSwitch)
             {
+                _lastTrackSwitchUtc = DateTime.UtcNow;
+                _lastSeekUtc = DateTime.MinValue;
+                _lastSeekTargetPosition = TimeSpan.Zero;
+
                 // Reset timeline immediately on track switch so old track's position/duration is never extrapolated
-                CurrentTimeline = new MediaTimelineInfo(TimeSpan.Zero, duration, MediaPlaybackStatus.Changing, DateTime.UtcNow, canSeek);
+                CurrentTimeline = new MediaTimelineInfo(TimeSpan.Zero, duration, MediaPlaybackStatus.Changing, _lastTrackSwitchUtc, canSeek);
                 TimelineChanged?.Invoke(this, CurrentTimeline);
             }
 
@@ -367,7 +560,11 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 RawArtist: norm.RawArtist,
                 RawAlbum: norm.RawAlbum);
 
-            if (Interlocked.Read(ref _trackSequence) != currentSeq) return;
+            if (Interlocked.Read(ref _trackSequence) != currentSeq ||
+                Interlocked.Read(ref _sessionGeneration) != expectedSessionGen)
+            {
+                return;
+            }
             if (_currentSession != null && !ReferenceEquals(session, _currentSession)) return;
 
             if (isTrackSwitch && !track.IsEmpty)
@@ -383,7 +580,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             if (!track.IsEmpty && (thumbnailBytes == null || thumbnailBytes.Length == 0))
             {
                 Lyrow.Core.Services.LocalDiagnosticLogger.LogInfo($"[GSMTC] Track '{newTitle}' by '{newArtist}' (App={appId}) has no initial GSMTC thumbnail; scheduling delayed thumbnail re-probes.");
-                _ = ProbeDelayedThumbnailAsync(session, currentSeq, newTitle, newArtist);
+                _ = ProbeDelayedThumbnailAsync(session, expectedSessionGen, currentSeq, newTitle, newArtist, rejectedStaleHash);
             }
         }
         catch (Exception ex)
@@ -394,9 +591,11 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 
     private async Task ProbeDelayedThumbnailAsync(
         GlobalSystemMediaTransportControlsSession session,
+        long expectedSessionGen,
         long expectedSeq,
         string expectedTitle,
-        string expectedArtist)
+        string expectedArtist,
+        int rejectedStaleHash)
     {
         int[] delaysMs = [350, 1200, 2500];
         foreach (int delay in delaysMs)
@@ -404,11 +603,21 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             try
             {
                 await Task.Delay(delay).ConfigureAwait(false);
-                if (!_isMonitoring || Interlocked.Read(ref _trackSequence) != expectedSeq) return;
+                if (!_isMonitoring ||
+                    Interlocked.Read(ref _trackSequence) != expectedSeq ||
+                    Interlocked.Read(ref _sessionGeneration) != expectedSessionGen)
+                {
+                    return;
+                }
                 if (CurrentTrack.ThumbnailData != null && CurrentTrack.ThumbnailData.Length > 0) return;
 
                 var props = await session.TryGetMediaPropertiesAsync();
-                if (props == null || Interlocked.Read(ref _trackSequence) != expectedSeq) return;
+                if (props == null ||
+                    Interlocked.Read(ref _trackSequence) != expectedSeq ||
+                    Interlocked.Read(ref _sessionGeneration) != expectedSessionGen)
+                {
+                    return;
+                }
 
                 var norm = _normalizer.Normalize(props.Title, props.Artist, props.AlbumTitle);
                 if (!string.Equals(norm.Title, expectedTitle, StringComparison.OrdinalIgnoreCase) ||
@@ -418,8 +627,18 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 }
 
                 var lateBytes = await ReadThumbnailStreamAsync(props.Thumbnail).ConfigureAwait(false);
-                if (lateBytes != null && lateBytes.Length > 0 && Interlocked.Read(ref _trackSequence) == expectedSeq)
+                if (lateBytes != null && lateBytes.Length > 0 &&
+                    Interlocked.Read(ref _trackSequence) == expectedSeq &&
+                    Interlocked.Read(ref _sessionGeneration) == expectedSessionGen)
                 {
+                    int lateHash = ComputeThumbnailHash(lateBytes);
+                    if (rejectedStaleHash != 0 && lateHash == rejectedStaleHash)
+                    {
+                        continue;
+                    }
+
+                    _lastTrackThumbnailHash = lateHash;
+                    _lastTrackThumbnailLength = lateBytes.Length;
                     Lyrow.Core.Services.LocalDiagnosticLogger.LogInfo($"[GSMTC] Delayed thumbnail arrived after {delay}ms for '{expectedTitle}' ({lateBytes.Length} bytes).");
                     CurrentTrack = CurrentTrack with { ThumbnailData = lateBytes };
                     TrackChanged?.Invoke(this, CurrentTrack);
@@ -466,41 +685,26 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 CurrentTrack = CurrentTrack with { Duration = dur };
                 TrackChanged?.Invoke(this, CurrentTrack);
             }
-            if (dur > TimeSpan.Zero && pos > dur)
-            {
-                pos = dur;
-            }
 
-            var lastUpdatedUtc = DateTime.UtcNow;
-            if (timelineProps != null && timelineProps.LastUpdatedTime.Year > 2020)
-            {
-                var reportedUtc = timelineProps.LastUpdatedTime.UtcDateTime;
-                var delta = DateTime.UtcNow - reportedUtc;
+            DateTime? reportedUtc = (timelineProps != null && timelineProps.LastUpdatedTime.Year > 2020)
+                ? timelineProps.LastUpdatedTime.UtcDateTime
+                : null;
 
-                // GSMTC playback position handling:
-                // Desktop players (like Apple Music Desktop or Spotify) only emit TimelineProperties changes
-                // on state transitions (pause, play, track change, seek), leaving LastUpdatedTime anchored at that moment.
-                // When playing, WinRT expects the caller to extrapolate forward: pos + (UtcNow - LastUpdatedTime).
-                if (status == MediaPlaybackStatus.Playing && delta.TotalSeconds >= 0 && delta.TotalHours < 24)
-                {
-                    pos += delta;
-                    if (dur > TimeSpan.Zero && pos > dur)
-                    {
-                        pos = dur;
-                    }
-                    lastUpdatedUtc = DateTime.UtcNow;
-                }
-                else if (Math.Abs(delta.TotalSeconds) <= 3.0)
-                {
-                    lastUpdatedUtc = reportedUtc;
-                }
-            }
+            var (reconciledPos, lastUpdatedUtc) = ReconcileTimelinePosition(
+                pos,
+                dur,
+                status,
+                reportedUtc,
+                DateTime.UtcNow,
+                _lastTrackSwitchUtc,
+                _lastSeekUtc,
+                _lastSeekTargetPosition);
 
             var controls = playbackInfo?.Controls;
             string? appId = session.SourceAppUserModelId;
             bool isBlacklisted = !string.IsNullOrEmpty(appId) && _seekUnsupportedAppIds.Contains(appId);
             bool canSeek = controls != null && controls.IsPlaybackPositionEnabled && !isBlacklisted;
-            var timeline = new MediaTimelineInfo(pos, dur, status, lastUpdatedUtc, canSeek);
+            var timeline = new MediaTimelineInfo(reconciledPos, dur, status, lastUpdatedUtc, canSeek);
             CurrentTimeline = timeline;
             TimelineChanged?.Invoke(this, timeline);
         }
@@ -682,11 +886,15 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             bool ok = await session.TryChangePlaybackPositionAsync(targetTicks);
             if (ok)
             {
+                var seekNowUtc = DateTime.UtcNow;
+                _lastSeekUtc = seekNowUtc;
+                _lastSeekTargetPosition = position;
+
                 // Immediately anchor current timeline to sought position so UI scrubber does not snap back
                 CurrentTimeline = CurrentTimeline with
                 {
                     Position = position,
-                    LastUpdatedUtc = DateTime.UtcNow,
+                    LastUpdatedUtc = seekNowUtc,
                     CanSeek = true
                 };
                 TimelineChanged?.Invoke(this, CurrentTimeline);

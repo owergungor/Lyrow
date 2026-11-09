@@ -100,8 +100,12 @@ public static partial class LrcParser
                 plainLyrics: combinedPlain);
         }
 
-        // Sort parsed lines chronologically by timestamp
-        parsedLines.Sort((a, b) => a.Timestamp.CompareTo(b.Timestamp));
+        // Sort parsed lines chronologically by timestamp with deterministic tie-breaking by original LineIndex
+        parsedLines.Sort((a, b) =>
+        {
+            int cmp = a.Timestamp.CompareTo(b.Timestamp);
+            return cmp != 0 ? cmp : a.LineIndex.CompareTo(b.LineIndex);
+        });
 
         // Reassign clean 0-based sequential LineIndex after sorting
         var finalizedLines = new List<LyricLine>(parsedLines.Count);

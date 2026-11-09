@@ -174,6 +174,31 @@ public static class LyricsViewportCalculator
     }
 
     /// <summary>
+    /// Computes the exact target media playback position when the user clicks a synced lyric line.
+    /// Since LyricsSynchronizer evaluates effectiveTime = mediaPosition + syncOffsetMs,
+    /// seeking to (lyricTimestamp - syncOffsetMs) ensures effectiveTime lands on lyricTimestamp.
+    /// Applies SyncOffsetMs once and clamps within [0, trackDuration].
+    /// </summary>
+    public static TimeSpan CalculateTargetMediaSeekPosition(
+        TimeSpan lyricTimestamp,
+        int syncOffsetMs,
+        TimeSpan trackDuration = default)
+    {
+        var rawTarget = lyricTimestamp - TimeSpan.FromMilliseconds(syncOffsetMs);
+        if (rawTarget < TimeSpan.Zero)
+        {
+            rawTarget = TimeSpan.Zero;
+        }
+
+        if (trackDuration > TimeSpan.Zero && rawTarget > trackDuration)
+        {
+            rawTarget = trackDuration;
+        }
+
+        return rawTarget;
+    }
+
+    /// <summary>
     /// Width threshold in logical pixels at or above which resizing a Compact (Dar Mod) window
     /// automatically transitions back to Horizontal 50/50 normal mode.
     /// </summary>

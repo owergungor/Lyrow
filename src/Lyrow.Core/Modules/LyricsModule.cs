@@ -200,7 +200,7 @@ public sealed class LyricsModule : ILyrowModule
         var dur = _currentTrack.Duration > TimeSpan.Zero ? _currentTrack.Duration : timeline.Duration;
         var pos = timeline.Position;
         if (dur > TimeSpan.Zero && pos > dur) pos = dur;
-        _currentTimeline = new MediaTimelineInfo(pos, dur, timeline.Status, timeline.LastUpdatedUtc);
+        _currentTimeline = new MediaTimelineInfo(pos, dur, timeline.Status, timeline.LastUpdatedUtc, timeline.CanSeek);
         _synchronizer.SyncOffsetMs = _settingsManager?.Current.Lyrics.SyncOffsetMs ?? 0;
         _synchronizer.UpdateTimeline(_currentTimeline);
     }
@@ -240,7 +240,7 @@ public sealed class LyricsModule : ILyrowModule
         var dur = _currentTrack.Duration > TimeSpan.Zero ? _currentTrack.Duration : timeline.Duration;
         var pos = timeline.Position;
         if (dur > TimeSpan.Zero && pos > dur) pos = dur;
-        _currentTimeline = new MediaTimelineInfo(pos, dur, timeline.Status, timeline.LastUpdatedUtc);
+        _currentTimeline = new MediaTimelineInfo(pos, dur, timeline.Status, timeline.LastUpdatedUtc, timeline.CanSeek);
 
         _synchronizer.SyncOffsetMs = _settingsManager?.Current.Lyrics.SyncOffsetMs ?? 0;
         _synchronizer.UpdateTimeline(_currentTimeline);

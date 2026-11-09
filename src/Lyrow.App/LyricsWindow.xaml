@@ -308,10 +308,42 @@
                                 <StackPanel x:Name="CompactLeftControlsPanel" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="2">
                                     <Button x:Name="BtnVolumeMuteCompact" Width="26" Height="26" Padding="0" CornerRadius="6"
                                             Background="Transparent" BorderThickness="0"
-                                            ToolTipService.ToolTip="Mute / Unmute"
-                                            AutomationProperties.Name="Mute or Unmute">
+                                            ToolTipService.ToolTip="Volume"
+                                            AutomationProperties.Name="Volume">
                                         <FontIcon x:Name="IconVolumeMuteCompact" Glyph="&#xE767;" FontSize="11"
                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <Button.Flyout>
+                                            <Flyout x:Name="FlyoutVolumeCompact" Placement="TopEdgeAlignedLeft" ShouldConstrainToRootBounds="False">
+                                                <Flyout.FlyoutPresenterStyle>
+                                                    <Style TargetType="FlyoutPresenter">
+                                                        <Setter Property="Padding" Value="10,4,10,4" />
+                                                        <Setter Property="MinWidth" Value="204" />
+                                                        <Setter Property="MaxWidth" Value="228" />
+                                                        <Setter Property="MinHeight" Value="38" />
+                                                        <Setter Property="CornerRadius" Value="12" />
+                                                        <Setter Property="Background" Value="#F21C1E26" />
+                                                        <Setter Property="BorderBrush" Value="#38FFFFFF" />
+                                                        <Setter Property="BorderThickness" Value="1" />
+                                                    </Style>
+                                                </Flyout.FlyoutPresenterStyle>
+                                                <Grid x:Name="GridVolumePopupCompact" Width="192" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                                                    <Button x:Name="BtnPopupMuteCompact" Grid.Column="0" Width="26" Height="26" Padding="0"
+                                                            CornerRadius="6" Background="Transparent" BorderThickness="0"
+                                                            ToolTipService.ToolTip="Mute / Unmute" AutomationProperties.Name="Mute or Unmute">
+                                                        <FontIcon x:Name="IconPopupMuteCompact" Glyph="&#xE74F;" FontSize="12"
+                                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    </Button>
+                                                    <Slider x:Name="SliderVolumeCompact" Grid.Column="1" Minimum="0" Maximum="100" Value="80"
+                                                            VerticalAlignment="Center" HorizontalAlignment="Stretch" />
+                                                    <Button x:Name="BtnPopupVolumeMaxCompact" Grid.Column="2" Width="26" Height="26" Padding="0"
+                                                            CornerRadius="6" Background="Transparent" BorderThickness="0"
+                                                            ToolTipService.ToolTip="Volume" AutomationProperties.Name="Max Volume">
+                                                        <FontIcon x:Name="IconPopupVolumeRightCompact" Glyph="&#xE767;" FontSize="12"
+                                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    </Button>
+                                                </Grid>
+                                            </Flyout>
+                                        </Button.Flyout>
                                     </Button>
                                     <DropDownButton x:Name="BtnDeviceSelectorCompact"
                                                     HorizontalAlignment="Left" VerticalAlignment="Center"

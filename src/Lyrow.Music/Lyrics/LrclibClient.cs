@@ -200,8 +200,7 @@ public sealed class LrclibClient : ILyricsClient
                         var searchList = await JsonSerializer.DeserializeAsync<List<LrclibResponse>>(searchStream, cancellationToken: cancellationToken).ConfigureAwait(false);
                         if (searchList != null && searchList.Count > 0)
                         {
-                            var candidate = searchList.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.SyncedLyrics))
-                                         ?? searchList.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.PlainLyrics));
+                            var candidate = SelectBestSearchCandidate(searchList, cleanTrack, cleanArtist, duration);
                             if (candidate != null)
                             {
                                 if (!string.IsNullOrWhiteSpace(candidate.SyncedLyrics))
@@ -365,6 +364,81 @@ public sealed class LrclibClient : ILyricsClient
     public static string StripTrackSuffixes(string title) => MediaMetadataNormalizer.StripTrackSuffixes(title);
 
     public static string ExtractPrimaryArtist(string artist) => MediaMetadataNormalizer.ExtractPrimaryArtist(artist);
+
+    private static LrclibResponse? SelectBestSearchCandidate(
+        List<LrclibResponse> candidates,
+        string cleanTrack,
+        string cleanArtist,
+        TimeSpan? targetDuration)
+    {
+        if (candidates.Count == 0) return null;
+
+        double targetSec = (targetDuration.HasValue && targetDuration.Value.TotalSeconds > 1.0)
+            ? targetDuration.Value.TotalSeconds
+            : 0.0;
+
+        LrclibResponse? bestSynced = null;
+        double bestSyncedScore = double.NegativeInfinity;
+
+        LrclibResponse? bestPlain = null;
+        double bestPlainScore = double.NegativeInfinity;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            var c = candidates[i];
+            bool hasSynced = !string.IsNullOrWhiteSpace(c.SyncedLyrics);
+            bool hasPlain = !string.IsNullOrWhiteSpace(c.PlainLyrics);
+            if (!hasSynced && !hasPlain) continue;
+
+            double score = 0.0;
+            string candTrack = StripTrackSuffixes(c.TrackName ?? string.Empty);
+            string candArtist = ExtractPrimaryArtist(c.ArtistName ?? string.Empty);
+
+            if (string.Equals(candTrack, cleanTrack, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 40.0;
+            }
+            else if (candTrack.Contains(cleanTrack, StringComparison.OrdinalIgnoreCase) ||
+                     cleanTrack.Contains(candTrack, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 15.0;
+            }
+
+            if (string.Equals(candArtist, cleanArtist, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 35.0;
+            }
+            else if (candArtist.Contains(cleanArtist, StringComparison.OrdinalIgnoreCase) ||
+                     cleanArtist.Contains(candArtist, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 15.0;
+            }
+
+            if (targetSec > 1.0 && c.Duration.HasValue && c.Duration.Value > 1.0)
+            {
+                double diffSec = Math.Abs(c.Duration.Value - targetSec);
+                if (diffSec <= 2.5) score += 50.0;
+                else if (diffSec <= 6.0) score += 25.0;
+                else score -= Math.Min(60.0, diffSec * 1.5);
+            }
+
+            // Preserve original list order as a tiny tie-breaker
+            score -= i * 0.001;
+
+            if (hasSynced && score > bestSyncedScore)
+            {
+                bestSyncedScore = score;
+                bestSynced = c;
+            }
+            else if (!hasSynced && hasPlain && score > bestPlainScore)
+            {
+                bestPlainScore = score;
+                bestPlain = c;
+            }
+        }
+
+        return bestSynced ?? bestPlain;
+    }
 
     private sealed class LrclibResponse
     {

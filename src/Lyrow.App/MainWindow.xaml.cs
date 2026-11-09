@@ -1807,7 +1807,7 @@ public sealed partial class MainWindow : Window
 
     private void OnHardwareMediaTimelineChanged(object? sender, MediaTimelineInfo timeline)
     {
-        _lyricsModule?.UpdateTimelineExternal(timeline);
+        if (_lyricsModule != null && _lyricsModule.State != ModuleState.Running) _lyricsModule.UpdateTimelineExternal(timeline);
 
         DispatcherQueue.TryEnqueue(() =>
         {
@@ -1942,7 +1942,7 @@ public sealed partial class MainWindow : Window
         DispatcherQueue.TryEnqueue(async () =>
         {
             var bitmap = await _artworkBitmapManager.GetArtworkBitmapAsync(track);
-            if (Interlocked.Read(ref _mainTrackSequence) != currentSeq) return;
+            if (Interlocked.Read(ref _mainTrackSequence) != currentSeq || !string.Equals(_lastTrackCacheKey, newKey, StringComparison.OrdinalIgnoreCase)) return;
 
             if (bitmap != null)
             {
@@ -1971,7 +1971,7 @@ public sealed partial class MainWindow : Window
         if (_settingsManager.Current.SyncWithAlbumArt)
         {
             var palette = await _artworkBitmapManager.ExtractArtworkPaletteAsync(track);
-            if (Interlocked.Read(ref _mainTrackSequence) != currentSeq) return;
+            if (Interlocked.Read(ref _mainTrackSequence) != currentSeq || !string.Equals(_lastTrackCacheKey, newKey, StringComparison.OrdinalIgnoreCase)) return;
 
             _glowOverlayManager?.SetCustomPalette(palette);
                         var ambient = ArtworkPaletteExtractor.ExtractAmbientPalette(palette);
