@@ -34,25 +34,29 @@ public sealed class LyrowV37FeatureVerificationTests
     {
         // Collapsed compact window size at 100%, 125%, and 150% DPI
         var (lw100, lh100, w100, h100) = LyricsViewportCalculator.CalculateCompactWindowSize(isLyricsExpanded: false, dpiScale: 1.0);
-        lw100.Should().Be(500);
-        lh100.Should().Be(232);
-        w100.Should().Be(500);
-        h100.Should().Be(232);
+        lw100.Should().Be(352);
+        lh100.Should().Be(148);
+        w100.Should().Be(352);
+        h100.Should().Be(148);
 
         var (_, _, w125, h125) = LyricsViewportCalculator.CalculateCompactWindowSize(isLyricsExpanded: false, dpiScale: 1.25);
-        w125.Should().Be(625);
-        h125.Should().Be(290);
+        w125.Should().Be(440);
+        h125.Should().Be(185);
+
+        var (_, _, w150, h150) = LyricsViewportCalculator.CalculateCompactWindowSize(isLyricsExpanded: false, dpiScale: 1.5);
+        w150.Should().Be(528);
+        h150.Should().Be(222);
 
         // Expanded compact window size with 3-line lyrics at 100% and 150% DPI
         var (elw100, elh100, ew100, eh100) = LyricsViewportCalculator.CalculateCompactWindowSize(isLyricsExpanded: true, dpiScale: 1.0);
-        elw100.Should().Be(500);
-        elh100.Should().Be(316);
-        ew100.Should().Be(500);
-        eh100.Should().Be(316);
+        elw100.Should().Be(352);
+        elh100.Should().Be(212);
+        ew100.Should().Be(352);
+        eh100.Should().Be(212);
 
         var (_, _, ew150, eh150) = LyricsViewportCalculator.CalculateCompactWindowSize(isLyricsExpanded: true, dpiScale: 1.5);
-        ew150.Should().Be(750);
-        eh150.Should().Be(474);
+        ew150.Should().Be(528);
+        eh150.Should().Be(318);
 
         // Responsive metrics in Horizontal mode must leave sufficient vertical room so bottom controls never clip
         var metrics = LyricsViewportCalculator.CalculateResponsiveMetrics(960, 580, isLyricsPanelVisible: true);

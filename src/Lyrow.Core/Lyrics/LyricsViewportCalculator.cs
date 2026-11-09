@@ -180,11 +180,23 @@ public static class LyricsViewportCalculator
     public const double CompactToNormalWidthThreshold = 640.0;
 
     /// <summary>
-    /// Width threshold in logical pixels below which (along with height below CompactMaxAutoHeightThreshold)
+    /// Width threshold in logical pixels below which (along with height below NormalToCompactHeightThreshold)
     /// resizing a Horizontal window transitions into Compact mode.
     /// </summary>
     public const double NormalToCompactWidthThreshold = 520.0;
     public const double NormalToCompactHeightThreshold = 260.0;
+
+    /// <summary>
+    /// Default logical dimensions (in DIPs) for Compact Mode (Dar Mod) mini-player.
+    /// At 150% DPI scaling (scale = 1.5), 352×148 DIPs = 528×222 physical pixels (within 528 × 214–230 px target)
+    /// and 60×60 DIPs artwork = 90×90 physical pixels.
+    /// </summary>
+    public const int CompactDefaultLogicalWidth = 352;
+    public const int CompactDefaultLogicalHeight = 148;
+    public const int CompactExpandedLogicalHeight = 212;
+    public const int CompactMinLogicalWidth = 320;
+    public const int CompactMinLogicalHeight = 136;
+    public const int CompactArtworkLogicalSize = 60;
 
     /// <summary>
     /// Computes the exact required window size (logical and physical DPI-scaled pixels) for Compact Mode
@@ -195,8 +207,23 @@ public static class LyricsViewportCalculator
         double dpiScale = 1.0)
     {
         double safeScale = Math.Clamp(dpiScale > 0 ? dpiScale : 1.0, 1.0, 4.0);
-        int logicalW = 500;
-        int logicalH = isLyricsExpanded ? 316 : 232;
+        int logicalW = CompactDefaultLogicalWidth;
+        int logicalH = isLyricsExpanded ? CompactExpandedLogicalHeight : CompactDefaultLogicalHeight;
+        int physW = (int)Math.Ceiling(logicalW * safeScale);
+        int physH = (int)Math.Ceiling(logicalH * safeScale);
+        return (logicalW, logicalH, physW, physH);
+    }
+
+    /// <summary>
+    /// Computes the minimum allowed window size (logical and physical DPI-scaled pixels) for Compact Mode
+    /// so minimum window constraints never prevent shrinking to the compact mini-player target size.
+    /// </summary>
+    public static (int LogicalWidth, int LogicalHeight, int PhysicalWidth, int PhysicalHeight) CalculateCompactMinimumWindowSize(
+        double dpiScale = 1.0)
+    {
+        double safeScale = Math.Clamp(dpiScale > 0 ? dpiScale : 1.0, 1.0, 4.0);
+        int logicalW = CompactMinLogicalWidth;
+        int logicalH = CompactMinLogicalHeight;
         int physW = (int)Math.Ceiling(logicalW * safeScale);
         int physH = (int)Math.Ceiling(logicalH * safeScale);
         return (logicalW, logicalH, physW, physH);

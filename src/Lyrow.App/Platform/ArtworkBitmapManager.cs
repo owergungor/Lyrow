@@ -27,7 +27,8 @@ public sealed class ArtworkBitmapManager
 
     /// <summary>
     /// Asynchronously retrieves or decodes the album artwork BitmapImage for a track.
-    /// Returns null if unavailable or corrupt.
+    /// IMPORTANT: Never use ConfigureAwait(false) inside this method because WinUI 3 BitmapImage
+    /// must be instantiated and bound on the UI Dispatcher thread (avoiding 0x8001010E RPC_E_WRONG_THREAD).
     /// </summary>
     public async Task<BitmapImage?> GetArtworkBitmapAsync(MediaTrackInfo track, CancellationToken ct = default)
     {
@@ -38,11 +39,12 @@ public sealed class ArtworkBitmapManager
         byte[]? rawBytes = track.ThumbnailData;
         if (rawBytes != null && rawBytes.Length > 0 && ArtworkService.IsValidImageData(rawBytes))
         {
-            if (ArtworkService.IsLowResolutionThumbnail(rawBytes))
+            if (ArtworkService.IsLowResolutionThumbnail(rawBytes) || ArtworkService.IsWebpImageData(rawBytes))
             {
-                // Attempt to upgrade low-resolution browser thumbnail (e.g. YouTube Music Web / Apple Music Web)
-                var upgraded = await _artworkService.GetArtworkBytesAsync(track, ct).ConfigureAwait(false);
-                if (upgraded != null && upgraded.Length > rawBytes.Length && ArtworkService.IsValidImageData(upgraded))
+                // Attempt to upgrade low-resolution or WebP browser thumbnail (e.g. YouTube Music Web / Apple Music Web)
+                var upgraded = await _artworkService.GetArtworkBytesAsync(track, ct);
+                if (upgraded != null && upgraded.Length > 0 && ArtworkService.IsValidImageData(upgraded) &&
+                    (ArtworkService.IsWebpImageData(rawBytes) || upgraded.Length >= rawBytes.Length))
                 {
                     rawBytes = upgraded;
                 }
@@ -60,12 +62,13 @@ public sealed class ArtworkBitmapManager
                 rawBytes = existing;
             }
         }
-        else if (!_rawBytesCache.TryGetValue(key, out rawBytes))
+        else if (!_rawBytesCache.TryGetValue(key, out rawBytes) || rawBytes == null || rawBytes.Length == 0)
         {
-            rawBytes = await _artworkService.GetArtworkBytesAsync(track, ct).ConfigureAwait(false);
+            rawBytes = await _artworkService.GetArtworkBytesAsync(track, ct);
             if (rawBytes != null && rawBytes.Length > 0)
             {
                 _rawBytesCache[key] = rawBytes;
+                PruneCache(_rawBytesCache, key);
             }
         }
 
@@ -76,11 +79,24 @@ public sealed class ArtworkBitmapManager
 
         try
         {
+            byte[] bytesToDecode = rawBytes;
+            if (ArtworkService.IsWebpImageData(bytesToDecode))
+            {
+                var pngBytes = await TranscodeToPngBytesAsync(bytesToDecode);
+                if (pngBytes != null && pngBytes.Length > 0)
+                {
+                    bytesToDecode = pngBytes;
+                    _rawBytesCache[key] = pngBytes;
+                    _artworkService.CacheArtwork(track.Artist, track.Title, pngBytes);
+                }
+            }
+
             using var stream = new InMemoryRandomAccessStream();
             using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
             {
-                writer.WriteBytes(rawBytes);
+                writer.WriteBytes(bytesToDecode);
                 await writer.StoreAsync();
+                writer.DetachStream();
             }
             stream.Seek(0);
 
@@ -96,15 +112,21 @@ public sealed class ArtworkBitmapManager
             }
             catch (Exception decodeEx)
             {
-                // Fallback for browser WebP / custom frames: transcode via WIC BitmapDecoder -> PNG stream
-                LocalDiagnosticLogger.LogWarning($"[ArtworkBitmapManager] Direct BitmapImage.SetSourceAsync failed ({decodeEx.Message}); attempting WIC PNG transcode for '{track.Artist} - {track.Title}'.");
-                stream.Seek(0);
-                var decoder = await BitmapDecoder.CreateAsync(stream);
-                using var softwareBitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+                // Fallback for browser WebP / custom frames: transcode via WIC BitmapDecoder -> PNG bytes on background thread
+                LocalDiagnosticLogger.LogWarning($"[ArtworkBitmapManager] Direct BitmapImage.SetSourceAsync failed ({decodeEx.GetType().Name} 0x{decodeEx.HResult:X8}: {decodeEx.Message}); attempting WIC PNG transcode for '{track.Artist} - {track.Title}'.");
+                var fallbackPng = await TranscodeToPngBytesAsync(rawBytes);
+                if (fallbackPng == null || fallbackPng.Length == 0)
+                {
+                    throw;
+                }
+
                 using var pngStream = new InMemoryRandomAccessStream();
-                var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, pngStream);
-                encoder.SetSoftwareBitmap(softwareBitmap);
-                await encoder.FlushAsync();
+                using (var pngWriter = new DataWriter(pngStream.GetOutputStreamAt(0)))
+                {
+                    pngWriter.WriteBytes(fallbackPng);
+                    await pngWriter.StoreAsync();
+                    pngWriter.DetachStream();
+                }
                 pngStream.Seek(0);
                 await image.SetSourceAsync(pngStream);
             }
@@ -117,9 +139,54 @@ public sealed class ArtworkBitmapManager
         }
         catch (Exception ex)
         {
-            LocalDiagnosticLogger.LogWarning($"[ArtworkBitmapManager] Failed to decode artwork bitmap for '{track.Artist} - {track.Title}': {ex.Message}");
+            LocalDiagnosticLogger.LogWarning($"[ArtworkBitmapManager] Failed to decode artwork bitmap for '{track.Artist} - {track.Title}' ({ex.GetType().Name} 0x{ex.HResult:X8}): {ex.Message}");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Transcodes any WIC-supported image buffer (including browser WebP thumbnails) into standard PNG bytes
+    /// on a background thread so WinUI 3 BitmapImage can decode it without format or thread-affinity issues.
+    /// </summary>
+    public static async Task<byte[]?> TranscodeToPngBytesAsync(byte[]? rawBytes)
+    {
+        if (rawBytes == null || rawBytes.Length == 0) return null;
+
+        return await Task.Run(async () =>
+        {
+            try
+            {
+                using var inputStream = new InMemoryRandomAccessStream();
+                using (var writer = new DataWriter(inputStream.GetOutputStreamAt(0)))
+                {
+                    writer.WriteBytes(rawBytes);
+                    await writer.StoreAsync();
+                    writer.DetachStream();
+                }
+                inputStream.Seek(0);
+
+                var decoder = await BitmapDecoder.CreateAsync(inputStream);
+                using var softwareBitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+                using var pngStream = new InMemoryRandomAccessStream();
+                var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, pngStream);
+                encoder.SetSoftwareBitmap(softwareBitmap);
+                await encoder.FlushAsync();
+                pngStream.Seek(0);
+
+                uint size = (uint)pngStream.Size;
+                if (size == 0) return null;
+                byte[] output = new byte[size];
+                using var reader = new DataReader(pngStream.GetInputStreamAt(0));
+                await reader.LoadAsync(size);
+                reader.ReadBytes(output);
+                reader.DetachStream();
+                return output;
+            }
+            catch
+            {
+                return null;
+            }
+        }).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -197,6 +264,7 @@ public sealed class ArtworkBitmapManager
                 {
                     writer.WriteBytes(rawBytes);
                     await writer.StoreAsync();
+                    writer.DetachStream();
                 }
                 stream.Seek(0);
 

@@ -108,38 +108,57 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         try
         {
             var current = manager.GetCurrentSession();
-            if (current != null) return current;
+            if (current != null)
+            {
+                try
+                {
+                    var curInfo = current.GetPlaybackInfo();
+                    if (curInfo?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                    {
+                        return current;
+                    }
+                }
+                catch { }
+            }
 
             var all = manager.GetSessions();
-            if (all == null || all.Count == 0) return null;
-
-            foreach (var s in all)
+            if (all != null)
             {
-                try
+                int count = all.Count;
+                for (int i = 0; i < count; i++)
                 {
-                    var info = s.GetPlaybackInfo();
-                    if (info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                    try
                     {
-                        return s;
+                        var s = all[i];
+                        var info = s.GetPlaybackInfo();
+                        if (info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                        {
+                            return s;
+                        }
                     }
+                    catch { }
                 }
-                catch { }
+
+                if (current != null) return current;
+
+                for (int i = 0; i < count; i++)
+                {
+                    try
+                    {
+                        var s = all[i];
+                        var info = s.GetPlaybackInfo();
+                        if (info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused)
+                        {
+                            return s;
+                        }
+                    }
+                    catch { }
+                }
+
+                if (count > 0) return all[0];
             }
 
-            foreach (var s in all)
-            {
-                try
-                {
-                    var info = s.GetPlaybackInfo();
-                    if (info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused)
-                    {
-                        return s;
-                    }
-                }
-                catch { }
-            }
-
-            return all[0];
+            return current;
         }
         catch
         {
@@ -292,11 +311,13 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 
     private async Task UpdateMediaPropertiesAsync(GlobalSystemMediaTransportControlsSession session)
     {
+        if (_currentSession != null && !ReferenceEquals(session, _currentSession)) return;
         long currentSeq = Interlocked.Increment(ref _trackSequence);
         try
         {
             var props = await session.TryGetMediaPropertiesAsync();
             if (props == null || Interlocked.Read(ref _trackSequence) != currentSeq) return;
+            if (_currentSession != null && !ReferenceEquals(session, _currentSession)) return;
 
             byte[]? thumbnailBytes = await ReadThumbnailStreamAsync(props.Thumbnail).ConfigureAwait(false);
 
@@ -347,6 +368,13 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 RawAlbum: norm.RawAlbum);
 
             if (Interlocked.Read(ref _trackSequence) != currentSeq) return;
+            if (_currentSession != null && !ReferenceEquals(session, _currentSession)) return;
+
+            if (isTrackSwitch && !track.IsEmpty)
+            {
+                Lyrow.Core.Services.LocalDiagnosticLogger.LogInfo(
+                    $"[GSMTC] Active session='{appId}' track='{newArtist} - {newTitle}' album='{newAlbum}' thumbnailBytes={thumbnailBytes?.Length ?? 0}");
+            }
 
             CurrentTrack = track;
             TrackChanged?.Invoke(this, track);
@@ -407,6 +435,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 
     private Task UpdatePlaybackAndTimelineAsync(GlobalSystemMediaTransportControlsSession session)
     {
+        if (_currentSession != null && !ReferenceEquals(session, _currentSession)) return Task.CompletedTask;
         try
         {
             var playbackInfo = session.GetPlaybackInfo();

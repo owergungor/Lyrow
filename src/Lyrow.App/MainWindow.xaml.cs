@@ -1927,7 +1927,7 @@ public sealed partial class MainWindow : Window
 
         if (track.ThumbnailData is { Length: > 0 } && (isTrackSwitch || isArtworkUpdated))
         {
-            _artworkBitmapManager.Invalidate(track.Artist, track.Title);
+            if (!ArtworkService.IsLowResolutionThumbnail(track.ThumbnailData) && !ArtworkService.IsWebpImageData(track.ThumbnailData)) _artworkBitmapManager.Invalidate(track.Artist, track.Title);
         }
 
         if (isTrackSwitch)
@@ -1949,7 +1949,7 @@ public sealed partial class MainWindow : Window
                 bool allowAnim = ArtworkBitmapManager.AreSystemAnimationsEnabled() && _settingsManager.Current.EnableAnimations;
                 bitmap.AutoPlay = allowAnim;
                 if (!allowAnim) { try { bitmap.Stop(); } catch { } }
-                HomeTrackArtwork.Opacity = 0.0;
+                HomeTrackArtwork.Opacity = 1.0;
                 HomeTrackArtwork.Source = bitmap;
                 var anim = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation { From = 0.0, To = 1.0, Duration = TimeSpan.FromMilliseconds(240) };
                 Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(anim, HomeTrackArtwork);
@@ -1958,6 +1958,7 @@ public sealed partial class MainWindow : Window
                 sb.Children.Add(anim);
                 sb.Begin();
                 HomeArtworkPlaceholder.Visibility = Visibility.Collapsed;
+                LocalDiagnosticLogger.LogInfo($"[MainWindow] Bound artwork bitmap for '{track.Artist} - {track.Title}'.");
             }
             else
             {

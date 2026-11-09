@@ -12,9 +12,9 @@ namespace Lyrow.App.Platform;
 /// </summary>
 public static class WindowStateManager
 {
-    public static readonly PixelSize MinimumSize = new(500, 232);
+    public static readonly PixelSize MinimumSize = new(320, 136);
     public static readonly PixelSize DefaultNormalSize = new(960, 720);
-    public static readonly PixelSize DefaultCompactSize = new(500, 232);
+    public static readonly PixelSize DefaultCompactSize = new(528, 222);
 
     /// <summary>
     /// Pure validation algorithm that checks whether candidate bounds fall within at least one visible screen.
@@ -124,8 +124,6 @@ public static class WindowStateManager
 
         try
         {
-            // Collect all display areas
-            var allDisplayAreas = DisplayArea.FindAll();
             var primaryArea = DisplayArea.Primary;
 
             PixelRect primaryWorkingArea = primaryArea != null
@@ -133,11 +131,27 @@ public static class WindowStateManager
                 : new PixelRect(0, 0, 1920, 1080);
 
             var screenRects = new List<PixelRect>();
-            if (allDisplayAreas != null)
+            try
             {
-                foreach (var area in allDisplayAreas)
+                var allDisplayAreas = DisplayArea.FindAll();
+                if (allDisplayAreas != null)
                 {
-                    screenRects.Add(new PixelRect(area.WorkArea.X, area.WorkArea.Y, area.WorkArea.Width, area.WorkArea.Height));
+                    int count = allDisplayAreas.Count;
+                    for (int i = 0; i < count; i++)
+                    {
+                        var area = allDisplayAreas[i];
+                        if (area != null)
+                        {
+                            screenRects.Add(new PixelRect(area.WorkArea.X, area.WorkArea.Y, area.WorkArea.Width, area.WorkArea.Height));
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                if (primaryArea != null)
+                {
+                    screenRects.Add(primaryWorkingArea);
                 }
             }
 

@@ -217,7 +217,7 @@ public partial class App : Application
             }
             catch { }
 
-            (Services as IDisposable)?.Dispose();
+            try { if (Services is IAsyncDisposable ad) ad.DisposeAsync().AsTask().Wait(500); else (Services as IDisposable)?.Dispose(); } catch { }
             LocalDiagnosticLogger.LogInfo("Application cleanup complete.");
             Environment.Exit(0);
         }

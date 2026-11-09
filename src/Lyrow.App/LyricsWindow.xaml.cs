@@ -75,6 +75,7 @@ public sealed partial class LyricsWindow : Window
     private bool _snapToCenterOnNextLayout = false;
     private bool _userIsInteracting = false;
     private bool _isDraggingProgressBar = false;
+    private bool _isResizingProgrammatically = false;
     private DateTime _lastUserInteractionUtc = DateTime.MinValue;
     private bool _isShuttingDown = false;
 
@@ -301,17 +302,14 @@ public sealed partial class LyricsWindow : Window
         {
             HorizontalView.Visibility = Visibility.Collapsed;
             CompactPlayerView.Visibility = Visibility.Visible;
-            LyricsTitleBar.Title = "Lyrow — Mini Player";
+            Grid.SetRow(MainViewportArea, 0);
+            Grid.SetRowSpan(MainViewportArea, 2);
+            LyricsTitleBar.Height = 26;
+            LyricsTitleBar.MinHeight = 24;
+            LyricsTitleBar.Title = string.Empty;
             if (resizeWindow)
             {
-                if (_isCompactLyricsExpanded)
-                {
-                    ResizeCompactWithLyrics();
-                }
-                else
-                {
-                    ResizeForCurrentDpi(500, 232);
-                }
+                ResizeCompactWindow(_isCompactLyricsExpanded);
             }
         }
         else
@@ -324,6 +322,10 @@ public sealed partial class LyricsWindow : Window
             }
             CompactPlayerView.Visibility = Visibility.Collapsed;
             HorizontalView.Visibility = Visibility.Visible;
+            Grid.SetRow(MainViewportArea, 1);
+            Grid.SetRowSpan(MainViewportArea, 1);
+            LyricsTitleBar.Height = double.NaN;
+            LyricsTitleBar.MinHeight = 32;
             LyricsTitleBar.Title = "Lyrow — Synchronized Lyrics";
             if (resizeWindow)
             {
@@ -612,8 +614,11 @@ public sealed partial class LyricsWindow : Window
         TxtRemaining.Text = newTrack.Duration > TimeSpan.Zero ? $"-{newTrack.Duration:mm\\:ss}" : "-0:00";
         TxtRemainingCompact.Text = newTrack.Duration > TimeSpan.Zero ? $"-{newTrack.Duration:mm\\:ss}" : "-0:00";
 
-        // 4. Invalidate artwork only when raw GSMTC thumbnail bytes are provided; preserve online cache otherwise
-        if (!newTrack.IsEmpty && newTrack.ThumbnailData is { Length: > 0 })
+        // 4. Invalidate artwork only when native high-res GSMTC thumbnail bytes are provided; preserve online/transcoded cache otherwise
+        if (!newTrack.IsEmpty &&
+            newTrack.ThumbnailData is { Length: > 0 } &&
+            !ArtworkService.IsLowResolutionThumbnail(newTrack.ThumbnailData) &&
+            !ArtworkService.IsWebpImageData(newTrack.ThumbnailData))
         {
             _artworkBitmapManager?.Invalidate(newTrack.Artist, newTrack.Title);
         }
@@ -707,7 +712,11 @@ public sealed partial class LyricsWindow : Window
         if (track.ThumbnailData is { Length: > 0 } && currentArtSig != _lastArtworkSignature)
         {
             _lastArtworkSignature = currentArtSig;
-            _artworkBitmapManager?.Invalidate(track.Artist, track.Title);
+            if (!ArtworkService.IsLowResolutionThumbnail(track.ThumbnailData) &&
+                !ArtworkService.IsWebpImageData(track.ThumbnailData))
+            {
+                _artworkBitmapManager?.Invalidate(track.Artist, track.Title);
+            }
             _ = UpdateArtworkAsync(track, Interlocked.Read(ref _windowTrackSequence));
         }
 
@@ -838,24 +847,13 @@ public sealed partial class LyricsWindow : Window
                     try { bitmap.Stop(); } catch { }
                 }
 
-                ImgTrackArtwork.Opacity = 0.0;
-                ImgTrackArtworkCompact.Opacity = 0.0;
+                ImgTrackArtwork.Opacity = 1.0;
+                ImgTrackArtworkCompact.Opacity = 1.0;
                 ImgTrackArtwork.Source = bitmap;
-                var anim = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation { From = 0.0, To = 1.0, Duration = TimeSpan.FromMilliseconds(240) };
-                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(anim, ImgTrackArtwork);
-                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(anim, "Opacity");
-                var sb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
-                sb.Children.Add(anim);
-                sb.Begin();
-                var animC = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation { From = 0.0, To = 1.0, Duration = TimeSpan.FromMilliseconds(240) };
-                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animC, ImgTrackArtworkCompact);
-                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animC, "Opacity");
-                var sbC = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
-                sbC.Children.Add(animC);
-                sbC.Begin();
                 IconArtworkPlaceholder.Visibility = Visibility.Collapsed;
                 ImgTrackArtworkCompact.Source = bitmap;
                 IconArtworkPlaceholderCompact.Visibility = Visibility.Collapsed;
+                LocalDiagnosticLogger.LogInfo($"[LyricsWindow] Bound artwork bitmap for '{track.Artist} - {track.Title}' (Mode={_currentMode}).");
             }
             else
             {
@@ -1335,6 +1333,7 @@ public sealed partial class LyricsWindow : Window
 
     private void UpdateLayoutForCurrentSize()
     {
+        if (_isResizingProgrammatically) return;
         double w = RootLayout.ActualWidth;
         double h = RootLayout.ActualHeight;
         if (w <= 0 || h <= 0) return;
@@ -1352,7 +1351,7 @@ public sealed partial class LyricsWindow : Window
 
         if (w <= LyricsViewportCalculator.NormalToCompactWidthThreshold || h <= LyricsViewportCalculator.NormalToCompactHeightThreshold)
         {
-            SetWindowMode(LyricsWindowMode.Compact, resizeWindow: false);
+            SetWindowMode(LyricsWindowMode.Compact, resizeWindow: true);
             return;
         }
 
@@ -1730,6 +1729,21 @@ public sealed partial class LyricsWindow : Window
         flyout.Items.Add(note);
     }
 
+    public (int LogicalWidth, int LogicalHeight, int PhysicalWidth, int PhysicalHeight) GetTargetCompactWindowSize(bool? isLyricsExpanded = null)
+    {
+        bool expanded = isLyricsExpanded ?? _isCompactLyricsExpanded;
+        double scale = 1.0;
+        try
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            uint dpi = GetDpiForWindow(hwnd);
+            if (dpi > 0) scale = dpi / 96.0;
+        }
+        catch { }
+
+        return LyricsViewportCalculator.CalculateCompactWindowSize(expanded, scale);
+    }
+
     public void ToggleCompactLyrics()
     {
         _isCompactLyricsExpanded = !_isCompactLyricsExpanded;
@@ -1737,41 +1751,55 @@ public sealed partial class LyricsWindow : Window
         {
             GridCompactLyrics.Visibility = Visibility.Visible;
             IconExpandFromCompact.Glyph = "\uE73E";
-            ResizeCompactWithLyrics();
+            ResizeCompactWindow(true);
             RebuildCompactLyricsUi(_lyricsModule.CurrentLyrics);
         }
         else
         {
             GridCompactLyrics.Visibility = Visibility.Collapsed;
             IconExpandFromCompact.Glyph = "\uEC4F";
-            ResizeForCurrentDpi(500, 232);
+            ResizeCompactWindow(false);
         }
     }
 
-    private void ResizeCompactWithLyrics()
+    private void ResizeCompactWindow(bool isLyricsExpanded)
     {
-        var (logicalW, logicalH, _, _) = LyricsViewportCalculator.CalculateCompactWindowSize(true, 1.0);
+        var (logicalW, logicalH, physW, physH) = GetTargetCompactWindowSize(isLyricsExpanded);
+        _isResizingProgrammatically = true;
         try
         {
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            uint dpi = GetDpiForWindow(hwnd);
-            double scale = dpi > 0 ? (dpi / 96.0) : 1.0;
-            var (_, _, physW, physH) = LyricsViewportCalculator.CalculateCompactWindowSize(true, scale);
+            if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter overlapped)
+            {
+                double scale = logicalW > 0 ? (double)physW / logicalW : 1.0;
+                var (_, _, minPhysW, minPhysH) = LyricsViewportCalculator.CalculateCompactMinimumWindowSize(scale);
+                overlapped.PreferredMinimumWidth = minPhysW;
+                overlapped.PreferredMinimumHeight = minPhysH;
+            }
 
             var displayArea = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(AppWindow.Id, Microsoft.UI.Windowing.DisplayAreaFallback.Primary);
-            var workArea = displayArea.WorkArea;
-            int curX = AppWindow.Position.X;
-            int curY = AppWindow.Position.Y;
-            if (curY + physH > workArea.Y + workArea.Height)
+            if (displayArea != null)
             {
-                curY = Math.Max(workArea.Y, workArea.Y + workArea.Height - physH - 12);
+                var workArea = displayArea.WorkArea;
+                int curX = AppWindow.Position.X;
+                int curY = AppWindow.Position.Y;
+                if (curY + physH > workArea.Y + workArea.Height)
+                {
+                    curY = Math.Max(workArea.Y, workArea.Y + workArea.Height - physH - 12);
+                }
+                AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(curX, curY, physW, physH));
+                return;
             }
-            AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(curX, curY, physW, physH));
         }
         catch
         {
-            ResizeForCurrentDpi(logicalW, logicalH);
+            // Fallback to ResizeForCurrentDpi
         }
+        finally
+        {
+            _isResizingProgrammatically = false;
+        }
+
+        ResizeForCurrentDpi(logicalW, logicalH);
     }
 
     private void RebuildCompactLyricsUi(SyncedLyrics? lyrics)
@@ -1788,7 +1816,7 @@ public sealed partial class LyricsWindow : Window
             var block = new TextBlock
             {
                 Text = string.Empty,
-                FontSize = isMiddleActive ? 14.5 : 12.5,
+                FontSize = isMiddleActive ? 13.0 : 11.5,
                 FontWeight = isMiddleActive ? FontWeights.Bold : FontWeights.Normal,
                 Opacity = isMiddleActive ? 1.0 : 0.48,
                 TextAlignment = TextAlignment.Center,
@@ -1837,16 +1865,16 @@ public sealed partial class LyricsWindow : Window
         _compactLineBlocks[0].Text = prevText;
         _compactLineBlocks[0].FontWeight = FontWeights.Normal;
         _compactLineBlocks[0].Opacity = 0.48;
-        _compactLineBlocks[0].FontSize = 12.5;
+        _compactLineBlocks[0].FontSize = 11.5;
 
         _compactLineBlocks[1].Text = activeText;
         _compactLineBlocks[1].FontWeight = FontWeights.Bold;
         _compactLineBlocks[1].Opacity = 1.0;
-        _compactLineBlocks[1].FontSize = 14.5;
+        _compactLineBlocks[1].FontSize = 13.0;
 
         _compactLineBlocks[2].Text = nextText;
         _compactLineBlocks[2].FontWeight = FontWeights.Normal;
         _compactLineBlocks[2].Opacity = 0.48;
-        _compactLineBlocks[2].FontSize = 12.5;
+        _compactLineBlocks[2].FontSize = 11.5;
     }
 }

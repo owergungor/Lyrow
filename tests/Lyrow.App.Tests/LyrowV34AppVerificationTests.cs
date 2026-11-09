@@ -50,9 +50,9 @@ public class LyrowV34AppVerificationTests
         xaml.Should().Contain("x:Name=\"BtnNormalModeCompact\"");
         xaml.Should().Contain("ToolTipService.ToolTip=\"Normal mode\"");
 
-        // Increased vertical height (500 x 232 logical px) and 76x76 artwork
-        xaml.Should().Contain("Width=\"76\" Height=\"76\"");
-        code.Should().Contain("ResizeForCurrentDpi(500, 232);");
+        // Compact mini-player dimensions (352 x 148 logical DIPs = 528 x 222 px at 150% DPI) and 60x60 DIPs (90x90 px) artwork
+        xaml.Should().Contain("Width=\"60\" Height=\"60\"");
+        code.Should().Contain("ResizeCompactWindow(_isCompactLyricsExpanded);");
         code.Should().Contain("LyricsViewportCalculator.CompactToNormalWidthThreshold");
     }
 

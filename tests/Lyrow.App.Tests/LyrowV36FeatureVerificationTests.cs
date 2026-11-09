@@ -144,8 +144,8 @@ public sealed class LyrowV36FeatureVerificationTests
 
         // Code-behind toggle and sizing
         lyricsWindowCode.Should().Contain("ToggleCompactLyrics()");
-        lyricsWindowCode.Should().Contain("ResizeCompactWithLyrics()");
-        lyricsWindowCode.Should().Contain("ResizeForCurrentDpi(500, 232);");
+        lyricsWindowCode.Should().Contain("ResizeCompactWindow(true);");
+        lyricsWindowCode.Should().Contain("ResizeCompactWindow(false);");
         lyricsWindowCode.Should().Contain("workArea.Y + workArea.Height");
     }
 }

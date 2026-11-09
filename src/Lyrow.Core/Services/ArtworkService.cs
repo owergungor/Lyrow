@@ -56,7 +56,7 @@ public sealed class ArtworkService : IArtworkService
         }
 
         string key = CreateCacheKey(track.Artist, track.Title);
-        if (_cache.TryGetValue(key, out var cachedBytes) && cachedBytes != null && !IsLowResolutionThumbnail(cachedBytes))
+        if (_cache.TryGetValue(key, out var cachedBytes) && cachedBytes != null && !IsLowResolutionThumbnail(cachedBytes) && !IsWebpImageData(cachedBytes))
         {
             return cachedBytes;
         }
@@ -71,7 +71,7 @@ public sealed class ArtworkService : IArtworkService
             }
 
             gsmtcBytes = track.ThumbnailData;
-            if (!IsLowResolutionThumbnail(gsmtcBytes))
+            if (!IsLowResolutionThumbnail(gsmtcBytes) && !IsWebpImageData(gsmtcBytes))
             {
                 _cache[key] = gsmtcBytes;
                 PruneCacheIfExceeded(key);
@@ -85,7 +85,7 @@ public sealed class ArtworkService : IArtworkService
             var uriBytes = await TryDownloadDirectArtworkUriAsync(track.AlbumArtUri, ct).ConfigureAwait(false);
             if (uriBytes != null && IsValidImageData(uriBytes))
             {
-                if (!IsLowResolutionThumbnail(uriBytes))
+                if (!IsLowResolutionThumbnail(uriBytes) && !IsWebpImageData(uriBytes))
                 {
                     _cache[key] = uriBytes;
                     PruneCacheIfExceeded(key);
@@ -95,10 +95,10 @@ public sealed class ArtworkService : IArtworkService
             }
         }
 
-        // When GSMTC thumbnail is missing (common on YouTube Music Web / Apple Music Web) OR is a low-resolution
-        // browser thumbnail (96x96 / 120x120), fetch verified 600x600+ artwork from iTunes Search API.
+        // When GSMTC thumbnail is missing (common on YouTube Music Web / Apple Music Web), is a low-resolution
+        // browser thumbnail (96x96 / 120x120), or is a browser WebP thumbnail, fetch verified 600x600+ artwork from iTunes Search API.
         var highResBytes = await TryFetchHighResOnlineArtworkAsync(track.Artist, track.Title, track.Album, ct).ConfigureAwait(false);
-        if (highResBytes != null && IsValidImageData(highResBytes) && (gsmtcBytes == null || highResBytes.Length >= gsmtcBytes.Length))
+        if (highResBytes != null && IsValidImageData(highResBytes) && (gsmtcBytes == null || IsWebpImageData(gsmtcBytes) || highResBytes.Length >= gsmtcBytes.Length))
         {
             _cache[key] = highResBytes;
             PruneCacheIfExceeded(key);
@@ -439,6 +439,34 @@ public sealed class ArtworkService : IArtworkService
         return new string(chars);
     }
 
+    /// <summary>
+    /// Extracts the core song title by stripping secondary soundtrack/live subtitles (" - ...") and parenthetical qualifiers
+    /// so compound YouTube Music titles still match canonical song records in online artwork providers.
+    /// </summary>
+    public static string ExtractCoreSongTitle(string? title)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return string.Empty;
+        string core = title.Trim();
+        int dashIdx = core.IndexOf(" - ", StringComparison.Ordinal);
+        if (dashIdx > 2)
+        {
+            core = core[..dashIdx].Trim();
+        }
+        core = Regex.Replace(core, @"\s*[\(\[].*?[\)\]]", string.Empty).Trim();
+        return string.IsNullOrWhiteSpace(core) ? title.Trim() : core;
+    }
+
+    /// <summary>
+    /// Checks whether the byte buffer starts with a RIFF....WEBP header (commonly emitted by Chromium/Opera GSMTC web sessions).
+    /// </summary>
+    public static bool IsWebpImageData(byte[]? data)
+    {
+        return data != null &&
+               data.Length >= 12 &&
+               data[0] == 'R' && data[1] == 'I' && data[2] == 'F' && data[3] == 'F' &&
+               data[8] == 'W' && data[9] == 'E' && data[10] == 'B' && data[11] == 'P';
+    }
+
     private async Task<byte[]?> TryFetchHighResOnlineArtworkAsync(string artist, string title, string? album, CancellationToken ct)
     {
         var (cleanArtist, cleanTitle) = CleanSearchMetadataForArtwork(artist, title);
@@ -449,56 +477,74 @@ public sealed class ArtworkService : IArtworkService
 
         try
         {
-            string queryTerm = $"{cleanArtist} {cleanTitle}".Trim();
-            if (string.IsNullOrWhiteSpace(queryTerm)) return null;
-
-            string url = $"https://itunes.apple.com/search?term={Uri.EscapeDataString(queryTerm)}&media=music&entity=song&limit=5";
-
-            using var resp = await _httpClient.GetAsync(url, ct).ConfigureAwait(false);
-            if (!resp.IsSuccessStatusCode)
+            string? bestArtUrl = await QueryItunesArtworkUrlAsync(cleanArtist, cleanTitle, ct).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(bestArtUrl))
             {
-                LocalDiagnosticLogger.LogWarning($"[ArtworkService] Online artwork lookup returned HTTP {(int)resp.StatusCode} for '{queryTerm}'.");
-                return null;
-            }
-
-            using var doc = await JsonDocument.ParseAsync(await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false), cancellationToken: ct).ConfigureAwait(false);
-            if (!doc.RootElement.TryGetProperty("results", out var results) || results.GetArrayLength() == 0)
-            {
-                return null;
-            }
-
-            string? bestArtUrl = null;
-            foreach (var item in results.EnumerateArray())
-            {
-                string? candArtist = item.TryGetProperty("artistName", out var aProp) ? aProp.GetString() : null;
-                string? candTrack = item.TryGetProperty("trackName", out var tProp) ? tProp.GetString() : null;
-                string? candCollection = item.TryGetProperty("collectionName", out var cProp) ? cProp.GetString() : null;
-
-                if (!IsMatchingArtworkCandidate(cleanArtist, cleanTitle, candArtist, candTrack, candCollection))
+                string coreTitle = ExtractCoreSongTitle(cleanTitle);
+                if (!string.IsNullOrWhiteSpace(coreTitle) &&
+                    !string.Equals(coreTitle, cleanTitle, StringComparison.OrdinalIgnoreCase))
                 {
-                    continue;
-                }
-
-                if (item.TryGetProperty("artworkUrl100", out var artProp))
-                {
-                    string? rawArt = artProp.GetString();
-                    if (!string.IsNullOrWhiteSpace(rawArt))
-                    {
-                        bestArtUrl = UpgradeArtworkUrlToHighRes(rawArt);
-                        break;
-                    }
+                    bestArtUrl = await QueryItunesArtworkUrlAsync(cleanArtist, coreTitle, ct).ConfigureAwait(false);
                 }
             }
 
             if (string.IsNullOrWhiteSpace(bestArtUrl)) return null;
 
-            return await _httpClient.GetByteArrayAsync(bestArtUrl, ct).ConfigureAwait(false);
+            var bytes = await _httpClient.GetByteArrayAsync(bestArtUrl, ct).ConfigureAwait(false);
+            if (bytes != null && bytes.Length > 0)
+            {
+                LocalDiagnosticLogger.LogInfo($"[ArtworkService] Downloaded high-res online artwork ({bytes.Length} bytes) for '{cleanArtist} - {cleanTitle}'.");
+            }
+            return bytes;
         }
         catch (Exception ex)
         {
             LocalDiagnosticLogger.LogWarning($"[ArtworkService] Online artwork fetch error for '{cleanArtist} - {cleanTitle}': {ex.Message}");
             return null;
         }
+    }
+
+    private async Task<string?> QueryItunesArtworkUrlAsync(string queryArtist, string queryTitle, CancellationToken ct)
+    {
+        string queryTerm = $"{queryArtist} {queryTitle}".Trim();
+        if (string.IsNullOrWhiteSpace(queryTerm)) return null;
+
+        string url = $"https://itunes.apple.com/search?term={Uri.EscapeDataString(queryTerm)}&media=music&entity=song&limit=5";
+        using var resp = await _httpClient.GetAsync(url, ct).ConfigureAwait(false);
+        if (!resp.IsSuccessStatusCode)
+        {
+            LocalDiagnosticLogger.LogWarning($"[ArtworkService] Online artwork lookup returned HTTP {(int)resp.StatusCode} for '{queryTerm}'.");
+            return null;
+        }
+
+        using var doc = await JsonDocument.ParseAsync(await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false), cancellationToken: ct).ConfigureAwait(false);
+        if (!doc.RootElement.TryGetProperty("results", out var results) || results.GetArrayLength() == 0)
+        {
+            return null;
+        }
+
+        foreach (var item in results.EnumerateArray())
+        {
+            string? candArtist = item.TryGetProperty("artistName", out var aProp) ? aProp.GetString() : null;
+            string? candTrack = item.TryGetProperty("trackName", out var tProp) ? tProp.GetString() : null;
+            string? candCollection = item.TryGetProperty("collectionName", out var cProp) ? cProp.GetString() : null;
+
+            if (!IsMatchingArtworkCandidate(queryArtist, queryTitle, candArtist, candTrack, candCollection))
+            {
+                continue;
+            }
+
+            if (item.TryGetProperty("artworkUrl100", out var artProp))
+            {
+                string? rawArt = artProp.GetString();
+                if (!string.IsNullOrWhiteSpace(rawArt))
+                {
+                    return UpgradeArtworkUrlToHighRes(rawArt);
+                }
+            }
+        }
+
+        return null;
     }
 
     public void CacheArtwork(string artist, string title, byte[] artworkBytes)
