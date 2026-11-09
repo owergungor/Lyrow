@@ -220,12 +220,26 @@ public sealed class LyricsModule : ILyrowModule
     private void OnTrackChanged(object? sender, MediaTrackInfo track)
     {
         if (State != ModuleState.Running) return;
-        // Invalidate previous track lyrics immediately on event dispatch
-        _currentLyrics = SyncedLyrics.Empty;
-        _currentLyricsSongKey = string.Empty;
-        _activeLineIndex = -1;
-        _synchronizer.Reset();
-        _synchronizer.SetLyrics(SyncedLyrics.Empty);
+
+        string incomingTitle = (track.Title ?? string.Empty).Trim();
+        string incomingArtist = (track.Artist ?? string.Empty).Trim();
+        string currentTitle = (_currentTrack.Title ?? string.Empty).Trim();
+        string currentArtist = (_currentTrack.Artist ?? string.Empty).Trim();
+
+        bool isSameSong = !track.IsEmpty &&
+                          string.Equals(incomingTitle, currentTitle, StringComparison.OrdinalIgnoreCase) &&
+                          string.Equals(incomingArtist, currentArtist, StringComparison.OrdinalIgnoreCase);
+
+        // Invalidate previous track lyrics immediately on event dispatch only if transitioning to a different song
+        if (!isSameSong)
+        { 
+            _currentLyrics = SyncedLyrics.Empty;
+            _currentLyricsSongKey = string.Empty;
+            _activeLineIndex = -1;
+            _synchronizer.Reset();
+            _synchronizer.SetLyrics(SyncedLyrics.Empty);
+        }
+
         _ = HandleTrackChangedAsync(track, _activeCts?.Token ?? CancellationToken.None);
     }
 

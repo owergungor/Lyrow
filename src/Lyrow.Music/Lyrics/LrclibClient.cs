@@ -186,46 +186,77 @@ public sealed class LrclibClient : ILyricsClient
                 }
             }
 
-            // Fallback 3: Broad search using /api/search?q={query}
-            string broadQ = $"{cleanArtist} {cleanTrack}".Trim();
-            if (!string.IsNullOrWhiteSpace(broadQ))
+            // Fallback 3: Search using /api/search?track_name={cleanTrack}&artist_name={cleanArtist} or /api/search?q={query}
+            var searchCandidates = await SearchLrclibCandidatesAsync(cleanTrack, cleanArtist, cancellationToken).ConfigureAwait(false);
+            if (searchCandidates != null && searchCandidates.Count > 0)
             {
-                var searchUrl = $"https://lrclib.net/api/search?q={Uri.EscapeDataString(broadQ)}";
-                var (searchResp, searchStatus, searchRetry) = await SendWithResilienceAsync(new Uri(searchUrl), cancellationToken).ConfigureAwait(false);
-                using (searchResp)
+                var candidate = SelectBestSearchCandidate(searchCandidates, cleanTrack, cleanArtist, duration);
+                if (candidate != null)
                 {
-                    if (searchResp != null && searchResp.IsSuccessStatusCode)
+                    if (!string.IsNullOrWhiteSpace(candidate.SyncedLyrics))
                     {
-                        var searchStream = await searchResp.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-                        var searchList = await JsonSerializer.DeserializeAsync<List<LrclibResponse>>(searchStream, cancellationToken: cancellationToken).ConfigureAwait(false);
-                        if (searchList != null && searchList.Count > 0)
-                        {
-                            var candidate = SelectBestSearchCandidate(searchList, cleanTrack, cleanArtist, duration);
-                            if (candidate != null)
-                            {
-                                if (!string.IsNullOrWhiteSpace(candidate.SyncedLyrics))
-                                {
-                                    var parsed = LrcParser.Parse(candidate.SyncedLyrics, candidate.TrackName ?? cleanTrack, candidate.ArtistName ?? cleanArtist);
-                                    return new LyricsSearchResult(true, parsed, "LRCLIB");
-                                }
-                                if (!string.IsNullOrWhiteSpace(candidate.PlainLyrics))
-                                {
-                                    var plain = new SyncedLyrics(
-                                        title: candidate.TrackName ?? cleanTrack,
-                                        artist: candidate.ArtistName ?? cleanArtist,
-                                        isSynced: false,
-                                        lines: Array.Empty<LyricLine>(),
-                                        plainLyrics: candidate.PlainLyrics);
-                                    return new LyricsSearchResult(true, plain, "LRCLIB");
-                                }
-                            }
-                        }
+                        var parsed = LrcParser.Parse(candidate.SyncedLyrics, candidate.TrackName ?? cleanTrack, candidate.ArtistName ?? cleanArtist);
+                        return new LyricsSearchResult(true, parsed, "LRCLIB");
+                    }
+                    if (!string.IsNullOrWhiteSpace(candidate.PlainLyrics))
+                    {
+                        var plain = new SyncedLyrics(
+                            title: candidate.TrackName ?? cleanTrack,
+                            artist: candidate.ArtistName ?? cleanArtist,
+                            isSynced: false,
+                            lines: Array.Empty<LyricLine>(),
+                            plainLyrics: candidate.PlainLyrics);
+                        return new LyricsSearchResult(true, plain, "LRCLIB");
                     }
                 }
             }
 
             return new LyricsSearchResult(false, null, "LRCLIB", "Lyrics not found for track.");
         }
+    }
+
+    private async Task<List<LrclibResponse>?> SearchLrclibCandidatesAsync(
+        string cleanTrack,
+        string cleanArtist,
+        CancellationToken cancellationToken)
+    {
+        // 1. Try field-specific search endpoint
+        var fieldSearchUrl = $"https://lrclib.net/api/search?track_name={Uri.EscapeDataString(cleanTrack)}&artist_name={Uri.EscapeDataString(cleanArtist)}";
+        var (searchResp, _, _) = await SendWithResilienceAsync(new Uri(fieldSearchUrl), cancellationToken).ConfigureAwait(false);
+        using (searchResp)
+        {
+            if (searchResp != null && searchResp.IsSuccessStatusCode)
+            {
+                var searchStream = await searchResp.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                var searchList = await JsonSerializer.DeserializeAsync<List<LrclibResponse>>(searchStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+                if (searchList != null && searchList.Count > 0)
+                {
+                    return searchList;
+                }
+            }
+        }
+
+        // 2. Fallback to broad full-text query
+        string broadQ = $"{cleanArtist} {cleanTrack}".Trim();
+        if (!string.IsNullOrWhiteSpace(broadQ))
+        {
+            var broadSearchUrl = $"https://lrclib.net/api/search?q={Uri.EscapeDataString(broadQ)}";
+            var (broadResp, _, _) = await SendWithResilienceAsync(new Uri(broadSearchUrl), cancellationToken).ConfigureAwait(false);
+            using (broadResp)
+            {
+                if (broadResp != null && broadResp.IsSuccessStatusCode)
+                {
+                    var broadStream = await broadResp.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                    var broadList = await JsonSerializer.DeserializeAsync<List<LrclibResponse>>(broadStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    if (broadList != null && broadList.Count > 0)
+                    {
+                        return broadList;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     private async Task<(HttpResponseMessage? Response, HttpStatusCode StatusCode, int RetryAfterSeconds)> SendWithResilienceAsync(

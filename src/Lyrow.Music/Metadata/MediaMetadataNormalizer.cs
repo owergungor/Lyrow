@@ -106,6 +106,7 @@ public sealed class MediaMetadataNormalizer : IMediaMetadataNormalizer
     {
         if (string.IsNullOrWhiteSpace(title)) return string.Empty;
         string s = title.Trim();
+        s = s.Replace('’', '\'').Replace('‘', '\'').Replace('`', '\'').Replace('“', '"').Replace('”', '"');
 
         // 1. Strip common edition suffixes after " - "
         foreach (var delim in SuffixDelimiters)
@@ -122,18 +123,26 @@ public sealed class MediaMetadataNormalizer : IMediaMetadataNormalizer
             }
         }
 
-        // 2. Strip parentheses suffixes: e.g. " (Remastered 2011)", " (feat. Drake)", " (Radio Mix)"
-        int parenIdx = s.IndexOf(" (", StringComparison.Ordinal);
-        if (parenIdx > 1 && s.EndsWith(')'))
+        // 2. Iteratively strip trailing parentheses/bracket suffixes: e.g. " (Remastered 2011)", " (feat. Drake)", " (Official Video)", " [Live]"
+        bool strippedAny = true;
+        while (strippedAny)
         {
-            s = s[..parenIdx].Trim();
-        }
+            strippedAny = false;
+            int parenIdx = s.LastIndexOf(" (", StringComparison.Ordinal);
+            if (parenIdx > 1 && s.EndsWith(')'))
+            {
+                s = s[..parenIdx].Trim();
+                strippedAny = true;
+                continue;
+            }
 
-        // 3. Strip bracket suffixes: e.g. " [Live]", " [feat. ...]"
-        int bracketIdx = s.IndexOf(" [", StringComparison.Ordinal);
-        if (bracketIdx > 1 && s.EndsWith(']'))
-        {
-            s = s[..bracketIdx].Trim();
+            int bracketIdx = s.LastIndexOf(" [", StringComparison.Ordinal);
+            if (bracketIdx > 1 && s.EndsWith(']'))
+            {
+                s = s[..bracketIdx].Trim();
+                strippedAny = true;
+                continue;
+            }
         }
 
         return s;
@@ -174,6 +183,7 @@ public sealed class MediaMetadataNormalizer : IMediaMetadataNormalizer
                lower.Contains("ep") ||
                lower.Contains("radio") ||
                lower.Contains("mix") ||
+               lower.Contains("remix") ||
                lower.Contains("edit") ||
                lower.Contains("deluxe") ||
                lower.Contains("version") ||
@@ -182,6 +192,16 @@ public sealed class MediaMetadataNormalizer : IMediaMetadataNormalizer
                lower.Contains("instrumental") ||
                lower.Contains("acoustic") ||
                lower.Contains("feat") ||
-               lower.Contains("soundtrack");
+               lower.Contains("ft.") ||
+               lower.Contains("soundtrack") ||
+               lower.Contains("video") ||
+               lower.Contains("official") ||
+               lower.Contains("audio") ||
+               lower.Contains("visualizer") ||
+               lower.Contains("clip") ||
+               lower.Contains("lyrics") ||
+               lower.Contains("mv") ||
+               lower.Contains("extended") ||
+               lower.Contains("original");
     }
 }

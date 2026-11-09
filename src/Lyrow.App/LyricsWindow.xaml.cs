@@ -839,9 +839,10 @@ public sealed partial class LyricsWindow : Window
         int fontScaleIndex = _settingsManager.Current.LyricsFontScaleIndex;
 
         // Strictly guard against previous track lyrics remaining on screen
-        string expectedSongKey = $"{track.Artist}_{track.Title}";
+        string expectedSongKey = $"{track.Artist?.Trim()}_{track.Title?.Trim()}";
         bool lyricsBelongsToCurrentTrack = !string.IsNullOrEmpty(_lyricsModule.CurrentLyricsSongKey) &&
-                                           string.Equals(_lyricsModule.CurrentLyricsSongKey, expectedSongKey, StringComparison.OrdinalIgnoreCase);
+                                           (string.Equals(_lyricsModule.CurrentLyricsSongKey, expectedSongKey, StringComparison.OrdinalIgnoreCase) ||
+                                            (lyrics != null && string.Equals(lyrics.Title, track.Title, StringComparison.OrdinalIgnoreCase)));
 
         if (!lyricsBelongsToCurrentTrack || lyrics == null || lyrics.Lines.Count == 0)
         {
@@ -1050,7 +1051,7 @@ public sealed partial class LyricsWindow : Window
                 {
                     Text = subText,
                     FontSize = layoutFontSize,
-                    FontWeight = FontWeights.SemiBold,
+                    FontWeight = FontWeights.Normal,
                     TextWrapping = TextWrapping.Wrap,
                     HorizontalAlignment = horizAlign,
                     TextAlignment = textAlign,
@@ -1064,7 +1065,7 @@ public sealed partial class LyricsWindow : Window
                 {
                     Text = subText,
                     FontSize = layoutFontSize,
-                    FontWeight = FontWeights.SemiBold,
+                    FontWeight = FontWeights.Normal,
                     TextWrapping = TextWrapping.Wrap,
                     HorizontalAlignment = horizAlign,
                     TextAlignment = textAlign,
@@ -1153,15 +1154,20 @@ public sealed partial class LyricsWindow : Window
             }
 
             var baseList = _lineSubBaseBlocks[i];
+            var overlayList = i < _lineSubOverlayBlocks.Count ? _lineSubOverlayBlocks[i] : null;
             for (int s = 0; s < baseList.Count; s++)
             {
                 var block = baseList[s];
                 block.FontWeight = isThisLineActive ? FontWeights.Bold : FontWeights.Normal;
+                if (overlayList != null && s < overlayList.Count)
+                {
+                    overlayList[s].FontWeight = isThisLineActive ? FontWeights.Bold : FontWeights.Normal;
+                }
             }
 
             if (i < _lineSubOverlayBlocks.Count)
             {
-                var overlayList = _lineSubOverlayBlocks[i];
+                overlayList = _lineSubOverlayBlocks[i];
                 var clipList = _lineSubClips[i];
                 var subStrings = _lineSubStrings[i];
 
@@ -1225,13 +1231,12 @@ public sealed partial class LyricsWindow : Window
 
         try
         {
-            var transform = activeContainer.TransformToVisual(LyricsScrollViewer);
-            var pointInViewer = transform.TransformPoint(new Windows.Foundation.Point(0, 0));
+            var transform = activeContainer.TransformToVisual(LyricsPanel);
+            var pointInPanel = transform.TransformPoint(new Windows.Foundation.Point(0, 0));
 
-            _targetScrollOffsetY = LyricsViewportCalculator.CalculateTargetCenterOffsetFromViewportPoint(
-                currentVerticalOffset: LyricsScrollViewer.VerticalOffset,
+            _targetScrollOffsetY = LyricsViewportCalculator.CalculateTargetCenterOffset(
                 viewportHeight: viewportH,
-                lineTopInViewport: pointInViewer.Y,
+                lineTopInContent: pointInPanel.Y,
                 lineHeight: activeContainer.ActualHeight,
                 maxScrollableHeight: LyricsScrollViewer.ScrollableHeight);
 
@@ -1378,21 +1383,13 @@ public sealed partial class LyricsWindow : Window
             _userIsInteracting = false;
         }
 
-        RecalculateCenterScrollTarget(immediate: false);
-
-        double actualOffset = LyricsScrollViewer.VerticalOffset;
-        if (Math.Abs(_currentScrollOffsetY - actualOffset) > 80.0)
-        {
-            _currentScrollOffsetY = actualOffset;
-        }
-
         if (Math.Abs(_targetScrollOffsetY - _currentScrollOffsetY) > 0.25)
         {
             _currentScrollOffsetY = LyricsViewportCalculator.InterpolateScrollOffset(
                 _currentScrollOffsetY,
                 _targetScrollOffsetY,
-                smoothingFactor: 0.15,
-                snapEpsilon: 0.30);
+                smoothingFactor: 0.16,
+                snapEpsilon: 0.35);
 
             LyricsScrollViewer.ChangeView(null, _currentScrollOffsetY, null, disableAnimation: true);
         }
