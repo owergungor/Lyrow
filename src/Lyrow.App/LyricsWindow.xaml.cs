@@ -621,7 +621,7 @@ public sealed partial class LyricsWindow : Window
         UpdateScrubberToolTips();
         _trackResetUtc = DateTime.UtcNow;
         long currentSeq = Interlocked.Increment(ref _windowTrackSequence);
-        _lastSongKey = $"{newTrack.Artist}_{newTrack.Title}";
+        _lastSongKey = $"{newTrack.Artist?.Trim()}_{newTrack.Title?.Trim()}";
         _lastArtworkSignature = ArtworkBitmapManager.ComputeArtworkSignature(newTrack);
         _lastLyrics = SyncedLyrics.Empty;
         _lastCompactLyrics = null;
@@ -719,9 +719,39 @@ public sealed partial class LyricsWindow : Window
     {
         var track = ResolveCurrentTrack();
 
-        var timeline = _lyricsModule.CurrentTimeline.Duration > TimeSpan.Zero || _lyricsModule.CurrentTimeline.Status != MediaPlaybackStatus.Stopped
-            ? _lyricsModule.CurrentTimeline
-            : (_mediaMonitor?.CurrentTimeline ?? MediaTimelineInfo.Zero);
+        var monitorTimeline = _mediaMonitor?.CurrentTimeline ?? MediaTimelineInfo.Zero;
+        var moduleTimeline = _lyricsModule.CurrentTimeline;
+
+        // If hardware media monitor reports Playing for the current track, prioritize it and sync module timeline if it lagged behind
+        bool monitorTimelineMatchesTrack = track.Duration <= TimeSpan.Zero ||
+                                          monitorTimeline.Duration <= TimeSpan.Zero ||
+                                          Math.Abs((monitorTimeline.Duration - track.Duration).TotalMilliseconds) < 1000;
+        MediaTimelineInfo timeline;
+        if (monitorTimeline.Status == MediaPlaybackStatus.Playing && monitorTimelineMatchesTrack)
+        {
+            timeline = monitorTimeline;
+            if (moduleTimeline.Status != MediaPlaybackStatus.Playing)
+            {
+                _lyricsModule.UpdateTimelineExternal(monitorTimeline);
+            }
+        }
+        else if (moduleTimeline.Duration > TimeSpan.Zero || moduleTimeline.Status != MediaPlaybackStatus.Stopped)
+        {
+            timeline = moduleTimeline;
+        }
+        else
+        {
+            timeline = monitorTimeline;
+        }
+
+        // Auto-heal timeline status from Changing to Playing if track switch transition window (1.0s) has elapsed
+        if (timeline.Status == MediaPlaybackStatus.Changing &&
+            _trackResetUtc != DateTime.MinValue &&
+            (DateTime.UtcNow - _trackResetUtc).TotalSeconds >= 1.0)
+        {
+            timeline = timeline with { Status = MediaPlaybackStatus.Playing, LastUpdatedUtc = DateTime.UtcNow };
+            _lyricsModule.UpdateTimelineExternal(timeline);
+        }
 
         var lyrics = _lyricsModule.CurrentLyrics;
 
@@ -749,7 +779,7 @@ public sealed partial class LyricsWindow : Window
             return;
         }
 
-        string songKey = $"{track.Artist}_{track.Title}";
+        string songKey = $"{track.Artist?.Trim()}_{track.Title?.Trim()}";
         if (songKey != _lastSongKey)
         {
             ResetTrackState(track);

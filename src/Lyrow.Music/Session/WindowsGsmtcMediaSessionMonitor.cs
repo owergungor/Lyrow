@@ -442,9 +442,18 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             var delta = nowUtc - effectiveReportedUtc;
             if (status == MediaPlaybackStatus.Playing && delta.TotalSeconds >= 0 && delta.TotalHours < 24)
             {
-                if (delta.TotalSeconds is > 0.05 and <= 5.0)
+                if (delta.TotalSeconds > 0.05)
                 {
-                    pos += delta;
+                    var candidatePos = pos + delta;
+                    if (lastTrackSwitchUtc != DateTime.MinValue && lastSeekUtc <= lastTrackSwitchUtc)
+                    {
+                        var maxPossible = nowUtc > lastTrackSwitchUtc ? (nowUtc - lastTrackSwitchUtc) : TimeSpan.Zero;
+                        pos = candidatePos > maxPossible ? maxPossible : candidatePos;
+                    }
+                    else
+                    {
+                        pos = candidatePos;
+                    }
                 }
                 if (trackDuration > TimeSpan.Zero && pos > trackDuration)
                 {
@@ -577,6 +586,33 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             CurrentTrack = track;
             TrackChanged?.Invoke(this, track);
 
+            // Synchronize playback status and timeline immediately after track properties change
+            await UpdatePlaybackAndTimelineAsync(session).ConfigureAwait(false);
+
+            if (isTrackSwitch)
+            {
+                // Follow up at 150ms and 450ms so asynchronous GSMTC timeline properties (Spotify, YouTube/Apple Music Web)
+                // settle into active Playing state without requiring explicit user interaction
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(150).ConfigureAwait(false);
+                        if (_isMonitoring && _currentSession != null && ReferenceEquals(session, _currentSession))
+                        {
+                            await UpdatePlaybackAndTimelineAsync(session).ConfigureAwait(false);
+                        }
+
+                        await Task.Delay(300).ConfigureAwait(false);
+                        if (_isMonitoring && _currentSession != null && ReferenceEquals(session, _currentSession))
+                        {
+                            await UpdatePlaybackAndTimelineAsync(session).ConfigureAwait(false);
+                        }
+                    }
+                    catch { }
+                });
+            }
+
             // Web players (YouTube Music Web / Apple Music Web) often populate GSMTC Thumbnail 300ms-1500ms after MediaPropertiesChanged
             if (!track.IsEmpty && (thumbnailBytes == null || thumbnailBytes.Length == 0))
             {
@@ -671,6 +707,18 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 GlobalSystemMediaTransportControlsSessionPlaybackStatus.Closed => MediaPlaybackStatus.Closed,
                 _ => MediaPlaybackStatus.Unknown
             };
+
+            // If session is still reporting Changing or Opened but the settling window (>600ms) has elapsed, promote to Playing
+            if ((status == MediaPlaybackStatus.Changing || status == MediaPlaybackStatus.Opened) &&
+                _lastTrackSwitchUtc != DateTime.MinValue &&
+                (DateTime.UtcNow - _lastTrackSwitchUtc).TotalMilliseconds > 600)
+            {
+                status = MediaPlaybackStatus.Playing;
+            }
+            else if (status == MediaPlaybackStatus.Unknown && CurrentTimeline.Status == MediaPlaybackStatus.Playing)
+            {
+                status = MediaPlaybackStatus.Playing;
+            }
 
             var startTime = timelineProps?.StartTime ?? TimeSpan.Zero;
             var endTime = timelineProps?.EndTime ?? TimeSpan.Zero;
@@ -941,7 +989,10 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 {
                     if (!await timer.WaitForNextTickAsync(cts.Token).ConfigureAwait(false)) break;
                     var session = _currentSession;
-                    if (session != null && _isMonitoring && CurrentTimeline.Status == MediaPlaybackStatus.Playing)
+                    if (session != null && _isMonitoring &&
+                        CurrentTimeline.Status != MediaPlaybackStatus.Paused &&
+                        CurrentTimeline.Status != MediaPlaybackStatus.Stopped &&
+                        CurrentTimeline.Status != MediaPlaybackStatus.Closed)
                     {
                         await UpdatePlaybackAndTimelineAsync(session).ConfigureAwait(false);
                     }
