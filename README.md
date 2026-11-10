@@ -12,16 +12,20 @@
 
 ---
 
-## 📥 İndirme (Download v3.7)
+## 📥 İndirme ve Kurulum
 
-En son kararlı sürümü doğrudan GitHub Releases üzerinden edinebilirsiniz:
-
+### Güncel Sürüm: Lyrow v3.7 (Önerilen)
 - 🔗 **GitHub Release:** [Lyrow v3.7 Sürüm Sayfası](https://github.com/owergungor/Lyrow/releases/tag/v3.7)
 - 📦 **Doğrudan İndirme:** [Lyrow-v3.7-win-x64.zip (93.3 MB)](https://github.com/owergungor/Lyrow/releases/download/v3.7/Lyrow-v3.7-win-x64.zip)
 - 🔑 **SHA-256 Doğrulama Özeti:** `601664444F7D983B05E3F675D220E8F25EDB7701520D4E923EFCD8F4E0A85B73`
 
 > [!NOTE]
 > Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime kurulumu gerektirmez. Arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını çalıştırmanız yeterlidir.
+
+### Alternatif ve Önceki Kararlı Sürümler (Lyrow v3.5)
+Klasik Inno Setup kurulum sihirbazını veya önceki paketleri tercih eden kullanıcılar için:
+- **Kurulum Sihirbazı (Installer):** [Lyrow-3.5-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/tag/v3.5)
+- **Taşınabilir Arşiv (Portable):** [Lyrow-v3.5-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/tag/v3.5)
 
 ---
 
