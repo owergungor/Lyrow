@@ -31,13 +31,19 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
     private int _lastTrackThumbnailHash = 0;
     private int _lastTrackThumbnailLength = 0;
     private string _lastTrackAlbum = string.Empty;
+    private readonly IPlaybackTimelineEngine _timelineEngine;
 
-    public WindowsGsmtcMediaSessionMonitor(IMediaMetadataNormalizer? normalizer = null)
+    public WindowsGsmtcMediaSessionMonitor(
+        IMediaMetadataNormalizer? normalizer = null,
+        IPlaybackTimelineEngine? timelineEngine = null)
     {
         _normalizer = normalizer ?? new MediaMetadataNormalizer();
+        _timelineEngine = timelineEngine ?? new Lyrow.Core.Timeline.PlaybackTimelineEngine();
         CurrentTrack = MediaTrackInfo.Empty;
         CurrentTimeline = MediaTimelineInfo.Zero;
     }
+
+    public IPlaybackTimelineEngine TimelineEngine => _timelineEngine;
 
     public event EventHandler<MediaTrackInfo>? TrackChanged;
     public event EventHandler<MediaTimelineInfo>? TimelineChanged;
@@ -212,8 +218,9 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
         if (_currentSession == null)
         {
             StopTimelinePolling();
+            _timelineEngine.Reset();
             CurrentTrack = MediaTrackInfo.Empty;
-            CurrentTimeline = MediaTimelineInfo.Zero;
+            CurrentTimeline = _timelineEngine.ToMediaTimelineInfo();
             TrackChanged?.Invoke(this, CurrentTrack);
             TimelineChanged?.Invoke(this, CurrentTimeline);
             return;
@@ -584,6 +591,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             }
 
             CurrentTrack = track;
+            _timelineEngine.HandleTrackChanged(track);
             TrackChanged?.Invoke(this, track);
 
             // Synchronize playback status and timeline immediately after track properties change
@@ -739,21 +747,13 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 ? timelineProps.LastUpdatedTime.UtcDateTime
                 : null;
 
-            var (reconciledPos, lastUpdatedUtc) = ReconcileTimelinePosition(
-                pos,
-                dur,
-                status,
-                reportedUtc,
-                DateTime.UtcNow,
-                _lastTrackSwitchUtc,
-                _lastSeekUtc,
-                _lastSeekTargetPosition);
-
             var controls = playbackInfo?.Controls;
             string? appId = session.SourceAppUserModelId;
             bool isBlacklisted = !string.IsNullOrEmpty(appId) && _seekUnsupportedAppIds.Contains(appId);
             bool canSeek = controls != null && controls.IsPlaybackPositionEnabled && !isBlacklisted;
-            var timeline = new MediaTimelineInfo(reconciledPos, dur, status, lastUpdatedUtc, canSeek);
+
+            _timelineEngine.HandleTimelineProperties(pos, dur, status, reportedUtc, canSeek);
+            var timeline = _timelineEngine.ToMediaTimelineInfo();
             CurrentTimeline = timeline;
             TimelineChanged?.Invoke(this, timeline);
         }
@@ -940,12 +940,8 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 _lastSeekTargetPosition = position;
 
                 // Immediately anchor current timeline to sought position so UI scrubber does not snap back
-                CurrentTimeline = CurrentTimeline with
-                {
-                    Position = position,
-                    LastUpdatedUtc = seekNowUtc,
-                    CanSeek = true
-                };
+                _timelineEngine.HandleSeek(position);
+                CurrentTimeline = _timelineEngine.ToMediaTimelineInfo();
                 TimelineChanged?.Invoke(this, CurrentTimeline);
 
                 _ = Task.Run(async () =>

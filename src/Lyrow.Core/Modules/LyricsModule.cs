@@ -27,6 +27,7 @@ public sealed class LyricsModule : ILyrowModule
     private MediaTimelineInfo _currentTimeline = MediaTimelineInfo.Zero;
     private int _activeLineIndex = -1;
     private bool _isDisposed;
+    private readonly IPlaybackTimelineEngine _timelineEngine;
     private DateTime _rateLimitUntilUtc = DateTime.MinValue;
     private DateTime _lastTrackSwitchUtc = DateTime.MinValue;
     private TimeSpan _previousTrackDuration = TimeSpan.Zero;
@@ -36,13 +37,15 @@ public sealed class LyricsModule : ILyrowModule
         ILyricsClient? lyricsClient = null,
         ILyricsCache? lyricsCache = null,
         IEventBus? eventBus = null,
-        ISettingsManager? settingsManager = null)
+        ISettingsManager? settingsManager = null,
+        IPlaybackTimelineEngine? timelineEngine = null)
     {
         _mediaSessionMonitor = mediaSessionMonitor;
         _lyricsClient = lyricsClient;
         _lyricsCache = lyricsCache;
         _eventBus = eventBus;
         _settingsManager = settingsManager;
+        _timelineEngine = timelineEngine ?? new Lyrow.Core.Timeline.PlaybackTimelineEngine();
 
         _synchronizer = new LyricsTimelineSynchronizer(eventBus);
         _synchronizer.ActiveLineChanged += OnSynchronizerActiveLineChanged;
@@ -57,6 +60,7 @@ public sealed class LyricsModule : ILyrowModule
     public string CurrentLyricsSongKey => _currentLyricsSongKey;
     public MediaTrackInfo CurrentTrack => _currentTrack;
     public MediaTimelineInfo CurrentTimeline => _currentTimeline;
+    public IPlaybackTimelineEngine TimelineEngine => _timelineEngine;
     public int ActiveLineIndex => _synchronizer.CurrentActiveIndex;
     public LyricsTimelineSynchronizer Synchronizer => _synchronizer;
     public long TrackSequence => Interlocked.Read(ref _trackSequence);
@@ -199,10 +203,8 @@ public sealed class LyricsModule : ILyrowModule
 
     public void UpdateTimelineExternal(MediaTimelineInfo timeline)
     {
-        var dur = _currentTrack.Duration > TimeSpan.Zero ? _currentTrack.Duration : timeline.Duration;
-        var pos = timeline.Position;
-        if (dur > TimeSpan.Zero && pos > dur) pos = dur;
-        _currentTimeline = new MediaTimelineInfo(pos, dur, timeline.Status, timeline.LastUpdatedUtc, timeline.CanSeek);
+        _timelineEngine.HandleTimelineProperties(timeline.Position, timeline.Duration, timeline.Status, timeline.LastUpdatedUtc, timeline.CanSeek);
+        _currentTimeline = _timelineEngine.ToMediaTimelineInfo();
         _synchronizer.SyncOffsetMs = _settingsManager?.Current.Lyrics.SyncOffsetMs ?? 0;
         _synchronizer.UpdateTimeline(_currentTimeline);
     }
@@ -247,22 +249,8 @@ public sealed class LyricsModule : ILyrowModule
     {
         if (State != ModuleState.Running) return;
 
-        // Guard against stale timeline events from previous track during automatic track transition
-        if (DateTime.UtcNow - _lastTrackSwitchUtc < TimeSpan.FromMilliseconds(1500) && _previousTrackDuration > TimeSpan.Zero)
-        {
-            // If incoming timeline carries the previous track's duration or position near previous track's end
-            bool isPreviousDuration = Math.Abs((timeline.Duration - _previousTrackDuration).TotalMilliseconds) < 500;
-            bool isDifferentFromCurrent = _currentTrack.Duration > TimeSpan.Zero && Math.Abs((timeline.Duration - _currentTrack.Duration).TotalMilliseconds) > 500;
-            if (isPreviousDuration && isDifferentFromCurrent)
-            {
-                return; // Discard stale timeline belonging to previous track
-            }
-        }
-
-        var dur = _currentTrack.Duration > TimeSpan.Zero ? _currentTrack.Duration : timeline.Duration;
-        var pos = timeline.Position;
-        if (dur > TimeSpan.Zero && pos > dur) pos = dur;
-        _currentTimeline = new MediaTimelineInfo(pos, dur, timeline.Status, timeline.LastUpdatedUtc, timeline.CanSeek);
+        _timelineEngine.HandleTimelineProperties(timeline.Position, timeline.Duration, timeline.Status, timeline.LastUpdatedUtc, timeline.CanSeek);
+        _currentTimeline = _timelineEngine.ToMediaTimelineInfo();
 
         _synchronizer.SyncOffsetMs = _settingsManager?.Current.Lyrics.SyncOffsetMs ?? 0;
         _synchronizer.UpdateTimeline(_currentTimeline);
@@ -330,7 +318,8 @@ public sealed class LyricsModule : ILyrowModule
         _previousTrackDuration = _currentTrack.Duration;
         _currentTrack = track;
         _activeLineIndex = -1;
-        _currentTimeline = new MediaTimelineInfo(TimeSpan.Zero, track.Duration, MediaPlaybackStatus.Changing, DateTime.UtcNow);
+        _timelineEngine.HandleTrackChanged(track);
+        _currentTimeline = _timelineEngine.ToMediaTimelineInfo();
         _synchronizer.Reset();
         _synchronizer.SetLyrics(SyncedLyrics.Empty);
         _synchronizer.UpdateTimeline(_currentTimeline);

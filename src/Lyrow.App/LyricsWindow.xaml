@@ -37,7 +37,7 @@
         <!-- Main Window Container -->
         <Grid RowDefinitions="Auto,*">
             <!-- Custom WinUI 3 TitleBar -->
-            <TitleBar x:Name="LyricsTitleBar" Grid.Row="0" Canvas.ZIndex="100" Title="Lyrow — Synchronized Lyrics">
+            <TitleBar x:Name="LyricsTitleBar" Grid.Row="0" Canvas.ZIndex="100">
                 <TitleBar.IconSource>
                     <ImageIconSource ImageSource="Assets/lyrow.ico" />
                 </TitleBar.IconSource>

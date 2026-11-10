@@ -272,13 +272,15 @@ public partial class App : Application
             sp.GetRequiredService<ISettingsManager>()));
 
         // Music & Lyrics pipeline services
+        services.AddSingleton<Lyrow.Core.Contracts.IPlaybackTimelineEngine, Lyrow.Core.Timeline.PlaybackTimelineEngine>();
         services.AddSingleton<IMediaMetadataNormalizer, Lyrow.Music.Metadata.MediaMetadataNormalizer>();
         services.AddSingleton<IMediaSessionMonitor>(sp =>
         {
             var normalizer = sp.GetRequiredService<IMediaMetadataNormalizer>();
             if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041, 0))
             {
-                return new Lyrow.Music.Session.WindowsGsmtcMediaSessionMonitor(normalizer);
+                var timelineEngine = sp.GetRequiredService<Lyrow.Core.Contracts.IPlaybackTimelineEngine>();
+                return new Lyrow.Music.Session.WindowsGsmtcMediaSessionMonitor(normalizer, timelineEngine);
             }
             return new Lyrow.Music.Session.SyntheticMediaSessionMonitor();
         });
@@ -294,7 +296,8 @@ public partial class App : Application
             sp.GetRequiredService<ILyricsClient>(),
             sp.GetRequiredService<ILyricsCache>(),
             sp.GetRequiredService<IEventBus>(),
-            sp.GetRequiredService<ISettingsManager>()));
+            sp.GetRequiredService<ISettingsManager>(),
+            sp.GetRequiredService<Lyrow.Core.Contracts.IPlaybackTimelineEngine>()));
 
         services.AddSingleton<IWindowPlatformAdapter>(sp =>
         {

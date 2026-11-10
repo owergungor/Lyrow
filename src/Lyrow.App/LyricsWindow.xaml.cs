@@ -36,6 +36,7 @@ public sealed partial class LyricsWindow : Window
     private readonly ISettingsManager _settingsManager;
     private readonly ArtworkBitmapManager? _artworkBitmapManager;
     private readonly IMediaSessionMonitor? _mediaMonitor;
+    private readonly IPlaybackTimelineEngine _timelineEngine;
     private readonly IAudioVolumeService? _volumeService;
     private readonly IAudioCaptureService? _audioCaptureService;
     private readonly IAudioRoutingService? _audioRoutingService;
@@ -104,7 +105,8 @@ public sealed partial class LyricsWindow : Window
         IAudioVolumeService? volumeService = null,
         ToastNotificationManager? toastManager = null,
         IAudioCaptureService? audioCaptureService = null,
-        IAudioRoutingService? audioRoutingService = null)
+        IAudioRoutingService? audioRoutingService = null,
+        IPlaybackTimelineEngine? timelineEngine = null)
     {
         InitializeComponent();
         _lyricsModule = lyricsModule;
@@ -114,6 +116,7 @@ public sealed partial class LyricsWindow : Window
         _artworkBitmapManager = artworkBitmapManager;
         _mediaMonitor = mediaMonitor;
         _volumeService = volumeService;
+        _timelineEngine = timelineEngine ?? lyricsModule.TimelineEngine ?? (App.Services?.GetService(typeof(Lyrow.Core.Contracts.IPlaybackTimelineEngine)) as Lyrow.Core.Contracts.IPlaybackTimelineEngine) ?? new Lyrow.Core.Timeline.PlaybackTimelineEngine();
         // Window-scoped notification ownership: LyricsWindow owns its own ToastNotificationManager bound to LyricsToastContainer
         _toastManager = LyricsToastContainer != null
             ? new ToastNotificationManager(LyricsToastContainer, DispatcherQueue)
@@ -123,6 +126,7 @@ public sealed partial class LyricsWindow : Window
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(LyricsTitleBar);
+        LyricsTitleBar.Title = string.Empty;
         if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter overlapped)
         {
             overlapped.IsMinimizable = true;
@@ -373,7 +377,7 @@ public sealed partial class LyricsWindow : Window
             Grid.SetRowSpan(MainViewportArea, 1);
             LyricsTitleBar.Height = double.NaN;
             LyricsTitleBar.MinHeight = 32;
-            LyricsTitleBar.Title = "Lyrow — Synchronized Lyrics";
+            LyricsTitleBar.Title = string.Empty;
             if (resizeWindow)
             {
                 ResizeForCurrentDpi(960, 640);
@@ -655,12 +659,13 @@ public sealed partial class LyricsWindow : Window
         PanelEmptyState.Visibility = Visibility.Visible;
 
         // 3. Reset progress bars and time labels strictly to 0:00 / clean state
+        _timelineEngine.HandleTrackChanged(newTrack);
         ProgressTimeline.Value = 0;
         ProgressTimelineCompact.Value = 0;
         TxtElapsed.Text = "0:00";
         TxtElapsedCompact.Text = "0:00";
-        TxtRemaining.Text = newTrack.Duration > TimeSpan.Zero ? $"-{newTrack.Duration:mm\\:ss}" : "-0:00";
-        TxtRemainingCompact.Text = newTrack.Duration > TimeSpan.Zero ? $"-{newTrack.Duration:mm\\:ss}" : "-0:00";
+        TxtRemaining.Text = newTrack.Duration > TimeSpan.Zero ? Lyrow.Core.Timeline.PlaybackTimelineEngine.FormatRemaining(newTrack.Duration) : "-0:00";
+        TxtRemainingCompact.Text = newTrack.Duration > TimeSpan.Zero ? Lyrow.Core.Timeline.PlaybackTimelineEngine.FormatRemaining(newTrack.Duration) : "-0:00";
 
         // 4. Invalidate artwork only when native high-res GSMTC thumbnail bytes are provided; preserve online/transcoded cache otherwise
         if (!newTrack.IsEmpty &&
@@ -718,45 +723,11 @@ public sealed partial class LyricsWindow : Window
     private void OnUiTimerTick(object? sender, object e)
     {
         var track = ResolveCurrentTrack();
-
-        var monitorTimeline = _mediaMonitor?.CurrentTimeline ?? MediaTimelineInfo.Zero;
-        var moduleTimeline = _lyricsModule.CurrentTimeline;
-
-        // If hardware media monitor reports Playing for the current track, prioritize it and sync module timeline if it lagged behind
-        bool monitorTimelineMatchesTrack = track.Duration <= TimeSpan.Zero ||
-                                          monitorTimeline.Duration <= TimeSpan.Zero ||
-                                          Math.Abs((monitorTimeline.Duration - track.Duration).TotalMilliseconds) < 1000;
-        MediaTimelineInfo timeline;
-        if (monitorTimeline.Status == MediaPlaybackStatus.Playing && monitorTimelineMatchesTrack)
-        {
-            timeline = monitorTimeline;
-            if (moduleTimeline.Status != MediaPlaybackStatus.Playing)
-            {
-                _lyricsModule.UpdateTimelineExternal(monitorTimeline);
-            }
-        }
-        else if (moduleTimeline.Duration > TimeSpan.Zero || moduleTimeline.Status != MediaPlaybackStatus.Stopped)
-        {
-            timeline = moduleTimeline;
-        }
-        else
-        {
-            timeline = monitorTimeline;
-        }
-
-        // Auto-heal timeline status from Changing to Playing if track switch transition window (1.0s) has elapsed
-        if (timeline.Status == MediaPlaybackStatus.Changing &&
-            _trackResetUtc != DateTime.MinValue &&
-            (DateTime.UtcNow - _trackResetUtc).TotalSeconds >= 1.0)
-        {
-            timeline = timeline with { Status = MediaPlaybackStatus.Playing, LastUpdatedUtc = DateTime.UtcNow };
-            _lyricsModule.UpdateTimelineExternal(timeline);
-        }
-
         var lyrics = _lyricsModule.CurrentLyrics;
 
         if (track.IsEmpty)
         {
+            _timelineEngine.Reset();
             TxtSongTitle.Text = "No active media session";
             TxtArtistAlbum.Text = "Play music in Spotify, Apple Music, or your browser";
             TxtSongTitleCompact.Text = "No active media session";
@@ -807,41 +778,22 @@ public sealed partial class LyricsWindow : Window
         TxtSongTitleCompact.Text = track.Title;
         TxtArtistAlbumCompact.Text = artistAlbum;
 
-        // Position and Durations
-        var pos = timeline.GetInterpolatedPosition();
-        var dur = track.Duration > TimeSpan.Zero ? track.Duration : timeline.Duration;
-
-        // Guard against elapsed time carryover from previous track during the post-transition window
-        if (!_isDraggingProgressBar && _trackResetUtc != DateTime.MinValue && (DateTime.UtcNow - _trackResetUtc).TotalSeconds < 3.0)
-        {
-            var maxAllowedPos = DateTime.UtcNow - _trackResetUtc;
-            if (pos > maxAllowedPos + TimeSpan.FromSeconds(2.0))
-            {
-                pos = maxAllowedPos;
-            }
-        }
-
-        if (dur > TimeSpan.Zero && pos > dur) pos = dur;
-        if (pos < TimeSpan.Zero) pos = TimeSpan.Zero;
+        // Position and Durations from the Central Playback Timeline Engine
+        var pos = _timelineEngine.CurrentTrackPosition;
+        var dur = _timelineEngine.CurrentTrackDuration > TimeSpan.Zero
+            ? _timelineEngine.CurrentTrackDuration
+            : track.Duration;
 
         if (!_isDraggingProgressBar)
         {
-            TxtElapsed.Text = $"{pos:m\\:ss}";
-            TxtElapsedCompact.Text = $"{pos:m\\:ss}";
-            TxtRemaining.Text = dur > pos ? $"-{(dur - pos):m\\:ss}" : "-0:00";
-            TxtRemainingCompact.Text = dur > pos ? $"-{(dur - pos):m\\:ss}" : "-0:00";
+            TxtElapsed.Text = _timelineEngine.CurrentTrackPositionFormatted;
+            TxtElapsedCompact.Text = _timelineEngine.CurrentTrackPositionFormatted;
+            TxtRemaining.Text = _timelineEngine.CurrentTrackRemainingFormatted;
+            TxtRemainingCompact.Text = _timelineEngine.CurrentTrackRemainingFormatted;
 
-            if (dur.TotalSeconds > 0)
-            {
-                double progressPct = Math.Clamp((pos.TotalSeconds / dur.TotalSeconds) * 100.0, 0, 100);
-                ProgressTimeline.Value = progressPct;
-                ProgressTimelineCompact.Value = progressPct;
-            }
-            else
-            {
-                ProgressTimeline.Value = 0;
-                ProgressTimelineCompact.Value = 0;
-            }
+            double progressPct = _timelineEngine.CurrentTrackProgressPercentage;
+            ProgressTimeline.Value = progressPct;
+            ProgressTimelineCompact.Value = progressPct;
         }
 
         // Hardware Output Device Info
@@ -856,7 +808,7 @@ public sealed partial class LyricsWindow : Window
         BtnPlayPauseCompact.IsEnabled = hasTrack;
         BtnNextCompact.IsEnabled = hasTrack;
 
-        var playGlyph = (timeline.Status == MediaPlaybackStatus.Playing) ? "\uE769" : "\uE768";
+        var playGlyph = (_timelineEngine.PlaybackStatus == MediaPlaybackStatus.Playing) ? "\uE769" : "\uE768";
         IconPlayPause.Glyph = playGlyph;
         IconPlayPauseCompact.Glyph = playGlyph;
 
@@ -1153,8 +1105,7 @@ public sealed partial class LyricsWindow : Window
         _snapToCenterOnNextLayout = true;
 
         // Immediately evaluate current playback position so if lyrics loaded mid-track, active line resolves immediately
-        var tline = _lyricsModule.CurrentTimeline;
-        _lyricsModule.Synchronizer.EvaluatePosition(tline.GetInterpolatedPosition());
+        _lyricsModule.Synchronizer.EvaluatePosition(_timelineEngine.CurrentTrackPosition);
         UpdateActiveLineTargets(_lyricsModule.ActiveLineIndex, immediate: true);
     }
 
@@ -1204,8 +1155,7 @@ public sealed partial class LyricsWindow : Window
                 if (target.IsActive && i < _currentRenderedLines.Count)
                 {
                     var renderLine = _currentRenderedLines[i];
-                    var tline = _lyricsModule.CurrentTimeline;
-                    var cPos = tline.GetInterpolatedPosition() + TimeSpan.FromMilliseconds(_lyricsModule.Synchronizer.SyncOffsetMs);
+                    var cPos = _timelineEngine.CurrentTrackPosition + TimeSpan.FromMilliseconds(_lyricsModule.Synchronizer.SyncOffsetMs);
                     if (cPos < TimeSpan.Zero) cPos = TimeSpan.Zero;
                     TimeSpan? nTs = (i + 1 < _currentRenderedLines.Count) ? _currentRenderedLines[i + 1].Timestamp : null;
                     var subProgresses = LyricsFillProgressCalculator.CalculateSequentialSubLineProgresses(renderLine, subStrings, cPos, nTs);
@@ -1325,15 +1275,11 @@ public sealed partial class LyricsWindow : Window
 
         // 2. Real-time Apple Music-style karaoke fill clipping on the active line
         var lyrics = _lyricsModule.CurrentLyrics;
-        var timeline = _lyricsModule.CurrentTimeline.Duration > TimeSpan.Zero || _lyricsModule.CurrentTimeline.Status != MediaPlaybackStatus.Stopped
-            ? _lyricsModule.CurrentTimeline
-            : (_mediaMonitor?.CurrentTimeline ?? MediaTimelineInfo.Zero);
-
-        var currentPos = timeline.GetInterpolatedPosition() + TimeSpan.FromMilliseconds(_lyricsModule.Synchronizer.SyncOffsetMs);
+        var currentPos = _timelineEngine.CurrentTrackPosition + TimeSpan.FromMilliseconds(_lyricsModule.Synchronizer.SyncOffsetMs);
         if (currentPos < TimeSpan.Zero) currentPos = TimeSpan.Zero;
-        var trackDur = _lyricsModule.CurrentTrack.Duration > TimeSpan.Zero
-            ? _lyricsModule.CurrentTrack.Duration
-            : (timeline.Duration > TimeSpan.Zero ? timeline.Duration : (TimeSpan?)null);
+        var trackDur = _timelineEngine.CurrentTrackDuration > TimeSpan.Zero
+            ? _timelineEngine.CurrentTrackDuration
+            : (_lyricsModule.CurrentTrack.Duration > TimeSpan.Zero ? _lyricsModule.CurrentTrack.Duration : (TimeSpan?)null);
 
         if (lyrics != null && lyrics.Lines.Count > 0)
         {
@@ -1627,13 +1573,8 @@ public sealed partial class LyricsWindow : Window
         }
         else
         {
-            var updatedTimeline = _mediaMonitor.CurrentTimeline with
-            {
-                Position = timestamp,
-                LastUpdatedUtc = DateTime.UtcNow,
-                CanSeek = true
-            };
-            _lyricsModule.UpdateTimelineExternal(updatedTimeline);
+            _timelineEngine.HandleSeek(timestamp);
+            _lyricsModule.UpdateTimelineExternal(_timelineEngine.ToMediaTimelineInfo());
             _lyricsModule.Synchronizer.EvaluatePosition(timestamp);
             UpdateActiveLineTargets(_lyricsModule.ActiveLineIndex, immediate: false);
             if (_currentMode == LyricsWindowMode.Compact && _isCompactLyricsExpanded)
@@ -1667,13 +1608,8 @@ public sealed partial class LyricsWindow : Window
         }
         else
         {
-            var updatedTimeline = _mediaMonitor.CurrentTimeline with
-            {
-                Position = timestamp,
-                LastUpdatedUtc = DateTime.UtcNow,
-                CanSeek = true
-            };
-            _lyricsModule.UpdateTimelineExternal(updatedTimeline);
+            _timelineEngine.HandleSeek(timestamp);
+            _lyricsModule.UpdateTimelineExternal(_timelineEngine.ToMediaTimelineInfo());
             _lyricsModule.Synchronizer.EvaluatePosition(timestamp);
             UpdateActiveLineTargets(_lyricsModule.ActiveLineIndex, immediate: false);
             if (_currentMode == LyricsWindowMode.Compact && _isCompactLyricsExpanded)

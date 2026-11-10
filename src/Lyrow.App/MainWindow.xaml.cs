@@ -40,6 +40,7 @@ public sealed partial class MainWindow : Window
     private readonly IEventBus? _eventBus;
     private readonly IMediaSessionMonitor? _mediaMonitor;
     private readonly LyricsModule? _lyricsModule;
+    private readonly Lyrow.Core.Contracts.IPlaybackTimelineEngine _timelineEngine;
 
     private readonly List<IDisposable> _subscriptions = new();
     private readonly DispatcherTimer _dashboardTimer;
@@ -90,6 +91,9 @@ public sealed partial class MainWindow : Window
         _eventBus = App.Services?.GetService<IEventBus>();
         _mediaMonitor = App.Services?.GetService<IMediaSessionMonitor>();
         _lyricsModule = App.Services?.GetService<LyricsModule>();
+        _timelineEngine = App.Services?.GetService<Lyrow.Core.Contracts.IPlaybackTimelineEngine>()
+            ?? _lyricsModule?.TimelineEngine
+            ?? new Lyrow.Core.Timeline.PlaybackTimelineEngine();
 
         try
         {
@@ -2014,7 +2018,7 @@ public sealed partial class MainWindow : Window
 
             if (_lyricsModule != null)
             {
-                var pos = timeline.GetInterpolatedPosition();
+                var pos = _timelineEngine.CurrentTrackPosition;
                 _lyricsModule.Synchronizer.EvaluatePosition(pos);
             }
         }
@@ -2029,10 +2033,10 @@ public sealed partial class MainWindow : Window
     private void UpdateDashboardTimelineDisplay(MediaTimelineInfo timeline, MediaTrackInfo track)
     {
         if (_isDraggingHomeProgress) return;
-        var pos = timeline.GetInterpolatedPosition();
+        var pos = _timelineEngine.CurrentTrackPosition;
         var dur = track.Duration > TimeSpan.Zero ? track.Duration : timeline.Duration;
 
-        HomeTxtTimestamp.Text = $"{pos:mm\\:ss} / {dur:mm\\:ss}";
+        HomeTxtTimestamp.Text = $"{_timelineEngine.CurrentTrackPositionFormatted} / {_timelineEngine.CurrentTrackDurationFormatted}";
         if (dur.TotalSeconds > 0)
         {
             HomeProgressTimeline.Value = Math.Clamp((pos.TotalSeconds / dur.TotalSeconds) * 100.0, 0, 100);
