@@ -1,120 +1,113 @@
-# Lyrow v3.7 — Desktop Ambient Experience & Synchronized Lyrics
+# Lyrow
+
+> A native Windows music companion with synchronized lyrics, playback controls, and a compact desktop experience.
 
 [![CI](https://github.com/owergungor/Lyrow/actions/workflows/release.yml/badge.svg)](https://github.com/owergungor/Lyrow/actions/workflows/release.yml)
-[![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20%2F%2010%20(19041%2B)-08a1f7?logo=windows)](https://microsoft.com/windows)
-[![.NET 10 LTS](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
-[![UI: WinUI 3 + Windows App SDK](https://img.shields.io/badge/UI-WinUI%203%20%2F%20Windows%20App%20SDK%201.8-03c1f4?logo=windows)](https://learn.microsoft.com/windows/apps/winui/winui3/)
-[![Release: v3.7](https://img.shields.io/badge/Release-v3.7-success)](https://github.com/owergungor/Lyrow/releases/tag/v3.7)
-[![Tests: 635 Passing](https://img.shields.io/badge/Tests-635%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-750014.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011%20Native-08a1f7?logo=windows)](https://microsoft.com/windows)
+[![.NET](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![UI](https://img.shields.io/badge/UI-WinUI%203%20%2F%20Windows%20App%20SDK%201.8-03c1f4?logo=windows)](https://learn.microsoft.com/windows/apps/winui/winui3/)
+[![Release](https://img.shields.io/badge/Release-v3.7-success)](https://github.com/owergungor/Lyrow/releases/tag/v3.7)
+[![Tests](https://img.shields.io/badge/Tests-635%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
+[![License](https://img.shields.io/badge/License-MIT-750014.svg)](LICENSE)
 
-**Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; ekranın dört kenarına yayılan **gerçek zamanlı ortam aydınlatması (Ambient Edge Glow)**, **Apple Music benzeri 60 FPS dikey merkezlenen senkronize şarkı sözleri** ve kompakt **Dar Mod (Mini Player)** sunar.
+**Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; ekranın dört kenarına yayılan gerçek zamanlı ortam aydınlatması (Ambient Edge Glow), Apple Music benzeri 60 FPS dikey merkezlenen senkronize şarkı sözleri ve kompakt Dar Mod (Mini Player) sunar.
 
 ---
 
 ## 📥 İndirme ve Kurulum
 
 ### Güncel Sürüm: Lyrow v3.7 (Önerilen)
-- 🔗 **GitHub Release:** [Lyrow v3.7 Sürüm Sayfası](https://github.com/owergungor/Lyrow/releases/tag/v3.7)
-- 📦 **Doğrudan İndirme:** [Lyrow-v3.7-win-x64.zip (93.3 MB)](https://github.com/owergungor/Lyrow/releases/download/v3.7/Lyrow-v3.7-win-x64.zip)
-- 🔑 **SHA-256 Doğrulama Özeti:** `601664444F7D983B05E3F675D220E8F25EDB7701520D4E923EFCD8F4E0A85B73`
+
+| Kaynak | Dosya | Boyut | SHA-256 Doğrulama Özeti |
+|---|---|---|---|
+| **GitHub Release** | [Lyrow v3.7 Sürüm Sayfası](https://github.com/owergungor/Lyrow/releases/tag/v3.7) | — | — |
+| **Taşınabilir Paket** | [Lyrow-v3.7-win-x64.zip](https://github.com/owergungor/Lyrow/releases/download/v3.7/Lyrow-v3.7-win-x64.zip) | ~93.3 MB | `601664444F7D983B05E3F675D220E8F25EDB7701520D4E923EFCD8F4E0A85B73` |
 
 > [!NOTE]
 > Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime kurulumu gerektirmez. Arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını çalıştırmanız yeterlidir.
 
 ### Alternatif ve Önceki Kararlı Sürümler (Lyrow v3.5)
-Klasik Inno Setup kurulum sihirbazını veya önceki paketleri tercih eden kullanıcılar için:
+Klasik kurulum sihirbazını veya önceki paketleri tercih eden kullanıcılar için:
 - **Kurulum Sihirbazı (Installer):** [Lyrow-3.5-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/tag/v3.5)
 - **Taşınabilir Arşiv (Portable):** [Lyrow-v3.5-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/tag/v3.5)
 
 ---
 
-## 🌟 Lyrow Nedir?
+## 🌟 Mimari ve Temel Modüller
 
-Lyrow iki bağımsız ancak birbiriyle tam senkron çalışan ana modülden oluşur:
+Lyrow, iki bağımsız ancak birbiriyle tam senkron çalışan ana modülden oluşur:
 
-1. **Glow (Ortam Aydınlatması):**
-   Ekranın 4 kenarında (Üst, Alt, Sol, Sağ) sistem ses çıkışının ritmine, 5 frekans bandına (Sub-Bass, Bass, Low-Mid, Mid, High-Mid/Treble) ve gerçek zamanlı Spectral Flux vuruş algılamasına göre bağımsız renk enerjisi yayar. Albüm kapağının renk paletiyle yumuşak cross-fade geçişleri yapar ve diğer pencerelerin kullanımını **kesinlikle engellemez (click-through, zero-interference)**.
+```
+┌────────────────────────────────────────────────────────┐
+│                        Lyrow                           │
+│  ┌──────────────────────────┐┌──────────────────────┐  │
+│  │   Ambient Glow Modülü    ││ Lyrics & Mini Player │  │
+│  │ - 4 Kenar Ekran Işıması  ││ - Senkronize Sözler  │  │
+│  │ - WASAPI Loopback Capture││ - GSMTC Entegrasyonu │  │
+│  │ - 5 Bant FFT Spektrumu   ││ - Dar Mod (352x148)  │  │
+│  └─────────────┬────────────┘└──────────┬───────────┘  │
+│                │                        │              │
+│                ▼                        ▼              │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │   Merkezi Playback Timeline Motoru (Lyrow.Core)  │  │
+│  │   - İzole Parça Süresi, Geçen ve Kalan Zaman     │  │
+│  └──────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────┘
+```
 
-2. **Lyrics (Senkronize Şarkı Sözleri & Mini Oynatıcı):**
-   Windows GSMTC üzerinden çalan medyayı otomatik dinler, LRCLIB API aracılığıyla senkronize şarkı sözlerini milisaniye hassasiyetinde çeker, aktif satırı dikey olarak odaklar ve soldan sağa akıcı **karaoke dolum animasyonu (word/character fill)** sunar.
+1. **Ambient Edge Glow (Ortam Aydınlatması):**
+   Ekranın 4 kenarında (Üst, Alt, Sol, Sağ) sistem ses çıkışının ritmine, 5 frekans bandına (Sub-Bass, Bass, Low-Mid, Mid, High-Mid/Treble) ve Spectral Flux vuruş algılamasına göre bağımsız renk enerjisi yayar. Albüm kapağının renk paletiyle yumuşak cross-fade geçişleri yapar ve diğer pencerelerin kullanımını **kesinlikle engellemez (click-through, zero-interference)**.
 
----
-
-## 🚀 Temel Özellikler
-
-- **⏱️ Merkezi Playback Timeline Motoru (`IPlaybackTimelineEngine`):**
-  Parça süresi, geçen süre (`0:45`) ve kalan süre (`-2:15`) her parça için bağımsız hesaplanır; önceki şarkıların süreleri kesinlikle birbirine eklenmez.
-- **🔄 Kusursuz Otomatik Şarkı Geçişleri (`A → B → C`):**
-  Şarkı bittiğinde veya atlandığında zaman çizelgesi, sözler ve albüm kapağı atomik olarak sıfırlanır; eski parçanın GSMTC kalıntıları yeni parçayı etkilemez.
-- **📱 İki Farklı Görünüm:**
-  - **Normal Mod:** Tam boyutta, dikey merkezlenen akıcı şarkı sözleri, yüksek çözünürlüklü kapak ve Neumorphic kontroller.
-  - **Dar Mod (Compact Player):** 352×148 px kompakt boyut, tek satır medya kontrolleri, albüm kapağı, açılır şarkı sözü çekmecesi ve kayan ses kontrolü.
-- **🔊 Doğrudan Ses Çıkış Aygıtı Seçimi:**
-  Lyrics arayüzünden doğrudan varsayılan Windows ses yürütme cihazını (Kulaklık, Hoparlör, Bluetooth) değiştirme ve gerçek zamanlı glif geri bildirimi.
-- **🎚️ Kayan Ses Düzeyi Popup'ı:**
-  Kompakt modda ses simgesine tıklandığında açılan, sessize alma (mute) butonlu yatay ses kaydırıcısı.
-- **🎨 Açık ve Koyu Neumorphism Teması:**
-  Yumuşak kabartmalı/içbükey gölgeler, dokunsal buton basma efektleri ve Windows 11 Fluent tasarım uyumu.
-- **🖼️ Yüksek Çözünürlüklü ve Animasyonlu Kapaklar:**
-  Kapak görselleri orijinal çözünürlüğünde korunur; animasyonlu GIF ve WebP kapakları donanım hızlandırmalı olarak oynatılır.
-- **🎯 Tıklama ve Sürükleme ile İlerleme (Seek):**
-  İlerleme çubuğunda tıklanan veya sürüklenen noktaya ya da şarkı sözü satırına tıklandığında anında deterministik atlama.
+2. **Lyrics & Compact Player (Şarkı Sözleri ve Mini Oynatıcı):**
+   Windows GSMTC üzerinden çalan medyayı otomatik algılar, LRCLIB API aracılığıyla senkronize şarkı sözlerini milisaniye hassasiyetinde çeker, aktif satırı dikey olarak odaklar ve soldan sağa akıcı **karaoke dolum animasyonu (word/character fill)** sunar.
 
 ---
 
-## 🎵 Desteklenen Medya Oynatıcıları
+## 🚀 Temel Yetenekler
 
-Lyrow, Windows'un yerel **Global System Media Transport Controls (GSMTC)** API'sini dinler. Aşağıdaki oynatıcılar kod tabanında ve testlerle doğrudan doğrulanmıştır:
+### 1. Zaman Çizelgesi ve Süre Doğruluğu
+- **Merkezi Playback Timeline Motoru (`IPlaybackTimelineEngine`):** Geçen süre (`0:45`) ve kalan süre (`-2:15`) her parça için bağımsız hesaplanır; önceki şarkıların süreleri kesinlikle birbirine eklenmez.
+- **Otomatik Parça Geçiş İzolasyonu (`A → B → C`):** Şarkı bittiğinde veya atlandığında zaman çizelgesi, sözler ve albüm kapağı atomik olarak sıfırlanır; eski parçanın GSMTC kalıntıları yeni parçanın zaman çizelgesini bozamaz.
+- **Deterministik İlerleme (Seek):** İlerleme çubuğunda tıklanan veya sürüklenen noktaya ya da şarkı sözü satırına tıklandığında anında deterministik atlama yapılır.
 
-| Oynatıcı | Tür | Desteklenen Yetenekler |
+### 2. Arayüz ve Görünüm Modları
+- **Normal Mod:** Tam boyutta, dikey merkezlenen akıcı şarkı sözleri, yüksek çözünürlüklü kapak ve Neumorphic kontroller. Şarkı sözleri pencere sınırlarına göre otomatik sarılır (`TextWrapping`).
+- **Dar Mod (Compact Player — 352×148 px):** Masaüstünde minimum alan kaplayan yatay düzen: 90×90 px albüm kapağı, parça bilgisi, ilerleme çubuğu, açılır şarkı sözü çekmecesi ve kayan ses kontrolü.
+- **Açık ve Koyu Neumorphism Teması:** Yumuşak içbükey ve kabartmalı gölge katmanları, dokunsal buton basma efektleri ve Windows 11 Fluent tasarım uyumu.
+- **Yüksek Çözünürlüklü & Animasyonlu Kapaklar:** Kapak görselleri ham kalitesinde korunur; animasyonlu GIF ve WebP kapakları donanım hızlandırmalı oynatılır.
+
+### 3. Sistem ve Ses Entegrasyonu
+- **Doğrudan Ses Çıkış Aygıtı Seçimi:** Lyrics arayüzündeki aygıt menüsünden Windows varsayılan ses yürütme cihazı (Kulaklık, Hoparlör, Bluetooth) anında değiştirilir ve ilgili glif simgesi canlı güncellenir.
+- **Kayan Ses Düzeyi Popup'ı:** Kompakt modda ses simgesine tıklandığında açılan, sessize alma (mute) butonlu yatay ses kaydırıcısı.
+
+---
+
+## 🎵 Desteklenen Medya Platformları
+
+Lyrow, Windows'un yerel **Global System Media Transport Controls (GSMTC)** API'sini dinler. Aşağıdaki platformlar kod tabanında ve test senaryolarıyla doğrulanmıştır:
+
+| Platform | Ortam | Doğrulanan Yetenekler |
 |---|---|---|
-| **Spotify Desktop** | Masaüstü Uygulaması | Şarkı Bilgisi, Kapak, Oynat/Duraklat, Önceki/Sonraki, Seek, Söz Senkronizasyonu |
-| **Apple Music Desktop** | Masaüstü Uygulaması (Win11) | Şarkı Bilgisi, Sanatçı/Albüm Ayrıştırma, Kapak, Kontroller |
-| **Apple Music Web** | Tarayıcı (Edge, Chrome, Firefox) | Şarkı Bilgisi, Web Kapak Desteği, Seek, Tarayıcı Butonu Yönlendirmesi |
-| **YouTube Music Web** | Tarayıcı (Edge, Chrome, Firefox) | Şarkı Bilgisi, Otomatik Parça Geçişi, Kapak, Kontroller |
+| **Spotify Desktop** | Masaüstü İstemcisi | Şarkı Bilgisi, Albüm Kapağı, Oynat/Duraklat, Önceki/Sonraki, Seek, Söz Senkronizasyonu |
+| **Apple Music Desktop** | Windows 11 Uygulaması | Şarkı Bilgisi, Sanatçı/Albüm Ayrıştırması, Kapak, Oynatma Kontrolleri |
+| **Apple Music Web** | Edge, Chrome, Firefox | Şarkı Bilgisi, Web Kapak Çözümlemesi, Seek, Tarayıcı Yönlendirmesi |
+| **YouTube Music Web** | Edge, Chrome, Firefox | Şarkı Bilgisi, Otomatik Parça Geçişi, Kapak Çözümlemesi, Oynatma Kontrolleri |
 | **Windows Media Player / Diğerleri** | Masaüstü / UWP / PWA | Windows GSMTC arayüzünü destekleyen tüm modern medya oynatıcıları |
 
 ---
 
-## ⏱️ Playback Timeline ve Süre Hesaplaması
+## ⏱️ Playback Timeline Mekanizması
 
-Lyrow v3.7 ile baştan yazılan **Playback Timeline Engine**, müzik çalarlardaki zamanlama hatalarını kalıcı olarak çözmüştür:
+Lyrow v3.7 ile baştan yazılan **Playback Timeline Engine**, müzik çalarlardaki zamanlama hatalarını kökten çözer:
 
 ```
 [Parça A (3:30)] ─── 0:00 ───────> 3:30 ─── Otomatik Geçiş ───>
 [Parça B (3:11)] ─── 0:00 (Yeni) ─> 1:01 [Kalan: -2:10] (Kümülatif toplam: YOK)
 ```
 
-- **İzole Geçen Süre (Elapsed Time):** Yalnızca o an çalan parçanın başlangıçtan itibaren geçen süresi hesaplanır (`1:01`). Önceki şarkıların süreleri kesinlikle eklenmez.
+- **İzole Geçen Süre (Elapsed Time):** Yalnızca o an çalan parçanın başlangıçtan itibaren geçen süresi hesaplanır (`1:01`).
 - **İzole Kalan Süre (Remaining Time):** Her zaman `Parça Süresi - Geçen Süre` formülüyle negatif formatta hesaplanır (`-2:10`).
 - **Enterpolasyon Dengelemesi:** Milisaniye düzeyindeki zaman çizelgesi kaymaları yuvarlanarak süre sayacında titreme (jitter) ve sekme (snap-back) önlenir.
-
----
-
-## 🪟 Normal Mod ve Dar Mod (Compact Player)
-
-Lyrow iki farklı kullanım senaryosuna göre anında boyutlanır:
-
-### 1. Normal Mod (Geniş Görünüm)
-Geniş ekranda tam albüm kapağı, dalga formu, büyük kontrol butonları ve merkezlenmiş tam şarkı sözü akışı sunar. Şarkı sözleri ekran boyutuna göre otomatik sarılır (`TextWrapping`). Sol üst alan, sade bir deneyim için başlıksız bırakılmıştır.
-
-### 2. Dar Mod (Compact Player — 352×148 px)
-Çalışma masasında minimum yer kaplayacak şekilde tasarlanmıştır:
-- Sol tarafta 90×90 px albüm kapağı.
-- Sağ tarafta parça adı, sanatçı, ilerleme çubuğu ve kontrol butonları.
-- Ses simgesine tıklandığında açılan Neumorphic ses kaydırıcısı.
-- Çıkış aygıtı simgesiyle doğrudan ses kartı/kulaklık geçişi.
-- `^` butonuyla aşağıya doğru genişleyen kompakt şarkı sözü paneli.
-
----
-
-## 🎨 Açık ve Koyu Neumorphism Tasarımı
-
-Lyrow, modern düz tasarımların ötesine geçerek derinlikli ve dokunsal **Neumorphism** stilini benimser:
-- **Koyu Tema:** Koyu gri zemin üzerine yumuşak ışık ve derin gölge katmanları; göz yormayan gece dinleme deneyimi.
-- **Açık Tema:** Temiz, hafif kabartmalı açık tonlar; aydınlık çalışma ortamları için ideal kontrast.
-- **Dinamik Arka Plan:** Albüm kapağından çıkarılan dominant tonlarla sinematik parlaklık sınırında (`<= 55 cd/m²`) yumuşak renk geçişi.
 
 ---
 
@@ -125,30 +118,30 @@ Lyrow, modern düz tasarımların ötesine geçerek derinlikli ve dokunsal **Neu
 | **İşletim Sistemi** | Windows 10 64-bit (Sürüm 2004 / Derleme 19041+) | **Windows 11 64-bit (22H2 veya 24H2)** |
 | **İşlemci (CPU)** | 64-bit çift çekirdekli Intel / AMD işlemci | Intel Core i3 / AMD Ryzen 3 veya üstü |
 | **Bellek (RAM)** | 4 GB RAM | 8 GB RAM |
-| **Grafik Kartı (GPU)** | DirectX 11 / DWM destekli grafik kartı | Donanım hızlandırmalı tüm GPU'lar |
+| **Grafik Kartı (GPU)** | DirectX 11 / DWM destekli grafik kartı | Donanım hızlandırmalı modern GPU |
 | **Ses Aygıtı** | Standart Windows ses çıkışı (WASAPI Loopback uyumlu) | Kulaklık, Hoparlör veya Bluetooth Ses Cihazı |
-| **Çalışma Zamanı** | Bağımsız pakette **hiçbir harici runtime gerekmez** | Geliştirme için: .NET 10 LTS SDK |
+| **Çalışma Zamanı** | Bağımsız pakette **harici runtime gerekmez** | Geliştirme için: .NET 10 LTS SDK |
 
 ---
 
-## 🚀 Kurulum ve Kullanım Talimatları
+## 🚀 Kullanım Talimatları
 
-### Hızlı Kurulum (Taşınabilir ZIP)
+### Hızlı Başlangıç
 1. [Releases](https://github.com/owergungor/Lyrow/releases/tag/v3.7) sayfasından `Lyrow-v3.7-win-x64.zip` dosyasını indirin.
-2. ZIP dosyasını dilediğiniz bir klasöre (örn. `C:\Program Files\Lyrow` veya `Belgelerim\Lyrow`) çıkartın.
+2. ZIP dosyasını dilediğiniz bir klasöre çıkartın.
 3. `Lyrow.App.exe` dosyasını çalıştırın.
 
-### Kullanım İpuçları
-- **Görünüm Değiştirme:** Pencere başlığındaki mod değiştirme simgesine tıklayarak Normal Mod ile Dar Mod arasında anında geçiş yapabilirsiniz.
-- **Şarkı Sözünde Satıra Atlama:** Senkronize şarkı sözlerinde dilediğiniz bir satıra tıklayarak parçayı doğrudan o saniyeye sarabilirsiniz.
+### Arayüz Kısayolları ve İpuçları
+- **Görünüm Değiştirme:** Pencere başlığındaki mod simgesine tıklayarak Normal Mod ile Dar Mod arasında geçiş yapabilirsiniz.
+- **Şarkı Sözünde Satıra Atlama:** Senkronize şarkı sözlerinde dilediğiniz bir satıra tıklayarak parçayı doğrudan o konuma sarabilirsiniz.
 - **İlerleme Çubuğu (Seek):** İlerleme çubuğuna tıklayarak veya sürükleyerek parçada dilediğiniz konuma atlayabilirsiniz.
 - **Ses Düzeyi:** Dar modda ses simgesine tıklayarak açılır kaydırıcı üzerinden sesi ayarlayabilir veya sessize alabilirsiniz.
-- **Aygıt Seçimi:** Cihaz simgesine tıklayarak sistem varsayılan ses çıkışını (Hoparlör, Kulaklık, Bluetooth) anında değiştirebilirsiniz.
-- **Ayarlar:** Tepsideki (System Tray) Lyrow simgesine sağ tıklayarak ayarları açabilir, Glow kalınlığını, başlatma tercihlerini ve arayüz temalarını yapılandırabilirsiniz.
+- **Aygıt Seçimi:** Cihaz simgesine tıklayarak sistem varsayılan ses çıkışını (Hoparlör, Kulaklık, Bluetooth) değiştirebilirsiniz.
+- **Ayarlar:** Sistem tepsisindeki Lyrow simgesine sağ tıklayarak ayarları açabilir, Glow kalınlığını, başlatma tercihlerini ve temayı yapılandırabilirsiniz.
 
 ---
 
-## 🧪 Test ve Kalite Doğrulaması
+## 🧪 Kalite Doğrulaması ve Testler
 
 Lyrow her aşamada sıkı otomatik testler ve platform doğrulamalarıyla geliştirilmektedir:
 
@@ -156,8 +149,8 @@ Lyrow her aşamada sıkı otomatik testler ve platform doğrulamalarıyla geliş
   - `Lyrow.Core.Tests`: 59 test (Modül yaşam döngüsü, olay veri yolu, ayarlar)
   - `Lyrow.Audio.Tests`: 53 test (WASAPI yakalama, FFT matematik motoru, vuruş algılama)
   - `Lyrow.Music.Tests`: 120 test (GSMTC dinleme, metadata normalizasyonu, parça geçiş izolasyonu)
-  - `Lyrow.App.Tests`: 403 test (WinUI 3 ViewModel'leri, Dar Mod viewport hesaplamaları, Stage 33 timeline motoru testleri)
-- **Sürekli Entegrasyon (CI):** Her commit ve push işlemi [GitHub Actions](https://github.com/owergungor/Lyrow/actions) Windows derleme ortamında doğrulanır.
+  - `Lyrow.App.Tests`: 403 test (WinUI 3 ViewModel'leri, Dar Mod viewport hesaplamaları, timeline motoru testleri)
+- **Sürekli Entegrasyon (CI):** Her commit ve push işlemi [GitHub Actions](https://github.com/owergungor/Lyrow/actions) Windows derleme ortamında test edilir.
 - **Smoke Test:** Dağıtım öncesinde `Lyrow.App.exe --smoke-test` komutuyla yerel Windows x64 başlatma ve temiz kapanma test edilir.
 
 ---
@@ -181,7 +174,7 @@ Lyrow her aşamada sıkı otomatik testler ve platform doğrulamalarıyla geliş
 - 24px varsayılan Ambient Edge Bloom.
 - Detaylar için [docs/RELEASE_NOTES_v3.5.md](docs/RELEASE_NOTES_v3.5.md)'ye bakın.
 
-*Daha eski sürümler için [CHANGELOG.md](CHANGELOG.md) dosyasına bakabilirsiniz.*
+*Tüm geçmiş sürümler ve değişiklik ayrıntıları için [CHANGELOG.md](CHANGELOG.md) dosyasına bakabilirsiniz.*
 
 ---
 
@@ -190,7 +183,7 @@ Lyrow her aşamada sıkı otomatik testler ve platform doğrulamalarıyla geliş
 1. **Windows SmartScreen Uyarısı:**
    Dağıtım paketleri ticari bir EV/OV kod imzalama sertifikasıyla imzalanmadığından, Windows Defender SmartScreen ilk çalıştırmada koruma uyarısı verebilir. Dosya SHA-256 özetini doğruladıktan sonra *"Ek bilgi -> Yine de çalıştır"* seçeneğiyle güvenle açabilirsiniz.
 2. **GSMTC Desteği Gereksinimi:**
-   Medya kontrolleri ve şarkı bilgisi alabilmek için kullanılan müzik çaların Windows Medya Kontrolleri'ni (GSMTC) desteklemesi gerekir. Eski Win32 oynatıcılar bu arayüzü desteklemiyorsa metadata algılanamayabilir.
+   Medya kontrolleri ve şarkı bilgisi alabilmek için kullanılan müzik çaların Windows Medya Kontrolleri'ni (GSMTC) desteklemesi gerekir.
 
 ---
 
@@ -199,7 +192,7 @@ Lyrow her aşamada sıkı otomatik testler ve platform doğrulamalarıyla geliş
 Lyrow açık kaynaklı bir topluluk projesidir. Hata bildirimleri, özellik önerileri ve kod katkıları memnuniyetle karşılanır. Ayrıntılı yönergeler için lütfen [CONTRIBUTING.md](CONTRIBUTING.md) belgesini inceleyin.
 
 ```bash
-# Projeyi yerel ortamda çalıştırmak için:
+# Projeyi klonlama ve derleme:
 git clone https://github.com/owergungor/Lyrow.git
 cd Lyrow
 dotnet restore Lyrow.sln

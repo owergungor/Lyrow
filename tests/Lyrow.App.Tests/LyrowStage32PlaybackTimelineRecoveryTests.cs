@@ -20,7 +20,7 @@ public sealed class LyrowStage32PlaybackTimelineRecoveryTests
     public void AutomaticTrackTransition_PlaybackTimelineAdvancesSmoothly_NeverFreezesAtZero()
     {
         // Simulate Track A ending and Track B starting at T0
-        var t0Utc = new DateTime(2026, 11, 10, 10, 0, 0, DateTimeKind.Utc);
+        var t0Utc = DateTime.UtcNow;
         var trackBDuration = TimeSpan.FromSeconds(210);
 
         // At T0: Track B starts playing from 0:00
@@ -38,7 +38,7 @@ public sealed class LyrowStage32PlaybackTimelineRecoveryTests
         lastUpdated0.Should().Be(t0Utc);
 
         var timeline0 = new MediaTimelineInfo(pos0, trackBDuration, MediaPlaybackStatus.Playing, lastUpdated0);
-        timeline0.GetInterpolatedPosition().Should().Be(TimeSpan.Zero);
+        timeline0.GetInterpolatedPosition().Should().BeLessThan(TimeSpan.FromMilliseconds(50));
 
         // At T0 + 1.5s: 1.5 seconds have elapsed in real time
         var t1Utc = t0Utc.AddSeconds(1.5);
