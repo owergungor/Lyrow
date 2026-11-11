@@ -403,14 +403,85 @@ public static class LyricsFillProgressCalculator
 
         if (line.Words != null && line.Words.Count > 0)
         {
-            double overallWordProg = CalculateWordTimingProgress(currentPosition, line.StartTime, endTime, line.Words, line.Text);
             if (subLines.Count == 1)
             {
-                return new[] { overallWordProg };
+                double singleProg = CalculateWordTimingProgress(currentPosition, line.StartTime, endTime, line.Words, line.Text);
+                return new[] { singleProg };
             }
 
             int count = subLines.Count;
             var results = new double[count];
+
+            // Partition word timings across sublines based on word counts per subline
+            int wordOffset = 0;
+            bool canMapAllSlices = true;
+            var slices = new List<List<LyricWordTiming>>(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                var subWords = subLines[i].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                int needed = subWords.Length;
+                if (needed <= 0) needed = 1;
+
+                int available = Math.Min(needed, Math.Max(0, line.Words.Count - wordOffset));
+                if (available <= 0 && i < count - 1)
+                {
+                    canMapAllSlices = false;
+                    break;
+                }
+
+                var slice = new List<LyricWordTiming>(available);
+                for (int w = 0; w < available; w++)
+                {
+                    slice.Add(line.Words[wordOffset + w]);
+                }
+                slices.Add(slice);
+                wordOffset += available;
+            }
+
+            // Include any remaining words in the last slice
+            if (canMapAllSlices && wordOffset < line.Words.Count && slices.Count > 0)
+            {
+                while (wordOffset < line.Words.Count)
+                {
+                    slices[^1].Add(line.Words[wordOffset++]);
+                }
+            }
+
+            if (canMapAllSlices && slices.Count == count)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    var slice = slices[i];
+                    if (slice.Count == 0)
+                    {
+                        // Inherit completion from previous slice
+                        results[i] = (i > 0 && results[i - 1] >= 1.0) ? 1.0 : 0.0;
+                        continue;
+                    }
+
+                    var sliceStart = slice[0].Start;
+                    var sliceEnd = slice[^1].End;
+
+                    if (currentPosition < sliceStart)
+                    {
+                        results[i] = 0.0;
+                    }
+                    else if (currentPosition >= sliceEnd)
+                    {
+                        results[i] = 1.0;
+                    }
+                    else
+                    {
+                        results[i] = CalculateWordTimingProgress(currentPosition, sliceStart, sliceEnd, slice, subLines[i]);
+                    }
+                }
+
+                return results;
+            }
+
+            // Fallback: character-ratio weighted partitioning of overall word timing progress
+            double overallWordProg = CalculateWordTimingProgress(currentPosition, line.StartTime, endTime, line.Words, line.Text);
             if (overallWordProg <= 0.0) return results;
             if (overallWordProg >= 1.0)
             {

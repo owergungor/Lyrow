@@ -319,10 +319,10 @@ public static class LyricsViewportCalculator
         double playerAvailableW = isLyricsPanelVisible ? (safeW * 0.50) - 56.0 : safeW - 80.0;
         double playerAvailableH = safeH - 44.0; // Exclude title bar
 
-        // Artwork takes proportional height and width while leaving room for metadata + controls below it (~280-310px)
-        double maxArtByWidth = Math.Clamp(playerAvailableW * 0.78, 140.0, 560.0);
-        double maxArtByHeight = Math.Clamp(playerAvailableH - 300.0, 140.0, 560.0);
-        double artworkSize = Math.Round(Math.Clamp(Math.Min(maxArtByWidth, maxArtByHeight), 140.0, 560.0));
+        // Artwork takes proportional height and width while leaving room for metadata + controls below it (~320-350px)
+        double maxArtByWidth = Math.Clamp(playerAvailableW * 0.78, 120.0, 560.0);
+        double maxArtByHeight = Math.Clamp(playerAvailableH - 340.0, 120.0, 560.0);
+        double artworkSize = Math.Round(Math.Clamp(Math.Min(maxArtByWidth, maxArtByHeight), 120.0, 560.0));
 
         double scaleRatio = Math.Clamp(artworkSize / 300.0, 0.72, 1.75);
 

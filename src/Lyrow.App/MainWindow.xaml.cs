@@ -1592,6 +1592,23 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Authoritative list of user-facing visible settings tabs.
+    /// Stage 39 invariant: System tab is strictly absent; Updates and Shortcuts are present.
+    /// </summary>
+    public static readonly IReadOnlyList<string> VisibleSettingsTabKeys = new[]
+    {
+        "All",
+        "Appearance",
+        "Artwork",
+        "Audio",
+        "Updates",
+        "Shortcuts",
+        "About"
+    };
+
+    public IReadOnlyList<string> GetVisibleSettingsTabs() => VisibleSettingsTabKeys;
+
     public void ShowSettingsCategory(string category)
     {
         var accent = (Style)Application.Current.Resources["AccentButtonStyle"];
@@ -1651,6 +1668,12 @@ public sealed partial class MainWindow : Window
         TxtSectionGeneral.Text = loc["Tab_General"];
         TxtAppTheme.Text = loc["General_AppTheme"];
         TxtAppThemeDesc.Text = loc["General_AppTheme_Desc"];
+        if (ComboTheme != null && ComboTheme.Items.Count >= 3)
+        {
+            if (ComboTheme.Items[0] is ComboBoxItem item0) item0.Content = loc["Theme_SystemDefault"];
+            if (ComboTheme.Items[1] is ComboBoxItem item1) item1.Content = loc["Theme_Dark"];
+            if (ComboTheme.Items[2] is ComboBoxItem item2) item2.Content = loc["Theme_Light"];
+        }
         TxtLanguageLabel.Text = loc["General_Language"];
         TxtLanguageDesc.Text = loc["General_Language_Desc"];
         if (TxtMasterOpacityLabel != null) TxtMasterOpacityLabel.Text = loc["General_MasterOpacity"];
@@ -1661,7 +1684,7 @@ public sealed partial class MainWindow : Window
         TxtStartupDesc.Text = loc["General_Startup_Desc"];
         TxtSystemTrayLabel.Text = loc["General_SystemTray"];
         TxtSystemTrayDesc.Text = loc["General_SystemTray_Desc"];
-        if (TxtSectionSystem != null) TxtSectionSystem.Text = loc["Tab_System"];
+        if (TxtSectionSystem != null) TxtSectionSystem.Text = loc["General_SystemIntegration"];
         if (TxtNotificationsLabel != null) TxtNotificationsLabel.Text = loc["General_Notifications"];
         if (TxtNotificationsDesc != null) TxtNotificationsDesc.Text = loc["General_Notifications_Desc"];
         if (TxtNotifyOnTrackChangeLabel != null) TxtNotifyOnTrackChangeLabel.Text = loc["General_NotifyOnTrackChange"];
@@ -1680,6 +1703,20 @@ public sealed partial class MainWindow : Window
 
         // Audio
         if (TxtAudioSectionHeader != null) TxtAudioSectionHeader.Text = loc["Tab_Audio"];
+        if (TxtAudioCaptureEndpointLabel != null) TxtAudioCaptureEndpointLabel.Text = loc["Audio_CaptureEndpoint"];
+        if (TxtAudioEndpointStatus != null) TxtAudioEndpointStatus.Text = loc["Audio_EndpointStatus"];
+        if (TxtAudioFftSizeLabel != null) TxtAudioFftSizeLabel.Text = loc["Audio_FftSize"];
+        if (TxtAudioFftSizeDesc != null) TxtAudioFftSizeDesc.Text = loc["Audio_FftSize_Desc"];
+        if (ComboFftSize != null && ComboFftSize.Items.Count >= 3)
+        {
+            if (ComboFftSize.Items[0] is ComboBoxItem item0) item0.Content = loc["Audio_Fft_1024"];
+            if (ComboFftSize.Items[1] is ComboBoxItem item1) item1.Content = loc["Audio_Fft_2048"];
+            if (ComboFftSize.Items[2] is ComboBoxItem item2) item2.Content = loc["Audio_Fft_4096"];
+        }
+        if (TxtAudioDspRefreshLabel != null) TxtAudioDspRefreshLabel.Text = loc["Audio_DspRefresh"];
+        if (TxtTargetFpsStatus != null) TxtTargetFpsStatus.Text = loc["Audio_DspRefresh_Status"];
+        if (TxtAudioSilenceThresholdLabel != null) TxtAudioSilenceThresholdLabel.Text = loc["Audio_SilenceThreshold"];
+        if (TxtSilenceThresholdStatus != null) TxtSilenceThresholdStatus.Text = loc["Audio_SilenceThreshold_Status"];
 
         // Updates
         TxtSectionUpdates.Text = loc["Updates_Title"];
@@ -1687,6 +1724,14 @@ public sealed partial class MainWindow : Window
         TxtAutoUpdatesDesc.Text = loc["Updates_AutoChecks_Desc"];
         TxtUpdateFrequencyLabel.Text = loc["Updates_Frequency"];
         if (TxtUpdateFrequencyDesc != null) TxtUpdateFrequencyDesc.Text = loc["Updates_Frequency_Desc"];
+        if (ComboUpdateFrequency != null && ComboUpdateFrequency.Items.Count >= 4)
+        {
+            if (ComboUpdateFrequency.Items[0] is ComboBoxItem item0) item0.Content = loc["Updates_Freq_OnStartup"];
+            if (ComboUpdateFrequency.Items[1] is ComboBoxItem item1) item1.Content = loc["Updates_Freq_Daily"];
+            if (ComboUpdateFrequency.Items[2] is ComboBoxItem item2) item2.Content = loc["Updates_Freq_Weekly"];
+            if (ComboUpdateFrequency.Items[3] is ComboBoxItem item3) item3.Content = loc["Updates_Freq_Monthly"];
+        }
+        if (BtnOpenUpdateRelease != null) BtnOpenUpdateRelease.Content = loc["Updates_ViewRelease"];
         if (TxtUpdateStatusSummary != null) TxtUpdateStatusSummary.Text = loc["Updates_Channel"];
         BtnCheckUpdates.Content = loc["Updates_CheckNow"];
         BtnDownloadAndInstallUpdate.Content = loc["Updates_DownloadAndInstall"];
@@ -1702,6 +1747,9 @@ public sealed partial class MainWindow : Window
         // Diagnostics
         BtnResetSettings.Content = loc["Diag_ResetSettings"];
         BtnOpenLogs.Content = loc["Diag_OpenLogs"];
+        if (BtnRestartWizard != null) BtnRestartWizard.Content = loc["About_RestartWizard"];
+        if (TxtAboutSubtitle != null) TxtAboutSubtitle.Text = loc["About_Subtitle"];
+        if (TxtAboutTechStack != null) TxtAboutTechStack.Text = loc["About_TechStack"];
 
         // Lyrics & Glow Personalization
         if (TxtLyricsLineSpacingHeader != null) TxtLyricsLineSpacingHeader.Text = loc["Lyrics_LineSpacing"];

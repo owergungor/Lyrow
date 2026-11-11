@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -328,8 +329,12 @@ public sealed partial class LyricsWindow : Window
             _mediaMonitor.TrackChanged += OnMediaMonitorTrackChanged;
         }
 
+        ApplyLocalization();
+        LocalizationService.Instance.LanguageChanged += OnLocalizationLanguageChanged;
+
         Closed += (_, _) =>
         {
+            LocalizationService.Instance.LanguageChanged -= OnLocalizationLanguageChanged;
             if (_mediaMonitor != null)
             {
                 _mediaMonitor.TrackChanged -= OnMediaMonitorTrackChanged;
@@ -346,6 +351,86 @@ public sealed partial class LyricsWindow : Window
         };
         _uiTimer.Tick += OnUiTimerTick;
         _uiTimer.Start();
+    }
+
+    private void OnLocalizationLanguageChanged(object? sender, string lang)
+    {
+        DispatcherQueue?.TryEnqueue(ApplyLocalization);
+    }
+
+    public void ApplyLocalization()
+    {
+        var loc = LocalizationService.Instance;
+
+        if (BtnToggleLyrics != null)
+        {
+            string lyricsTip = _isLyricsEnabled ? loc["Lyrics_HideLyrics"] : loc["Lyrics_ShowLyrics"];
+            ToolTipService.SetToolTip(BtnToggleLyrics, lyricsTip);
+            AutomationProperties.SetName(BtnToggleLyrics, lyricsTip);
+        }
+
+        if (BtnDarMod != null)
+        {
+            ToolTipService.SetToolTip(BtnDarMod, loc["Compact_Player"]);
+            AutomationProperties.SetName(BtnDarMod, loc["Compact_Player"]);
+        }
+
+        if (BtnNormalModeCompact != null)
+        {
+            ToolTipService.SetToolTip(BtnNormalModeCompact, loc["Compact_NormalMode"]);
+            AutomationProperties.SetName(BtnNormalModeCompact, loc["Compact_NormalMode"]);
+        }
+
+        if (BtnExpandFromCompact != null)
+        {
+            ToolTipService.SetToolTip(BtnExpandFromCompact, loc["Compact_ToggleLyrics"]);
+            AutomationProperties.SetName(BtnExpandFromCompact, loc["Compact_ToggleLyrics"]);
+        }
+
+        if (BtnFullscreen != null)
+        {
+            ToolTipService.SetToolTip(BtnFullscreen, loc["Fullscreen_Toggle"]);
+            AutomationProperties.SetName(BtnFullscreen, loc["Fullscreen_Toggle"]);
+        }
+
+        if (BtnPrev != null)
+        {
+            ToolTipService.SetToolTip(BtnPrev, loc["Playback_Prev"]);
+            AutomationProperties.SetName(BtnPrev, loc["Playback_Prev"]);
+        }
+
+        if (BtnPlayPause != null)
+        {
+            ToolTipService.SetToolTip(BtnPlayPause, loc["Playback_PlayPause"]);
+            AutomationProperties.SetName(BtnPlayPause, loc["Playback_PlayPause"]);
+        }
+
+        if (BtnNext != null)
+        {
+            ToolTipService.SetToolTip(BtnNext, loc["Playback_Next"]);
+            AutomationProperties.SetName(BtnNext, loc["Playback_Next"]);
+        }
+
+        if (BtnVolumeMute != null)
+        {
+            ToolTipService.SetToolTip(BtnVolumeMute, loc["Playback_MuteUnmute"]);
+            AutomationProperties.SetName(BtnVolumeMute, loc["Playback_MuteUnmute"]);
+        }
+
+        if (BtnOffsetMinus != null)
+        {
+            ToolTipService.SetToolTip(BtnOffsetMinus, "-250ms " + loc["Offset_Delay"]);
+            AutomationProperties.SetName(BtnOffsetMinus, loc["Offset_Decrease"]);
+        }
+
+        if (BtnOffsetPlus != null)
+        {
+            ToolTipService.SetToolTip(BtnOffsetPlus, "+250ms " + loc["Offset_Advance"]);
+            AutomationProperties.SetName(BtnOffsetPlus, loc["Offset_Increase"]);
+        }
+
+        if (TxtEmptyState != null) TxtEmptyState.Text = loc["Status_WaitingMedia"];
+        if (TxtEmptyStateSub != null) TxtEmptyStateSub.Text = loc["Status_PlayInApp"];
     }
 
     /// <summary>
@@ -431,7 +516,9 @@ public sealed partial class LyricsWindow : Window
             ColLyrics.Width = new GridLength(1, GridUnitType.Star);
             LyricsColumnContainer.Visibility = Visibility.Visible;
             IconToggleLyrics.Glyph = "\uEC4F";
-            ToolTipService.SetToolTip(BtnToggleLyrics, "Hide Lyrics (Center Player)");
+            string tip = LocalizationService.Instance["Lyrics_HideLyrics"];
+            ToolTipService.SetToolTip(BtnToggleLyrics, tip);
+            AutomationProperties.SetName(BtnToggleLyrics, tip);
             UpdateViewportPadding();
             _snapToCenterOnNextLayout = true;
         }
@@ -440,7 +527,9 @@ public sealed partial class LyricsWindow : Window
             ColLyrics.Width = new GridLength(0);
             LyricsColumnContainer.Visibility = Visibility.Collapsed;
             IconToggleLyrics.Glyph = "\uE8D6";
-            ToolTipService.SetToolTip(BtnToggleLyrics, "Show Lyrics (50/50 Split)");
+            string tip = LocalizationService.Instance["Lyrics_ShowLyrics"];
+            ToolTipService.SetToolTip(BtnToggleLyrics, tip);
+            AutomationProperties.SetName(BtnToggleLyrics, tip);
         }
     }
 
@@ -1026,8 +1115,14 @@ public sealed partial class LyricsWindow : Window
             var target = LyricsViewportCalculator.GetLineVisualTarget(i, -1, focusedSize, unfocusedSize);
             string lineText = string.IsNullOrWhiteSpace(line.Text) ? "♪" : line.Text;
 
-            // Split into sequential sub-lines (either explicit \n or long multi-clause lyric lines > 46 chars)
-            var subLines = LyricsFillProgressCalculator.SplitIntoSequentialSubLines(lineText, maxCharsPerSubLine: 46);
+            // Split into sequential sub-lines (either explicit \n or wrapped sub-lines matching viewport width)
+            double availLyricsW = LyricsScrollViewer.ActualWidth > 80.0
+                ? LyricsScrollViewer.ActualWidth - 48.0
+                : (RootLayout.ActualWidth > 200.0 ? (RootLayout.ActualWidth * 0.50) - 72.0 : 380.0);
+            int maxChars = Math.Clamp((int)Math.Floor(availLyricsW / Math.Max(10.0, layoutFontSize * 0.58)), 18, 50);
+            var subLines = maxChars > 0
+                ? LyricsFillProgressCalculator.SplitIntoSequentialSubLines(lineText, maxCharsPerSubLine: maxChars)
+                : LyricsFillProgressCalculator.SplitIntoSequentialSubLines(lineText, maxCharsPerSubLine: 46);
             var subBaseList = new List<TextBlock>(subLines.Count);
             var subOverlayList = new List<TextBlock>(subLines.Count);
             var subClipList = new List<RectangleGeometry>(subLines.Count);
@@ -1047,7 +1142,7 @@ public sealed partial class LyricsWindow : Window
                     Text = subText,
                     FontSize = layoutFontSize,
                     FontWeight = FontWeights.Normal,
-                    TextWrapping = TextWrapping.Wrap,
+                    TextWrapping = TextWrapping.NoWrap,
                     HorizontalAlignment = horizAlign,
                     TextAlignment = textAlign,
                     LineHeight = layoutLineHeight,
@@ -1061,7 +1156,7 @@ public sealed partial class LyricsWindow : Window
                     Text = subText,
                     FontSize = layoutFontSize,
                     FontWeight = FontWeights.Normal,
-                    TextWrapping = TextWrapping.Wrap,
+                    TextWrapping = TextWrapping.NoWrap,
                     HorizontalAlignment = horizAlign,
                     TextAlignment = textAlign,
                     LineHeight = layoutLineHeight,
@@ -1326,38 +1421,6 @@ public sealed partial class LyricsWindow : Window
 
                 var line = lyrics.Lines[i];
                 TimeSpan? nextTimestamp = (i + 1 < lyrics.Lines.Count) ? lyrics.Lines[i + 1].Timestamp : null;
-
-                if (overlayList.Count == 1 && line.Words != null && line.Words.Count > 0)
-                {
-                    var overlay = overlayList[0];
-                    double actualW = overlay.ActualWidth;
-                    double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
-                    if (actualW > 0)
-                    {
-                        double progress = LyricsFillProgressCalculator.CalculateWordTimingProgress(
-                            currentPos,
-                            line.StartTime,
-                            nextTimestamp,
-                            line.Words,
-                            line.Text);
-                        if (progress > 0.001)
-                        {
-                            overlay.Visibility = Visibility.Visible;
-                            clipList[0].Rect = new Windows.Foundation.Rect(0, 0, progress * actualW, actualH);
-                        }
-                        else
-                        {
-                            overlay.Visibility = Visibility.Collapsed;
-                            clipList[0].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
-                        }
-                    }
-                    else
-                    {
-                        overlay.Visibility = Visibility.Collapsed;
-                        clipList[0].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
-                    }
-                    continue;
-                }
 
                 var subProgresses = LyricsFillProgressCalculator.CalculateSequentialSubLineProgresses(
                     line,

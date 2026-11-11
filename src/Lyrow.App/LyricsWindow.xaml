@@ -53,12 +53,12 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Left Column (50%): Player / Artwork Container -->
-                    <Grid x:Name="PlayerColumnContainer" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24,12">
+                    <Grid x:Name="PlayerColumnContainer" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="24,8">
                         <ScrollViewer x:Name="PlayerScrollViewer"
-                                      VerticalScrollMode="Auto" VerticalScrollBarVisibility="Hidden"
+                                      VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
                                       HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                            <StackPanel x:Name="PlayerInnerPanel" Width="300" HorizontalAlignment="Center" Spacing="0">
+                            <StackPanel x:Name="PlayerInnerPanel" Width="300" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="0">
                                 <!-- 1. Album Artwork -->
                                 <Border x:Name="BorderTrackArtwork" Width="300" Height="300" CornerRadius="16"
                                         Background="{ThemeResource LayerFillColorDefaultBrush}"
@@ -75,7 +75,7 @@
                                 <!-- 2. Song Title -->
                                 <TextBlock x:Name="TxtSongTitle" Text="Waiting for playback..." FontWeight="Bold"
                                            FontSize="22" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left"
-                                           Width="300" Margin="0,12,0,0" />
+                                           Width="300" Margin="0,10,0,0" />
 
                                 <!-- 3. Artist / Album -->
                                 <TextBlock x:Name="TxtArtistAlbum" Text="No active media session" FontSize="14"
@@ -400,7 +400,7 @@
                                     <Button x:Name="BtnNormalModeCompact" Width="26" Height="26" Padding="0" CornerRadius="6"
                                             ToolTipService.ToolTip="Normal mode"
                                             AutomationProperties.Name="Normal mode">
-                                        <FontIcon x:Name="IconNormalModeCompact" Glyph="&#xE8FD;" FontSize="11" />
+                                        <FontIcon x:Name="IconNormalModeCompact" Glyph="&#xE740;" FontSize="11" />
                                     </Button>
                                 </StackPanel>
                             </Grid>

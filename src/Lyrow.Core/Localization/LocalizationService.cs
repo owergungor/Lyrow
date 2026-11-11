@@ -250,7 +250,49 @@ public sealed class LocalizationService
             ["Artwork_Radius_Desc"] = "Apple Music inspired rounded corners on album artwork",
             ["Artwork_Cache"] = "In-Memory Cache Capacity",
             ["Artwork_Cache_Desc"] = "Bounded cache: 50 items max (Zero memory leakage)",
-            ["Updates_Frequency_Desc"] = "Choose how often Lyrow checks for updates"
+            ["Updates_Frequency_Desc"] = "Choose how often Lyrow checks for updates",
+
+            ["Theme_SystemDefault"] = "Windows Default",
+            ["Theme_Dark"] = "Dark",
+            ["Theme_Light"] = "Light",
+
+            ["Updates_Freq_OnStartup"] = "On Startup",
+            ["Updates_Freq_Daily"] = "Daily",
+            ["Updates_Freq_Weekly"] = "Weekly",
+            ["Updates_Freq_Monthly"] = "Monthly",
+
+            ["Audio_CaptureEndpoint"] = "Capture Endpoint",
+            ["Audio_EndpointStatus"] = "Windows Default Audio Loopback (Real-Time WASAPI)",
+            ["Audio_FftSize"] = "FFT Analysis Window Size",
+            ["Audio_FftSize_Desc"] = "Sample window for Fast Fourier Transform frequency bins",
+            ["Audio_Fft_1024"] = "1024 samples",
+            ["Audio_Fft_2048"] = "2048 samples (Standard)",
+            ["Audio_Fft_4096"] = "4096 samples (High Res)",
+            ["Audio_DspRefresh"] = "DSP Target Refresh Rate",
+            ["Audio_DspRefresh_Status"] = "60 FPS Fluid High-DPI Timer",
+            ["Audio_SilenceThreshold"] = "Silence Threshold",
+            ["Audio_SilenceThreshold_Status"] = "-65.0 dB Auto-Sleep Standby",
+
+            ["General_SystemIntegration"] = "System & Integration",
+            ["About_Subtitle"] = "Windows 11 Native Ambient Edge Lighting & Apple Music 26/27 Inspired Synchronized Lyrics",
+            ["About_TechStack"] = "Powered by .NET 10, WinUI 3, Windows App SDK, GSMTC Media Engine, and Real-Time WASAPI Loopback DSP.",
+            ["About_RestartWizard"] = "Restart Setup Wizard",
+            ["Updates_ViewRelease"] = "View Release",
+
+            ["Compact_NormalMode"] = "Normal mode (Expand)",
+            ["Compact_ToggleLyrics"] = "Toggle Compact Lyrics",
+            ["Compact_Player"] = "Compact Player (Dar Mod)",
+            ["Lyrics_HideLyrics"] = "Hide Lyrics (Center Player)",
+            ["Lyrics_ShowLyrics"] = "Show Lyrics (50/50 Split)",
+            ["Fullscreen_Toggle"] = "Fullscreen (F11)",
+            ["Playback_Prev"] = "Previous Track",
+            ["Playback_PlayPause"] = "Play or Pause",
+            ["Playback_Next"] = "Next Track",
+            ["Playback_MuteUnmute"] = "Mute / Unmute",
+            ["Offset_Delay"] = "Delay",
+            ["Offset_Advance"] = "Advance",
+            ["Offset_Decrease"] = "Decrease Lyrics Offset by 250 ms",
+            ["Offset_Increase"] = "Increase Lyrics Offset by 250 ms"
         },
 
         ["fr"] = new(StringComparer.OrdinalIgnoreCase)
@@ -781,7 +823,49 @@ public sealed class LocalizationService
             ["Artwork_Radius_Desc"] = "Albüm kapağında yuvarlatılmış köşeler",
             ["Artwork_Cache"] = "Bellek İçi Önbellek Kapasitesi",
             ["Artwork_Cache_Desc"] = "Sınırlı önbellek: En fazla 50 öğe (Sıfır bellek sızıntısı)",
-            ["Updates_Frequency_Desc"] = "Lyrow'un güncellemeleri ne sıklıkla denetleyeceğini seçin"
+            ["Updates_Frequency_Desc"] = "Lyrow'un güncellemeleri ne sıklıkla denetleyeceğini seçin",
+
+            ["Theme_SystemDefault"] = "Windows Varsayılanı",
+            ["Theme_Dark"] = "Koyu",
+            ["Theme_Light"] = "Açık",
+
+            ["Updates_Freq_OnStartup"] = "Başlangıçta",
+            ["Updates_Freq_Daily"] = "Günlük",
+            ["Updates_Freq_Weekly"] = "Haftalık",
+            ["Updates_Freq_Monthly"] = "Aylık",
+
+            ["Audio_CaptureEndpoint"] = "Yakalama Noktası",
+            ["Audio_EndpointStatus"] = "Windows Varsayılan Ses Geri Döngüsü (Gerçek Zamanlı WASAPI)",
+            ["Audio_FftSize"] = "FFT Analiz Pencere Boyutu",
+            ["Audio_FftSize_Desc"] = "Hızlı Fourier Dönüşümü frekans aralıkları için örnekleme penceresi",
+            ["Audio_Fft_1024"] = "1024 örnek",
+            ["Audio_Fft_2048"] = "2048 örnek (Standart)",
+            ["Audio_Fft_4096"] = "4096 örnek (Yüksek Çözünürlük)",
+            ["Audio_DspRefresh"] = "DSP Hedef Yenileme Hızı",
+            ["Audio_DspRefresh_Status"] = "60 FPS Akıcı Yüksek DPI Zamanlayıcı",
+            ["Audio_SilenceThreshold"] = "Sessizlik Eşiği",
+            ["Audio_SilenceThreshold_Status"] = "-65.0 dB Otomatik Uyku Bekleme",
+
+            ["General_SystemIntegration"] = "Sistem ve Entegrasyon",
+            ["About_Subtitle"] = "Windows 11 Yerel Ortam Kenar Aydınlatması ve Apple Music İlhamlı Senkronize Şarkı Sözleri",
+            ["About_TechStack"] = ".NET 10, WinUI 3, Windows App SDK, GSMTC Medya Motoru ve Gerçek Zamanlı WASAPI Geri Döngü DSP ile güçlendirilmiştir.",
+            ["About_RestartWizard"] = "Kurulum Sihirbazını Yeniden Başlat",
+            ["Updates_ViewRelease"] = "Sürümü Görüntüle",
+
+            ["Compact_NormalMode"] = "Normal Mod (Genişlet)",
+            ["Compact_ToggleLyrics"] = "Kompakt Şarkı Sözlerini Aç/Kapat",
+            ["Compact_Player"] = "Kompakt Oynatıcı (Dar Mod)",
+            ["Lyrics_HideLyrics"] = "Sözleri Gizle (Oynatıcıyı Ortala)",
+            ["Lyrics_ShowLyrics"] = "Sözleri Göster (50/50 Bölüm)",
+            ["Fullscreen_Toggle"] = "Tam Ekran (F11)",
+            ["Playback_Prev"] = "Önceki Parça",
+            ["Playback_PlayPause"] = "Oynat veya Duraklat",
+            ["Playback_Next"] = "Sonraki Parça",
+            ["Playback_MuteUnmute"] = "Sesi Kapat / Aç",
+            ["Offset_Delay"] = "Gecikme",
+            ["Offset_Advance"] = "İlerleme",
+            ["Offset_Decrease"] = "Şarkı Sözü Zamanını 250 ms Geciktir",
+            ["Offset_Increase"] = "Şarkı Sözü Zamanını 250 ms İlerlet"
         }
     };
 }
