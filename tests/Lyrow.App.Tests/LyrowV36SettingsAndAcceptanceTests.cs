@@ -170,7 +170,6 @@ public class LyrowV36SettingsAndAcceptanceTests
         loc["Settings_Title"].Should().NotBeNullOrWhiteSpace();
         loc["Tab_All"].Should().NotBeNullOrWhiteSpace();
         loc["Tab_Appearance"].Should().NotBeNullOrWhiteSpace();
-        loc["Tab_System"].Should().NotBeNullOrWhiteSpace();
         loc["General_AppTheme"].Should().NotBeNullOrWhiteSpace();
         loc["General_Language"].Should().NotBeNullOrWhiteSpace();
         loc["General_Startup"].Should().NotBeNullOrWhiteSpace();

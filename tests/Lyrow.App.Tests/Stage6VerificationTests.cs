@@ -60,7 +60,6 @@ public class Stage6VerificationTests
         loc.GetString("Tab_Appearance").Should().NotBeNullOrWhiteSpace().And.NotBe("Tab_Appearance");
         loc.GetString("Tab_Artwork").Should().NotBeNullOrWhiteSpace().And.NotBe("Tab_Artwork");
         loc.GetString("Tab_Audio").Should().NotBeNullOrWhiteSpace().And.NotBe("Tab_Audio");
-        loc.GetString("Tab_System").Should().NotBeNullOrWhiteSpace().And.NotBe("Tab_System");
         loc.GetString("Tab_About").Should().NotBeNullOrWhiteSpace().And.NotBe("Tab_About");
 
         // Settings labels

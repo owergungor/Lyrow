@@ -1657,7 +1657,6 @@ public sealed partial class MainWindow : Window
         if (BtnFilterGlow != null) BtnFilterGlow.Content = loc["Tab_Glow"];
         if (BtnFilterArtwork != null) BtnFilterArtwork.Content = loc["Tab_Artwork"];
         if (BtnFilterAudio != null) BtnFilterAudio.Content = loc["Tab_Audio"];
-        if (BtnFilterSystem != null) BtnFilterSystem.Content = loc["Tab_System"];
         if (BtnFilterAbout != null) BtnFilterAbout.Content = loc["Tab_About"];
 
         BtnFilterGeneral.Content = loc["Tab_General"];
