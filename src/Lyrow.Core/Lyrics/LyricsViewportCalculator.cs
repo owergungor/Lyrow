@@ -319,10 +319,10 @@ public static class LyricsViewportCalculator
         double playerAvailableW = isLyricsPanelVisible ? (safeW * 0.50) - 56.0 : safeW - 80.0;
         double playerAvailableH = safeH - 44.0; // Exclude title bar
 
-        // Artwork takes proportional height and width while leaving room for metadata + controls below it (~235-260px)
-        double maxArtByWidth = Math.Clamp(playerAvailableW * 0.78, 160.0, 560.0);
-        double maxArtByHeight = Math.Clamp(playerAvailableH - 250.0, 160.0, 560.0);
-        double artworkSize = Math.Round(Math.Clamp(Math.Min(maxArtByWidth, maxArtByHeight), 160.0, 560.0));
+        // Artwork takes proportional height and width while leaving room for metadata + controls below it (~280-310px)
+        double maxArtByWidth = Math.Clamp(playerAvailableW * 0.78, 140.0, 560.0);
+        double maxArtByHeight = Math.Clamp(playerAvailableH - 300.0, 140.0, 560.0);
+        double artworkSize = Math.Round(Math.Clamp(Math.Min(maxArtByWidth, maxArtByHeight), 140.0, 560.0));
 
         double scaleRatio = Math.Clamp(artworkSize / 300.0, 0.72, 1.75);
 
@@ -335,7 +335,7 @@ public static class LyricsViewportCalculator
         double skipButtonSize = Math.Round(Math.Clamp(36.0 * scaleRatio, 30.0, 52.0));
         double utilityButtonSize = Math.Round(Math.Clamp(34.0 * scaleRatio, 28.0, 46.0));
 
-        double lyricScale = Math.Clamp((safeW / 960.0) * 0.55 + (safeH / 640.0) * 0.45, 0.80, 1.65);
+        double lyricScale = Math.Clamp((safeW / 960.0) * 0.55 + (safeH / 720.0) * 0.45, 0.80, 1.65);
         double scaledFocusedFontSize = Math.Round(Math.Clamp(baseFocusedFontSize * lyricScale, 20.0, 54.0), 1);
         double scaledUnfocusedFontSize = Math.Round(Math.Clamp(baseUnfocusedFontSize * lyricScale, 14.0, 38.0), 1);
         double lyricLineSpacing = Math.Round(Math.Clamp(20.0 * lyricScale, 14.0, 34.0), 1);

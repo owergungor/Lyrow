@@ -54,146 +54,151 @@
 
                     <!-- Left Column (50%): Player / Artwork Container -->
                     <Grid x:Name="PlayerColumnContainer" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24,12">
-                        <StackPanel x:Name="PlayerInnerPanel" Width="300" HorizontalAlignment="Center" Spacing="0">
-                            <!-- 1. Album Artwork -->
-                            <Border x:Name="BorderTrackArtwork" Width="300" Height="300" CornerRadius="16"
-                                    Background="{ThemeResource LayerFillColorDefaultBrush}"
-                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                                    HorizontalAlignment="Center">
-                                <Grid>
-                                    <Image x:Name="ImgTrackArtwork" Stretch="UniformToFill" />
-                                    <FontIcon x:Name="IconArtworkPlaceholder" Glyph="&#xE8D6;" FontSize="64"
-                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <ScrollViewer x:Name="PlayerScrollViewer"
+                                      VerticalScrollMode="Auto" VerticalScrollBarVisibility="Hidden"
+                                      HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
+                                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                            <StackPanel x:Name="PlayerInnerPanel" Width="300" HorizontalAlignment="Center" Spacing="0">
+                                <!-- 1. Album Artwork -->
+                                <Border x:Name="BorderTrackArtwork" Width="300" Height="300" CornerRadius="16"
+                                        Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        HorizontalAlignment="Center">
+                                    <Grid>
+                                        <Image x:Name="ImgTrackArtwork" Stretch="UniformToFill" />
+                                        <FontIcon x:Name="IconArtworkPlaceholder" Glyph="&#xE8D6;" FontSize="64"
+                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- 2. Song Title -->
+                                <TextBlock x:Name="TxtSongTitle" Text="Waiting for playback..." FontWeight="Bold"
+                                           FontSize="22" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left"
+                                           Width="300" Margin="0,12,0,0" />
+
+                                <!-- 3. Artist / Album -->
+                                <TextBlock x:Name="TxtArtistAlbum" Text="No active media session" FontSize="14"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis" HorizontalAlignment="Left"
+                                           Width="300" Margin="0,3,0,0" />
+
+                                <!-- 4. Playback Progress Bar (Interactive Click/Drag Seek) -->
+                                <Grid x:Name="GridProgressHitBox" Width="300" Height="16" Margin="0,8,0,0" Background="Transparent">
+                                    <ProgressBar x:Name="ProgressTimeline" Width="300" Height="4" CornerRadius="2"
+                                                 Minimum="0" Maximum="100" Value="0" VerticalAlignment="Center" IsHitTestVisible="False" />
                                 </Grid>
-                            </Border>
 
-                            <!-- 2. Song Title -->
-                            <TextBlock x:Name="TxtSongTitle" Text="Waiting for playback..." FontWeight="Bold"
-                                       FontSize="22" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left"
-                                       Width="300" Margin="0,16,0,0" />
+                                <!-- 5. Elapsed / Remaining Time -->
+                                <Grid x:Name="GridTimestamps" Width="300" Margin="0,2,0,0">
+                                    <TextBlock x:Name="TxtElapsed" Text="0:00" FontSize="11"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Left" />
+                                    <TextBlock x:Name="TxtRemaining" Text="--:--" FontSize="11"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Right" />
+                                </Grid>
 
-                            <!-- 3. Artist / Album -->
-                            <TextBlock x:Name="TxtArtistAlbum" Text="No active media session" FontSize="14"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       TextTrimming="CharacterEllipsis" HorizontalAlignment="Left"
-                                       Width="300" Margin="0,4,0,0" />
+                                <!-- 6. Playback Device (Ghost Dropdown Selector) -->
+                                <DropDownButton x:Name="BtnDeviceSelector"
+                                                HorizontalAlignment="Center"
+                                                Margin="0,6,0,0"
+                                                Padding="10,4,10,4"
+                                                CornerRadius="8"
+                                                Background="Transparent"
+                                                BorderBrush="Transparent"
+                                                BorderThickness="0"
+                                                Opacity="0.75"
+                                                ToolTipService.ToolTip="Audio Output &amp; Analysis Endpoint (Click to change)">
+                                    <DropDownButton.Content>
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <FontIcon x:Name="IconDevice" Glyph="&#xE767;" FontSize="12"
+                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock x:Name="TxtDevice" Text="Speakers" FontSize="12"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       MaxWidth="240" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </DropDownButton.Content>
+                                    <DropDownButton.Flyout>
+                                        <MenuFlyout x:Name="FlyoutAudioDevices" Placement="Bottom">
+                                        </MenuFlyout>
+                                    </DropDownButton.Flyout>
+                                </DropDownButton>
 
-                            <!-- 4. Playback Progress Bar (Interactive Click/Drag Seek) -->
-                            <Grid x:Name="GridProgressHitBox" Width="300" Height="16" Margin="0,10,0,0" Background="Transparent">
-                                <ProgressBar x:Name="ProgressTimeline" Width="300" Height="4" CornerRadius="2"
-                                             Minimum="0" Maximum="100" Value="0" VerticalAlignment="Center" IsHitTestVisible="False" />
-                            </Grid>
+                                <!-- 7. Controls Row: Dar Mod button on left, Prev/Play/Next centered, Fullscreen button on right -->
+                                <Grid x:Name="GridControlsRow" Width="300" Margin="0,8,0,0">
+                                    <!-- Dar Mod (Compact) Button: Y-aligned with Prev, X at artwork left edge -->
+                                    <Button x:Name="BtnDarMod" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                            Width="34" Height="34" Padding="0" CornerRadius="8"
+                                            ToolTipService.ToolTip="Compact Player (Dar Mod)"
+                                            AutomationProperties.Name="Compact Player">
+                                        <FontIcon Glyph="&#xEE49;" FontSize="13" />
+                                    </Button>
 
-                            <!-- 5. Elapsed / Remaining Time -->
-                            <Grid x:Name="GridTimestamps" Width="300" Margin="0,2,0,0">
-                                <TextBlock x:Name="TxtElapsed" Text="0:00" FontSize="11"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Left" />
-                                <TextBlock x:Name="TxtRemaining" Text="-0:00" FontSize="11"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Right" />
-                            </Grid>
-
-                            <!-- 6. Playback Device (Ghost Dropdown Selector) -->
-                            <DropDownButton x:Name="BtnDeviceSelector"
-                                            HorizontalAlignment="Center"
-                                            Margin="0,8,0,0"
-                                            Padding="10,4,10,4"
-                                            CornerRadius="8"
-                                            Background="Transparent"
-                                            BorderBrush="Transparent"
-                                            BorderThickness="0"
-                                            Opacity="0.75"
-                                            ToolTipService.ToolTip="Audio Output &amp; Analysis Endpoint (Click to change)">
-                                <DropDownButton.Content>
-                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                        <FontIcon x:Name="IconDevice" Glyph="&#xE767;" FontSize="12"
-                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                        <TextBlock x:Name="TxtDevice" Text="Speakers" FontSize="12"
-                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                   MaxWidth="240" TextTrimming="CharacterEllipsis" />
+                                    <!-- Playback Controls Centered -->
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
+                                        <Button x:Name="BtnPrev" Width="36" Height="36" Padding="0" CornerRadius="18"
+                                                ToolTipService.ToolTip="Previous Track" AutomationProperties.Name="Previous Track">
+                                            <FontIcon Glyph="&#xE892;" FontSize="14" />
+                                        </Button>
+                                        <Button x:Name="BtnPlayPause" Width="46" Height="46" Padding="0" CornerRadius="23"
+                                                Style="{ThemeResource AccentButtonStyle}" ToolTipService.ToolTip="Play / Pause"
+                                                AutomationProperties.Name="Play or Pause">
+                                            <FontIcon x:Name="IconPlayPause" Glyph="&#xE768;" FontSize="17" />
+                                        </Button>
+                                        <Button x:Name="BtnNext" Width="36" Height="36" Padding="0" CornerRadius="18"
+                                                ToolTipService.ToolTip="Next Track" AutomationProperties.Name="Next Track">
+                                            <FontIcon Glyph="&#xE893;" FontSize="14" />
+                                        </Button>
                                     </StackPanel>
-                                </DropDownButton.Content>
-                                <DropDownButton.Flyout>
-                                    <MenuFlyout x:Name="FlyoutAudioDevices" Placement="Bottom">
-                                    </MenuFlyout>
-                                </DropDownButton.Flyout>
-                            </DropDownButton>
 
-                            <!-- 7. Controls Row: Dar Mod button on left, Prev/Play/Next centered, Fullscreen button on right -->
-                            <Grid x:Name="GridControlsRow" Width="300" Margin="0,12,0,0">
-                                <!-- Dar Mod (Compact) Button: Y-aligned with Prev, X at artwork left edge -->
-                                <Button x:Name="BtnDarMod" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                        Width="34" Height="34" Padding="0" CornerRadius="8"
-                                        ToolTipService.ToolTip="Compact Player (Dar Mod)"
-                                        AutomationProperties.Name="Compact Player">
-                                    <FontIcon Glyph="&#xEE49;" FontSize="13" />
-                                </Button>
-
-                                <!-- Playback Controls Centered -->
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
-                                    <Button x:Name="BtnPrev" Width="36" Height="36" Padding="0" CornerRadius="18"
-                                            ToolTipService.ToolTip="Previous Track" AutomationProperties.Name="Previous Track">
-                                        <FontIcon Glyph="&#xE892;" FontSize="14" />
+                                    <!-- Fullscreen Button: Y-aligned with Next, X at artwork right edge -->
+                                    <Button x:Name="BtnFullscreen" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Width="34" Height="34" Padding="0" CornerRadius="8"
+                                            ToolTipService.ToolTip="Fullscreen (F11)"
+                                            AutomationProperties.Name="Toggle Fullscreen">
+                                        <FontIcon x:Name="IconFullscreen" Glyph="&#xE740;" FontSize="13" />
                                     </Button>
-                                    <Button x:Name="BtnPlayPause" Width="46" Height="46" Padding="0" CornerRadius="23"
-                                            Style="{ThemeResource AccentButtonStyle}" ToolTipService.ToolTip="Play / Pause"
-                                            AutomationProperties.Name="Play or Pause">
-                                        <FontIcon x:Name="IconPlayPause" Glyph="&#xE768;" FontSize="17" />
+                                </Grid>
+
+                                <!-- 8. Volume Bar (Centered, width equals artwork) -->
+                                <Grid x:Name="GridVolumeRow" Width="300" Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button x:Name="BtnVolumeMute" Grid.Column="0" Width="28" Height="28" Padding="0"
+                                            CornerRadius="6" Background="Transparent" BorderThickness="0"
+                                            ToolTipService.ToolTip="Mute / Unmute" AutomationProperties.Name="Mute or Unmute">
+                                        <FontIcon x:Name="IconVolumeMute" Glyph="&#xE767;" FontSize="12" />
                                     </Button>
-                                    <Button x:Name="BtnNext" Width="36" Height="36" Padding="0" CornerRadius="18"
-                                            ToolTipService.ToolTip="Next Track" AutomationProperties.Name="Next Track">
-                                        <FontIcon Glyph="&#xE893;" FontSize="14" />
+                                    <Slider x:Name="SliderVolume" Grid.Column="1" Margin="6,0" Minimum="0" Maximum="100"
+                                            Value="78" StepFrequency="1" IsThumbToolTipEnabled="False"
+                                            AutomationProperties.Name="Volume Slider" />
+                                    <TextBlock x:Name="TxtVolumePercent" Grid.Column="2" Text="78%" FontSize="11" Width="32"
+                                               VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </Grid>
+
+                                <!-- 9. Below Volume Bar: Offset controls on left, Lyrics Toggle button on right edge -->
+                                <Grid x:Name="GridOffsetRow" Width="300" Margin="0,6,0,0">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="4">
+                                        <Button x:Name="BtnOffsetMinus" AutomationProperties.Name="Decrease Lyrics Offset by 250 ms" Content="−" Width="24" Height="24" Padding="0"
+                                                CornerRadius="4" FontSize="11" ToolTipService.ToolTip="−250ms Delay" />
+                                        <TextBlock x:Name="TxtOffsetMs" Text="0 ms" FontSize="10" VerticalAlignment="Center"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0" />
+                                        <Button x:Name="BtnOffsetPlus" AutomationProperties.Name="Increase Lyrics Offset by 250 ms" Content="+" Width="24" Height="24" Padding="0"
+                                                CornerRadius="4" FontSize="11" ToolTipService.ToolTip="+250ms Advance" />
+                                    </StackPanel>
+
+                                    <!-- Lyrics Toggle Button: Below volume bar, X at artwork right edge -->
+                                    <Button x:Name="BtnToggleLyrics" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Width="34" Height="34" Padding="0" CornerRadius="8"
+                                            ToolTipService.ToolTip="Toggle Lyrics Panel"
+                                            AutomationProperties.Name="Toggle Lyrics">
+                                        <FontIcon x:Name="IconToggleLyrics" Glyph="&#xEC4F;" FontSize="14" />
                                     </Button>
-                                </StackPanel>
-
-                                <!-- Fullscreen Button: Y-aligned with Next, X at artwork right edge -->
-                                <Button x:Name="BtnFullscreen" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                        Width="34" Height="34" Padding="0" CornerRadius="8"
-                                        ToolTipService.ToolTip="Fullscreen (F11)"
-                                        AutomationProperties.Name="Toggle Fullscreen">
-                                    <FontIcon x:Name="IconFullscreen" Glyph="&#xE740;" FontSize="13" />
-                                </Button>
-                            </Grid>
-
-                            <!-- 8. Volume Bar (Centered, width equals artwork) -->
-                            <Grid x:Name="GridVolumeRow" Width="300" Margin="0,12,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Button x:Name="BtnVolumeMute" Grid.Column="0" Width="28" Height="28" Padding="0"
-                                        CornerRadius="6" Background="Transparent" BorderThickness="0"
-                                        ToolTipService.ToolTip="Mute / Unmute" AutomationProperties.Name="Mute or Unmute">
-                                    <FontIcon x:Name="IconVolumeMute" Glyph="&#xE767;" FontSize="12" />
-                                </Button>
-                                <Slider x:Name="SliderVolume" Grid.Column="1" Margin="6,0" Minimum="0" Maximum="100"
-                                        Value="78" StepFrequency="1" IsThumbToolTipEnabled="False"
-                                        AutomationProperties.Name="Volume Slider" />
-                                <TextBlock x:Name="TxtVolumePercent" Grid.Column="2" Text="78%" FontSize="11" Width="32"
-                                           VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            </Grid>
-
-                            <!-- 9. Below Volume Bar: Offset controls on left, Lyrics Toggle button on right edge -->
-                            <Grid x:Name="GridOffsetRow" Width="300" Margin="0,8,0,0">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="4">
-                                    <Button x:Name="BtnOffsetMinus" AutomationProperties.Name="Decrease Lyrics Offset by 250 ms" Content="−" Width="24" Height="24" Padding="0"
-                                            CornerRadius="4" FontSize="11" ToolTipService.ToolTip="−250ms Delay" />
-                                    <TextBlock x:Name="TxtOffsetMs" Text="0 ms" FontSize="10" VerticalAlignment="Center"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0" />
-                                    <Button x:Name="BtnOffsetPlus" AutomationProperties.Name="Increase Lyrics Offset by 250 ms" Content="+" Width="24" Height="24" Padding="0"
-                                            CornerRadius="4" FontSize="11" ToolTipService.ToolTip="+250ms Advance" />
-                                </StackPanel>
-
-                                <!-- Lyrics Toggle Button: Below volume bar, X at artwork right edge -->
-                                <Button x:Name="BtnToggleLyrics" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                        Width="34" Height="34" Padding="0" CornerRadius="8"
-                                        ToolTipService.ToolTip="Toggle Lyrics Panel"
-                                        AutomationProperties.Name="Toggle Lyrics">
-                                    <FontIcon x:Name="IconToggleLyrics" Glyph="&#xEC4F;" FontSize="14" />
-                                </Button>
-                            </Grid>
-                        </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
                     </Grid>
 
                     <!-- Right Column (50%): Lyrics Viewport -->
@@ -286,7 +291,7 @@
                                         <Grid Grid.Row="1" Margin="0,1,0,0" HorizontalAlignment="Stretch">
                                             <TextBlock x:Name="TxtElapsedCompact" Text="0:00" FontSize="9.5"
                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Left"/>
-                                            <TextBlock x:Name="TxtRemainingCompact" Text="-0:00" FontSize="9.5"
+                                            <TextBlock x:Name="TxtRemainingCompact" Text="--:--" FontSize="9.5"
                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Right"/>
                                         </Grid>
                                     </Grid>

@@ -67,7 +67,22 @@ public sealed class PlaybackTimelineEngine : IPlaybackTimelineEngine
 
     public string CurrentTrackPositionFormatted => FormatElapsed(CurrentTrackPosition);
 
-    public string CurrentTrackRemainingFormatted => FormatRemaining(CurrentTrackRemaining);
+    public string CurrentTrackRemainingFormatted
+    {
+        get
+        {
+            lock (_lock)
+            {
+                if (_currentTrackDuration <= TimeSpan.Zero)
+                {
+                    return "--:--";
+                }
+                var pos = CalculateCurrentPositionLocked(DateTime.UtcNow);
+                var rem = _currentTrackDuration > pos ? _currentTrackDuration - pos : TimeSpan.Zero;
+                return FormatRemaining(rem);
+            }
+        }
+    }
 
     public string CurrentTrackDurationFormatted => FormatElapsed(CurrentTrackDuration);
 

@@ -1604,20 +1604,20 @@ public sealed partial class MainWindow : Window
         if (BtnFilterGlow != null) BtnFilterGlow.Style = (category == "Glow") ? accent : standard;
         if (BtnFilterArtwork != null) BtnFilterArtwork.Style = (category == "Artwork") ? accent : standard;
         if (BtnFilterAudio != null) BtnFilterAudio.Style = (category == "Audio") ? accent : standard;
-        if (BtnFilterSystem != null) BtnFilterSystem.Style = (category == "System" || category == "Updates" || category == "Shortcuts") ? accent : standard;
+        if (BtnFilterSystem != null) BtnFilterSystem.Style = (category == "System") ? accent : standard;
         if (BtnFilterAbout != null) BtnFilterAbout.Style = (category == "About") ? accent : standard;
 
         BtnFilterGeneral.Style = (category == "General" || category == "Appearance") ? accent : standard;
-        BtnFilterUpdates.Style = (category == "Updates" || category == "System") ? accent : standard;
-        BtnFilterShortcuts.Style = (category == "Shortcuts" || category == "System") ? accent : standard;
+        BtnFilterUpdates.Style = (category == "Updates") ? accent : standard;
+        BtnFilterShortcuts.Style = (category == "Shortcuts") ? accent : standard;
 
         // Visibility of settings categories
-        SectionGeneral.Visibility = (category == "All" || category == "Appearance" || category == "General") ? Visibility.Visible : Visibility.Collapsed;
-        if (SectionSystem != null) SectionSystem.Visibility = (category == "All" || category == "System") ? Visibility.Visible : Visibility.Collapsed;
+        SectionGeneral.Visibility = (category == "All" || category == "Appearance" || category == "General" || category == "System") ? Visibility.Visible : Visibility.Collapsed;
+        if (SectionSystem != null) SectionSystem.Visibility = (category == "All" || category == "Appearance" || category == "General" || category == "System") ? Visibility.Visible : Visibility.Collapsed;
         if (SectionSettingsArtwork != null) SectionSettingsArtwork.Visibility = (category == "All" || category == "Artwork") ? Visibility.Visible : Visibility.Collapsed;
         if (SectionSettingsAudio != null) SectionSettingsAudio.Visibility = (category == "All" || category == "Audio") ? Visibility.Visible : Visibility.Collapsed;
-        SectionUpdates.Visibility = (category == "All" || category == "System" || category == "Updates") ? Visibility.Visible : Visibility.Collapsed;
-        SectionShortcuts.Visibility = (category == "All" || category == "System" || category == "Shortcuts") ? Visibility.Visible : Visibility.Collapsed;
+        SectionUpdates.Visibility = (category == "All" || category == "Updates" || category == "System") ? Visibility.Visible : Visibility.Collapsed;
+        SectionShortcuts.Visibility = (category == "All" || category == "Shortcuts" || category == "System") ? Visibility.Visible : Visibility.Collapsed;
         if (SectionAbout != null) SectionAbout.Visibility = (category == "All" || category == "About") ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -1653,17 +1653,41 @@ public sealed partial class MainWindow : Window
         TxtAppThemeDesc.Text = loc["General_AppTheme_Desc"];
         TxtLanguageLabel.Text = loc["General_Language"];
         TxtLanguageDesc.Text = loc["General_Language_Desc"];
+        if (TxtMasterOpacityLabel != null) TxtMasterOpacityLabel.Text = loc["General_MasterOpacity"];
+        if (TxtMasterOpacityDesc != null) TxtMasterOpacityDesc.Text = loc["General_MasterOpacity_Desc"];
+        if (TxtAnimationsLabel != null) TxtAnimationsLabel.Text = loc["General_EnableAnimations"];
+        if (TxtAnimationsDesc != null) TxtAnimationsDesc.Text = loc["General_EnableAnimations_Desc"];
         TxtStartupLabel.Text = loc["General_Startup"];
         TxtStartupDesc.Text = loc["General_Startup_Desc"];
         TxtSystemTrayLabel.Text = loc["General_SystemTray"];
         TxtSystemTrayDesc.Text = loc["General_SystemTray_Desc"];
         if (TxtSectionSystem != null) TxtSectionSystem.Text = loc["Tab_System"];
+        if (TxtNotificationsLabel != null) TxtNotificationsLabel.Text = loc["General_Notifications"];
+        if (TxtNotificationsDesc != null) TxtNotificationsDesc.Text = loc["General_Notifications_Desc"];
+        if (TxtNotifyOnTrackChangeLabel != null) TxtNotifyOnTrackChangeLabel.Text = loc["General_NotifyOnTrackChange"];
+        if (TxtNotifyOnTrackChangeDesc != null) TxtNotifyOnTrackChangeDesc.Text = loc["General_NotifyOnTrackChange_Desc"];
+
+        // Artwork
+        if (TxtArtworkSectionHeader != null) TxtArtworkSectionHeader.Text = loc["Tab_Artwork"];
+        if (TxtArtworkDynamicBgLabel != null) TxtArtworkDynamicBgLabel.Text = loc["Artwork_DynamicBackground"];
+        if (TxtArtworkDynamicBgDesc != null) TxtArtworkDynamicBgDesc.Text = loc["Artwork_DynamicBackground_Desc"];
+        if (TxtArtworkSaturationLabel != null) TxtArtworkSaturationLabel.Text = loc["Artwork_Saturation"];
+        if (TxtArtworkSaturationDesc != null) TxtArtworkSaturationDesc.Text = loc["Artwork_Saturation_Desc"];
+        if (TxtArtworkRadiusLabel != null) TxtArtworkRadiusLabel.Text = loc["Artwork_Radius"];
+        if (TxtArtworkRadiusDesc != null) TxtArtworkRadiusDesc.Text = loc["Artwork_Radius_Desc"];
+        if (TxtArtworkCacheLabel != null) TxtArtworkCacheLabel.Text = loc["Artwork_Cache"];
+        if (TxtArtworkCacheStatus != null) TxtArtworkCacheStatus.Text = loc["Artwork_Cache_Desc"];
+
+        // Audio
+        if (TxtAudioSectionHeader != null) TxtAudioSectionHeader.Text = loc["Tab_Audio"];
 
         // Updates
         TxtSectionUpdates.Text = loc["Updates_Title"];
         TxtAutoUpdatesLabel.Text = loc["Updates_AutoChecks"];
         TxtAutoUpdatesDesc.Text = loc["Updates_AutoChecks_Desc"];
         TxtUpdateFrequencyLabel.Text = loc["Updates_Frequency"];
+        if (TxtUpdateFrequencyDesc != null) TxtUpdateFrequencyDesc.Text = loc["Updates_Frequency_Desc"];
+        if (TxtUpdateStatusSummary != null) TxtUpdateStatusSummary.Text = loc["Updates_Channel"];
         BtnCheckUpdates.Content = loc["Updates_CheckNow"];
         BtnDownloadAndInstallUpdate.Content = loc["Updates_DownloadAndInstall"];
 

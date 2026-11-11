@@ -238,7 +238,19 @@ public sealed class LocalizationService
             ["Settings_RestartWizard_Desc"] = "Run the initial first-run onboarding experience again.",
             ["General_Notifications"] = "Desktop Notifications",
             ["General_NotifyOnTrackChange"] = "Notify on Track Change",
-            ["General_EnableAnimations"] = "Fluid Motion & Animations"
+            ["General_EnableAnimations"] = "Fluid Motion & Animations",
+            ["General_EnableAnimations_Desc"] = "Enable smooth visual transitions, artwork crossfades, and interactive physics",
+            ["General_Notifications_Desc"] = "Show Windows notifications for updates and system events",
+            ["General_NotifyOnTrackChange_Desc"] = "Display a brief notification when the playing track changes",
+            ["Artwork_DynamicBackground"] = "Dynamic Ambient Background Layer",
+            ["Artwork_DynamicBackground_Desc"] = "Subtle, fluidly tinted blurred artwork atmosphere across the window",
+            ["Artwork_Saturation"] = "Ambient Background Saturation",
+            ["Artwork_Saturation_Desc"] = "Intensity of the background artwork color aura",
+            ["Artwork_Radius"] = "Artwork Corner Radius",
+            ["Artwork_Radius_Desc"] = "Apple Music inspired rounded corners on album artwork",
+            ["Artwork_Cache"] = "In-Memory Cache Capacity",
+            ["Artwork_Cache_Desc"] = "Bounded cache: 50 items max (Zero memory leakage)",
+            ["Updates_Frequency_Desc"] = "Choose how often Lyrow checks for updates"
         },
 
         ["fr"] = new(StringComparer.OrdinalIgnoreCase)
@@ -757,7 +769,19 @@ public sealed class LocalizationService
             ["Settings_RestartWizard_Desc"] = "İlk açılış karşılama ve yapılandırma sihirbazını tekrar çalıştırın.",
             ["General_Notifications"] = "Masaüstü Bildirimleri",
             ["General_NotifyOnTrackChange"] = "Parça Değişiminde Bildir",
-            ["General_EnableAnimations"] = "Akıcı Hareket ve Animasyonlar"
+            ["General_EnableAnimations"] = "Akıcı Hareket ve Animasyonlar",
+            ["General_EnableAnimations_Desc"] = "Yumuşak görsel geçişler, albüm kapağı solması ve akıcı fizik animasyonları",
+            ["General_Notifications_Desc"] = "Güncellemeler ve sistem olayları için Windows bildirimlerini göster",
+            ["General_NotifyOnTrackChange_Desc"] = "Çalan parça değiştiğinde kısa bir bildirim göster",
+            ["Artwork_DynamicBackground"] = "Dinamik Ortam Arka Plan Katmanı",
+            ["Artwork_DynamicBackground_Desc"] = "Pencere boyunca hafif, akıcı tonda bulanık albüm kapağı atmosferi",
+            ["Artwork_Saturation"] = "Ortam Arka Plan Doygunluğu",
+            ["Artwork_Saturation_Desc"] = "Arka plan albüm kapağı renk halesinin yoğunluğu",
+            ["Artwork_Radius"] = "Albüm Kapağı Köşe Yuvarlama",
+            ["Artwork_Radius_Desc"] = "Albüm kapağında yuvarlatılmış köşeler",
+            ["Artwork_Cache"] = "Bellek İçi Önbellek Kapasitesi",
+            ["Artwork_Cache_Desc"] = "Sınırlı önbellek: En fazla 50 öğe (Sıfır bellek sızıntısı)",
+            ["Updates_Frequency_Desc"] = "Lyrow'un güncellemeleri ne sıklıkla denetleyeceğini seçin"
         }
     };
 }

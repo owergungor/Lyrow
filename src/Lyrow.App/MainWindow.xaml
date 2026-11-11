@@ -993,7 +993,6 @@
                             <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,4">
                                 <Button x:Name="BtnFilterAllSettings" AutomationProperties.Name="Filter All Settings" Content="All" CornerRadius="8" Style="{ThemeResource AccentButtonStyle}" />
                                 <Button x:Name="BtnFilterAppearance" AutomationProperties.Name="Filter Appearance Settings" Content="Appearance" CornerRadius="8" />
-                                <Button x:Name="BtnFilterSystem" AutomationProperties.Name="Filter System Settings" Content="System" CornerRadius="8" />
                                 <Button x:Name="BtnFilterArtwork" AutomationProperties.Name="Filter Artwork Settings" Content="Artwork" CornerRadius="8" />
                                 <Button x:Name="BtnFilterAudio" AutomationProperties.Name="Filter Audio Settings" Content="Audio" CornerRadius="8" />
                                 <Button x:Name="BtnFilterUpdates" AutomationProperties.Name="Filter Updates Settings" Content="Updates" CornerRadius="8" />
@@ -1001,6 +1000,7 @@
                                 <Button x:Name="BtnFilterAbout" AutomationProperties.Name="Filter About Settings" Content="About" CornerRadius="8" />
 
                                 <!-- Backwards compatibility aliases (collapsed) -->
+                                <Button x:Name="BtnFilterSystem" AutomationProperties.Name="Filter System Settings" Content="System" CornerRadius="8" Visibility="Collapsed" />
                                 <Button x:Name="BtnFilterPlayback" AutomationProperties.Name="Filter Playback Settings" Content="Playback" Visibility="Collapsed" />
                                 <Button x:Name="BtnFilterLyrics" AutomationProperties.Name="Filter Lyrics Settings" Content="Lyrics" Visibility="Collapsed" />
                                 <Button x:Name="BtnFilterGlow" AutomationProperties.Name="Filter Ambient Glow Settings" Content="Ambient Glow" Visibility="Collapsed" />
@@ -1044,8 +1044,8 @@
 
                                 <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Spacing="2">
-                                        <TextBlock Text="Window Master Opacity" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Adjust transparency and backdrop blend level"
+                                        <TextBlock x:Name="TxtMasterOpacityLabel" Text="Window Master Opacity" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtMasterOpacityDesc" Text="Adjust transparency and backdrop blend level"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                     <TextBlock x:Name="TxtMasterOpacityPercent" Grid.Column="1" Text="95%" FontWeight="SemiBold"
@@ -1055,8 +1055,8 @@
 
                                 <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Spacing="2">
-                                        <TextBlock Text="Fluid Motion &amp; Animations" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Enable smooth visual transitions, artwork crossfades, and interactive physics"
+                                        <TextBlock x:Name="TxtAnimationsLabel" Text="Fluid Motion &amp; Animations" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtAnimationsDesc" Text="Enable smooth visual transitions, artwork crossfades, and interactive physics"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                     <ToggleSwitch x:Name="SwitchEnableAnimations" AutomationProperties.Name="Fluid Motion and Animations" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
@@ -1090,8 +1090,8 @@
 
                                 <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Spacing="2">
-                                        <TextBlock Text="Desktop Notifications" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Show Windows notifications for updates and system events"
+                                        <TextBlock x:Name="TxtNotificationsLabel" Text="Desktop Notifications" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtNotificationsDesc" Text="Show Windows notifications for updates and system events"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                     <ToggleSwitch x:Name="SwitchNotifications" AutomationProperties.Name="Desktop Notifications" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
@@ -1099,8 +1099,8 @@
 
                                 <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Spacing="2">
-                                        <TextBlock Text="Notify on Track Change" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Display a brief notification when the playing track changes"
+                                        <TextBlock x:Name="TxtNotifyOnTrackChangeLabel" Text="Notify on Track Change" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtNotifyOnTrackChangeDesc" Text="Display a brief notification when the playing track changes"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                     <ToggleSwitch x:Name="SwitchNotifyOnTrackChange" AutomationProperties.Name="Notify on Track Change" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
@@ -1111,12 +1111,12 @@
                         <Border x:Name="SectionSettingsArtwork" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <StackPanel Spacing="14">
-                                <TextBlock Text="Artwork &amp; Dynamic Background" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                <TextBlock x:Name="TxtArtworkSectionHeader" Text="Artwork &amp; Dynamic Background" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
 
                                 <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Spacing="2">
-                                        <TextBlock Text="Dynamic Ambient Background Layer" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Subtle, fluidly tinted blurred artwork atmosphere across the window"
+                                        <TextBlock x:Name="TxtArtworkDynamicBgLabel" Text="Dynamic Ambient Background Layer" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtArtworkDynamicBgDesc" Text="Subtle, fluidly tinted blurred artwork atmosphere across the window"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                     <ToggleSwitch x:Name="SwitchArtworkDynamicBackground" AutomationProperties.Name="Dynamic Ambient Background Layer" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" />
@@ -1124,8 +1124,8 @@
 
                                 <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Spacing="2">
-                                        <TextBlock Text="Ambient Background Saturation" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Intensity of the background artwork color aura"
+                                        <TextBlock x:Name="TxtArtworkSaturationLabel" Text="Ambient Background Saturation" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtArtworkSaturationDesc" Text="Intensity of the background artwork color aura"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                     <TextBlock x:Name="TxtArtworkSaturationPercent" Grid.Column="1" Text="100%" FontWeight="SemiBold"
@@ -1135,8 +1135,8 @@
 
                                 <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Spacing="2">
-                                        <TextBlock Text="Artwork Corner Radius" FontWeight="Medium" FontSize="14" />
-                                        <TextBlock Text="Apple Music inspired rounded corners on album artwork"
+                                        <TextBlock x:Name="TxtArtworkRadiusLabel" Text="Artwork Corner Radius" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtArtworkRadiusDesc" Text="Apple Music inspired rounded corners on album artwork"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                     <TextBlock x:Name="TxtArtworkRadiusValue" Grid.Column="1" Text="12 px" FontWeight="SemiBold"
@@ -1146,7 +1146,7 @@
 
                                 <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                                     <StackPanel Spacing="2">
-                                        <TextBlock Text="In-Memory Cache Capacity" FontWeight="Medium" FontSize="14" />
+                                        <TextBlock x:Name="TxtArtworkCacheLabel" Text="In-Memory Cache Capacity" FontWeight="Medium" FontSize="14" />
                                         <TextBlock x:Name="TxtArtworkCacheStatus" Text="Bounded cache: 50 items max (Zero memory leakage)"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
@@ -1159,7 +1159,7 @@
                         <Border x:Name="SectionSettingsAudio" Padding="16" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <StackPanel Spacing="14">
-                                <TextBlock Text="Audio Engine &amp; Frequency Analysis" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                <TextBlock x:Name="TxtAudioSectionHeader" Text="Audio Engine &amp; Frequency Analysis" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
 
                                 <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                                     <StackPanel Spacing="2">

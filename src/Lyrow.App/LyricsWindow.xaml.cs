@@ -132,8 +132,13 @@ public sealed partial class LyricsWindow : Window
             overlapped.IsMinimizable = true;
             overlapped.IsMaximizable = true;
             overlapped.IsResizable = true;
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            uint dpi = GetDpiForWindow(hwnd);
+            double scale = dpi > 0 ? (dpi / 96.0) : 1.0;
+            overlapped.PreferredMinimumWidth = (int)Math.Round(640 * scale);
+            overlapped.PreferredMinimumHeight = (int)Math.Round(520 * scale);
         }
-        ResizeForCurrentDpi(960, 640);
+        ResizeForCurrentDpi(960, 720);
 
         TxtOffsetMs.Text = $"{_settingsManager.Current.Lyrics.SyncOffsetMs:+0;-0;0} ms";
         BtnOffsetMinus.Click += (_, _) => AdjustOffset(-250);
@@ -378,11 +383,19 @@ public sealed partial class LyricsWindow : Window
             LyricsTitleBar.Height = double.NaN;
             LyricsTitleBar.MinHeight = 32;
             LyricsTitleBar.Title = string.Empty;
+            if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter overlapped)
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                uint dpi = GetDpiForWindow(hwnd);
+                double scale = dpi > 0 ? (dpi / 96.0) : 1.0;
+                overlapped.PreferredMinimumWidth = (int)Math.Round(640 * scale);
+                overlapped.PreferredMinimumHeight = (int)Math.Round(520 * scale);
+            }
             if (resizeWindow)
             {
-                ResizeForCurrentDpi(960, 640);
+                ResizeForCurrentDpi(960, 720);
             }
-            ApplyResponsiveScaling(RootLayout.ActualWidth > 0 ? RootLayout.ActualWidth : 960, RootLayout.ActualHeight > 0 ? RootLayout.ActualHeight : 640);
+            ApplyResponsiveScaling(RootLayout.ActualWidth > 0 ? RootLayout.ActualWidth : 960, RootLayout.ActualHeight > 0 ? RootLayout.ActualHeight : 720);
             UpdateViewportPadding();
             _snapToCenterOnNextLayout = true;
         }
@@ -552,8 +565,8 @@ public sealed partial class LyricsWindow : Window
             ProgressTimelineCompact.Value = pct;
             TxtElapsed.Text = $"{targetTime:m\\:ss}";
             TxtElapsedCompact.Text = $"{targetTime:m\\:ss}";
-            TxtRemaining.Text = dur > targetTime ? $"-{(dur - targetTime):m\\:ss}" : "-0:00";
-            TxtRemainingCompact.Text = dur > targetTime ? $"-{(dur - targetTime):m\\:ss}" : "-0:00";
+            TxtRemaining.Text = dur > targetTime ? $"-{(dur - targetTime):m\\:ss}" : (dur > TimeSpan.Zero ? "-0:00" : "--:--");
+            TxtRemainingCompact.Text = dur > targetTime ? $"-{(dur - targetTime):m\\:ss}" : (dur > TimeSpan.Zero ? "-0:00" : "--:--");
             _lyricsModule.Synchronizer.EvaluatePosition(targetTime);
         }
 
@@ -664,8 +677,8 @@ public sealed partial class LyricsWindow : Window
         ProgressTimelineCompact.Value = 0;
         TxtElapsed.Text = "0:00";
         TxtElapsedCompact.Text = "0:00";
-        TxtRemaining.Text = newTrack.Duration > TimeSpan.Zero ? Lyrow.Core.Timeline.PlaybackTimelineEngine.FormatRemaining(newTrack.Duration) : "-0:00";
-        TxtRemainingCompact.Text = newTrack.Duration > TimeSpan.Zero ? Lyrow.Core.Timeline.PlaybackTimelineEngine.FormatRemaining(newTrack.Duration) : "-0:00";
+        TxtRemaining.Text = newTrack.Duration > TimeSpan.Zero ? Lyrow.Core.Timeline.PlaybackTimelineEngine.FormatRemaining(newTrack.Duration) : "--:--";
+        TxtRemainingCompact.Text = newTrack.Duration > TimeSpan.Zero ? Lyrow.Core.Timeline.PlaybackTimelineEngine.FormatRemaining(newTrack.Duration) : "--:--";
 
         // 4. Invalidate artwork only when native high-res GSMTC thumbnail bytes are provided; preserve online/transcoded cache otherwise
         if (!newTrack.IsEmpty &&
@@ -735,9 +748,9 @@ public sealed partial class LyricsWindow : Window
             ProgressTimeline.Value = 0;
             ProgressTimelineCompact.Value = 0;
             TxtElapsed.Text = "0:00";
-            TxtRemaining.Text = "-0:00";
+            TxtRemaining.Text = "--:--";
             TxtElapsedCompact.Text = "0:00";
-            TxtRemainingCompact.Text = "-0:00";
+            TxtRemainingCompact.Text = "--:--";
             TxtEmptyState.Text = "Waiting for playback...";
             TxtEmptyStateSub.Text = "Play a song in Spotify, Apple Music, or your browser";
             PanelEmptyState.Visibility = Visibility.Visible;
@@ -1054,7 +1067,7 @@ public sealed partial class LyricsWindow : Window
                     LineHeight = layoutLineHeight,
                     Foreground = ActiveLyricBrush,
                     Clip = overlayClip,
-                    Visibility = Visibility.Visible
+                    Visibility = Visibility.Collapsed
                 };
 
                 var subGrid = new Grid
@@ -1163,11 +1176,19 @@ public sealed partial class LyricsWindow : Window
                     for (int s = 0; s < overlayList.Count; s++)
                     {
                         var overlay = overlayList[s];
-                        overlay.Visibility = Visibility.Visible;
                         double sp = (s < subProgresses.Count) ? subProgresses[s] : 0.0;
-                        double clipW = sp * (overlay.ActualWidth > 0 ? overlay.ActualWidth : 2000.0);
-                        double clipH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
-                        clipList[s].Rect = new Windows.Foundation.Rect(0, 0, clipW, clipH);
+                        double actualW = overlay.ActualWidth;
+                        double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
+                        if (actualW > 0 && sp > 0.001)
+                        {
+                            overlay.Visibility = Visibility.Visible;
+                            clipList[s].Rect = new Windows.Foundation.Rect(0, 0, sp * actualW, actualH);
+                        }
+                        else
+                        {
+                            overlay.Visibility = Visibility.Collapsed;
+                            clipList[s].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
+                        }
                     }
                 }
                 else
@@ -1294,6 +1315,7 @@ public sealed partial class LyricsWindow : Window
                 {
                     for (int s = 0; s < overlayList.Count; s++)
                     {
+                        overlayList[s].Visibility = Visibility.Collapsed;
                         if (clipList[s].Rect.Width > 0 || clipList[s].Rect.Height > 0)
                         {
                             clipList[s].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
@@ -1308,7 +1330,6 @@ public sealed partial class LyricsWindow : Window
                 if (overlayList.Count == 1 && line.Words != null && line.Words.Count > 0)
                 {
                     var overlay = overlayList[0];
-                    if (overlay.Visibility != Visibility.Visible) overlay.Visibility = Visibility.Visible;
                     double actualW = overlay.ActualWidth;
                     double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
                     if (actualW > 0)
@@ -1319,7 +1340,21 @@ public sealed partial class LyricsWindow : Window
                             nextTimestamp,
                             line.Words,
                             line.Text);
-                        clipList[0].Rect = new Windows.Foundation.Rect(0, 0, progress * actualW, actualH);
+                        if (progress > 0.001)
+                        {
+                            overlay.Visibility = Visibility.Visible;
+                            clipList[0].Rect = new Windows.Foundation.Rect(0, 0, progress * actualW, actualH);
+                        }
+                        else
+                        {
+                            overlay.Visibility = Visibility.Collapsed;
+                            clipList[0].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
+                        }
+                    }
+                    else
+                    {
+                        overlay.Visibility = Visibility.Collapsed;
+                        clipList[0].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
                     }
                     continue;
                 }
@@ -1334,17 +1369,20 @@ public sealed partial class LyricsWindow : Window
                 for (int s = 0; s < overlayList.Count; s++)
                 {
                     var overlay = overlayList[s];
-                    if (overlay.Visibility != Visibility.Visible)
-                    {
-                        overlay.Visibility = Visibility.Visible;
-                    }
-
                     double actualW = overlay.ActualWidth;
                     double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
-                    if (actualW <= 0) continue;
-
                     double sp = (s < subProgresses.Count) ? subProgresses[s] : 0.0;
-                    clipList[s].Rect = new Windows.Foundation.Rect(0, 0, sp * actualW, actualH);
+
+                    if (actualW > 0 && sp > 0.001)
+                    {
+                        overlay.Visibility = Visibility.Visible;
+                        clipList[s].Rect = new Windows.Foundation.Rect(0, 0, sp * actualW, actualH);
+                    }
+                    else
+                    {
+                        overlay.Visibility = Visibility.Collapsed;
+                        clipList[s].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
+                    }
                 }
             }
         }
