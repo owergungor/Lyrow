@@ -6,30 +6,32 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011%20Native-08a1f7?logo=windows)](https://microsoft.com/windows)
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![UI](https://img.shields.io/badge/UI-WinUI%203%20%2F%20Windows%20App%20SDK%201.8-03c1f4?logo=windows)](https://learn.microsoft.com/windows/apps/winui/winui3/)
-[![Release](https://img.shields.io/badge/Release-v3.7-success)](https://github.com/owergungor/Lyrow/releases/tag/v3.7)
-[![Tests](https://img.shields.io/badge/Tests-635%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
+[![Release](https://img.shields.io/badge/Release-v3.8-success)](https://github.com/owergungor/Lyrow/releases/tag/v3.8)
+[![Tests](https://img.shields.io/badge/Tests-676%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
 [![License](https://img.shields.io/badge/License-MIT-750014.svg)](LICENSE)
 
-**Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; ekranın dört kenarına yayılan gerçek zamanlı ortam aydınlatması (Ambient Edge Glow), Apple Music benzeri 60 FPS dikey merkezlenen senkronize şarkı sözleri ve kompakt Dar Mod (Mini Player) sunar.
+**Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; ekranın dört kenarına yayılan gerçek zamanlı ortam aydınlatması (Ambient Edge Glow), Apple Music benzeri 60 FPS dikey merkezlenen senkronize şarkı sözleri, kelime seviyesinde karaoke vurgulama ve kompakt Dar Mod (Mini Player) sunar.
 
 ---
 
 ## 📥 İndirme ve Kurulum
 
-### Güncel Sürüm: Lyrow v3.7 (Önerilen)
+### Güncel Sürüm: Lyrow v3.8 (Önerilen)
 
 | Kaynak | Dosya | Boyut | SHA-256 Doğrulama Özeti |
 |---|---|---|---|
-| **GitHub Release** | [Lyrow v3.7 Sürüm Sayfası](https://github.com/owergungor/Lyrow/releases/tag/v3.7) | — | — |
-| **Taşınabilir Paket** | [Lyrow-v3.7-win-x64.zip](https://github.com/owergungor/Lyrow/releases/download/v3.7/Lyrow-v3.7-win-x64.zip) | ~93.3 MB | `601664444F7D983B05E3F675D220E8F25EDB7701520D4E923EFCD8F4E0A85B73` |
+| **GitHub Release** | [Lyrow v3.8 Sürüm Sayfası](https://github.com/owergungor/Lyrow/releases/tag/v3.8) | — | — |
+| **Kurulum Sihirbazı (Installer)** | [Lyrow-3.8-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/download/v3.8/Lyrow-3.8-Setup-x64.exe) | ~64.6 MB | `7C580CB087FD390652C3198C6EB76AA01FE960580478DF5B6EFAD2D4C3FD6588` |
+| **Taşınabilir Paket (Portable ZIP)** | [Lyrow-v3.8-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/download/v3.8/Lyrow-v3.8-win-x64-portable.zip) | ~93.2 MB | `21D75F4D9637C8597422152D2D3BAA5A43C5EF82B7445149916406E856F6CC67` |
 
 > [!NOTE]
-> Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime kurulumu gerektirmez. Arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını çalıştırmanız yeterlidir.
+> Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz.
 
-### Alternatif ve Önceki Kararlı Sürümler (Lyrow v3.5)
-Klasik kurulum sihirbazını veya önceki paketleri tercih eden kullanıcılar için:
-- **Kurulum Sihirbazı (Installer):** [Lyrow-3.5-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/tag/v3.5)
-- **Taşınabilir Arşiv (Portable):** [Lyrow-v3.5-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/tag/v3.5)
+### Alternatif ve Önceki Kararlı Sürümler (Lyrow v3.7 & v3.5)
+Klasik sürümleri veya önceki paketleri tercih eden kullanıcılar için:
+- **v3.7 Taşınabilir Paket:** [Lyrow-v3.7-win-x64.zip](https://github.com/owergungor/Lyrow/releases/tag/v3.7)
+- **v3.5 Kurulum Sihirbazı:** [Lyrow-3.5-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/tag/v3.5)
+- **v3.5 Taşınabilir Arşiv:** [Lyrow-v3.5-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/tag/v3.5)
 
 ---
 

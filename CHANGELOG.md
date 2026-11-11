@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.8.0] - 2026-11-11
+
+### Added
+- **Karaoke Kelime Vurgulama Motoru:** Kelime zaman damgası (word-level timing) içeren şarkı sözlerinde aktif kelimelerin playback akışına paralel olarak soldan sağa beyaz renkte pürüzsüz biçimde vurgulanması sağlandı.
+- **Satır Sarmalı (Wrapped) Karaoke Desteği:** İki veya daha fazla alt satıra bölünen uzun sözlerde, 1. alt satır tamamlanmadan ve 2. satırın zaman damgası gelmeden 2. satırdaki kelimelerin erken boyanması kesinlikle engellendi.
+- **Stage 41 Regresyon ve Doğrulama Test Paketi:** Karaoke kelime vurgulama zamanlaması, alt satır izolasyonu, düz senkronize satır uyumu ve düzen koruma testleri eklendi.
+
+### Changed
+- **Normal Mod Pencere Düzeni ve Boyutlandırma:** Normal modda "Hide Lyrics" butonu, albüm kapağı, cihaz seçimi ve tüm alt oynatma kontrolleri ilk açılışta ve farklı DPI ölçeklerinde pencere içinde eksiksiz görünecek şekilde optimize edildi.
+- **Kompakt Mod Geçiş Simgesi:** Dar moddan normal moda geçiş butonu simgesi standart köşegen genişletme simgesi (`\uE740`) ile güncellendi.
+- **Ayarlar Sekme Yapısı:** Kullanıcı arayüzünde işlevsiz kalan Sistem sekmesi tamamen kaldırılarak Güncellemeler ve Kısayollar sekmeleri öne çıkarıldı.
+
+### Fixed
+- **Karaoke Vurgulama Regresyonu:** WinUI 3'te `Visibility.Collapsed` olarak başlatılan TextBlock elemanlarının ölçümünün sıfırlanması sonucu kelimelerin boyanmaması sorunu giderildi; layout ölçümü korunurken `RectangleGeometry` kırpmasıyla akıcı 60 FPS Apple Music stili boyama sağlandı.
+- **Şarkı Geçişinde Kalan Süre Eşitlemesi:** Parça geçişlerinde yeni şarkının toplam süresi GSMTC'den okunana kadar kalan sürenin eski parçaya ait kalması engellendi; süreler anında sıfırlanıp yeni parça süresiyle eşzamanlanır.
+- **Ayarlar Yerelleştirmesi:** Türkçe ve İngilizce dil dosyalarındaki eksik çeviri anahtarları tamamlandı ve tutarlı hale getirildi.
+
+### Validation
+- **Birim ve Entegrasyon Testleri:** 676 / 676 PASS (%100 başarı).
+- **GitHub Actions CI:** Run `43065963040` — SUCCESS.
+- **Dağıtım Paketleri:** Portable ZIP (`Lyrow-v3.8-win-x64-portable.zip`) ve Inno Setup Installer (`Lyrow-3.8-Setup-x64.exe`) başarıyla üretildi.
+
+---
+
 ## [3.7.0] - 2026-11-10
 
 ### Added

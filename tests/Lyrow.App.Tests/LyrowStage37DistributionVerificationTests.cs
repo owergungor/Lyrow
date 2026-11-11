@@ -57,24 +57,28 @@ public sealed class LyrowStage37DistributionVerificationTests
         string distDir = Path.Combine(repoRoot, "dist");
         if (!Directory.Exists(distDir)) return;
 
-        var portableZips = Directory.GetFiles(distDir, "Lyrow-v3.7-win-x64-portable.zip");
+        var portableZips = Directory.GetFiles(distDir, "Lyrow-v*-win-x64-portable.zip");
         if (portableZips.Length == 0) return;
 
-        string zipPath = portableZips[0];
+        string zipPath = portableZips.OrderByDescending(f => f).First();
         using var archive = ZipFile.OpenRead(zipPath);
 
         archive.Entries.Count.Should().BeGreaterThan(500);
 
-        // All entries must reside inside Lyrow-v3.7/ top level folder
+        string zipBaseName = Path.GetFileNameWithoutExtension(zipPath);
+        // Extracts "Lyrow-v3.X" from "Lyrow-v3.X-win-x64-portable"
+        string expectedTopFolder = zipBaseName.Substring(0, zipBaseName.IndexOf("-win-x64", StringComparison.OrdinalIgnoreCase));
+
+        // All entries must reside inside the top level enclosed folder
         foreach (var entry in archive.Entries)
         {
             string norm = entry.FullName.Replace('\\', '/');
-            norm.StartsWith("Lyrow-v3.7/").Should().BeTrue($"Entry '{entry.FullName}' must be inside 'Lyrow-v3.7/'");
+            norm.StartsWith($"{expectedTopFolder}/").Should().BeTrue($"Entry '{entry.FullName}' must be inside '{expectedTopFolder}/'");
         }
 
         // Must contain Lyrow.App.exe and portable marker
-        archive.Entries.Any(e => e.FullName.Replace('\\', '/') == "Lyrow-v3.7/Lyrow.App.exe").Should().BeTrue();
-        archive.Entries.Any(e => e.FullName.Replace('\\', '/') == "Lyrow-v3.7/portable").Should().BeTrue();
+        archive.Entries.Any(e => e.FullName.Replace('\\', '/') == $"{expectedTopFolder}/Lyrow.App.exe").Should().BeTrue();
+        archive.Entries.Any(e => e.FullName.Replace('\\', '/') == $"{expectedTopFolder}/portable").Should().BeTrue();
 
         // Must NOT contain PDBs, logs/app.log, or settings.json
         archive.Entries.Any(e => e.FullName.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase)).Should().BeFalse();
