@@ -21,9 +21,10 @@ public static class LocalDiagnosticLogger
     static LocalDiagnosticLogger()
     {
         string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        bool isPortable = File.Exists(Path.Combine(baseDir, "portable")) ||
-                          File.Exists(Path.Combine(baseDir, ".portable")) ||
-                          File.Exists(Path.Combine(baseDir, "settings.json"));
+        bool isPortable = (File.Exists(Path.Combine(baseDir, "portable")) ||
+                           File.Exists(Path.Combine(baseDir, ".portable")) ||
+                           File.Exists(Path.Combine(baseDir, "settings.json"))) &&
+                          SettingsManager.IsDirectoryWritable(baseDir);
 
         if (isPortable)
         {

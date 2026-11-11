@@ -17,7 +17,7 @@ public sealed class SettingsManager : ISettingsManager
         PropertyNameCaseInsensitive = true
     };
 
-    private readonly string _filePath;
+    private string _filePath;
     private readonly ILogger<SettingsManager> _logger;
     private readonly SemaphoreSlim _lock = new(1, 1);
     private LyrowSettings _current;
@@ -26,6 +26,32 @@ public sealed class SettingsManager : ISettingsManager
     public LyrowSettings Current => _current;
 
     public event EventHandler<LyrowSettings>? SettingsChanged;
+
+    /// <summary>
+    /// Checks whether the specified directory is currently writable by the process.
+    /// </summary>
+    public static bool IsDirectoryWritable(string directory)
+    {
+        try
+        {
+            if (!Directory.Exists(directory))
+            {
+                return false;
+            }
+
+            string testFile = Path.Combine(directory, $".lyrow_perm_{Guid.NewGuid():N}.tmp");
+            using (var stream = new FileStream(testFile, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                stream.WriteByte(0);
+            }
+            File.Delete(testFile);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     public static string ResolveDefaultSettingsPath()
     {
@@ -36,7 +62,10 @@ public sealed class SettingsManager : ISettingsManager
 
         if (File.Exists(portableMarker) || File.Exists(dotPortableMarker) || File.Exists(localSettings))
         {
-            return localSettings;
+            if (IsDirectoryWritable(baseDir))
+            {
+                return localSettings;
+            }
         }
 
         return Path.Combine(
@@ -48,9 +77,10 @@ public sealed class SettingsManager : ISettingsManager
     public static bool IsPortableMode()
     {
         string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        return File.Exists(Path.Combine(baseDir, "portable")) ||
-               File.Exists(Path.Combine(baseDir, ".portable")) ||
-               File.Exists(Path.Combine(baseDir, "settings.json"));
+        bool hasMarker = File.Exists(Path.Combine(baseDir, "portable")) ||
+                         File.Exists(Path.Combine(baseDir, ".portable")) ||
+                         File.Exists(Path.Combine(baseDir, "settings.json"));
+        return hasMarker && IsDirectoryWritable(baseDir);
     }
 
     public SettingsManager(string? customFilePath = null, ILogger<SettingsManager>? logger = null)
@@ -100,54 +130,80 @@ public sealed class SettingsManager : ISettingsManager
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var directory = Path.GetDirectoryName(_filePath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            try
             {
-                Directory.CreateDirectory(directory);
+                await SaveInternalAsync(settings, cancellationToken).ConfigureAwait(false);
             }
-
-            // Atomic write: write to temp file, then rename/replace
-            var tempPath = _filePath + ".tmp";
-            await using (var stream = File.Create(tempPath))
+            catch (UnauthorizedAccessException ex)
             {
-                await JsonSerializer.SerializeAsync(stream, settings, JsonOptions, cancellationToken).ConfigureAwait(false);
-                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-            }
+                string appDataPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "Lyrow",
+                    "settings.json");
 
-            bool moved = false;
-            for (int attempt = 0; attempt < 3; attempt++)
-            {
-                try
+                if (!string.Equals(_filePath, appDataPath, StringComparison.OrdinalIgnoreCase))
                 {
-                    File.Move(tempPath, _filePath, overwrite: true);
-                    moved = true;
-                    break;
+                    _logger.LogWarning(ex, "Write permission denied for {OldPath}. Safely falling back to user AppData {NewPath}.", _filePath, appDataPath);
+                    _filePath = appDataPath;
+                    await SaveInternalAsync(settings, cancellationToken).ConfigureAwait(false);
                 }
-                catch (IOException) when (attempt < 2)
+                else
                 {
-                    await Task.Delay(20, cancellationToken).ConfigureAwait(false);
-                }
-                catch (UnauthorizedAccessException) when (attempt < 2)
-                {
-                    await Task.Delay(20, cancellationToken).ConfigureAwait(false);
+                    throw;
                 }
             }
-
-            if (!moved)
-            {
-                File.Copy(tempPath, _filePath, overwrite: true);
-                try { File.Delete(tempPath); } catch { }
-            }
-
-            _current = settings;
-            _logger.LogInformation("Settings successfully persisted to {Path}.", _filePath);
-
-            SettingsChanged?.Invoke(this, _current);
         }
         finally
         {
             _lock.Release();
         }
+    }
+
+    private async Task SaveInternalAsync(LyrowSettings settings, CancellationToken cancellationToken)
+    {
+        var directory = Path.GetDirectoryName(_filePath);
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        // Atomic write: write to temp file, then rename/replace
+        var tempPath = _filePath + ".tmp";
+        await using (var stream = File.Create(tempPath))
+        {
+            await JsonSerializer.SerializeAsync(stream, settings, JsonOptions, cancellationToken).ConfigureAwait(false);
+            await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        bool moved = false;
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            try
+            {
+                File.Move(tempPath, _filePath, overwrite: true);
+                moved = true;
+                break;
+            }
+            catch (IOException) when (attempt < 2)
+            {
+                await Task.Delay(20, cancellationToken).ConfigureAwait(false);
+            }
+            catch (UnauthorizedAccessException) when (attempt < 2)
+            {
+                await Task.Delay(20, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        if (!moved)
+        {
+            File.Copy(tempPath, _filePath, overwrite: true);
+            try { File.Delete(tempPath); } catch { }
+        }
+
+        _current = settings;
+        _logger.LogInformation("Settings successfully persisted to {Path}.", _filePath);
+
+        SettingsChanged?.Invoke(this, _current);
     }
 
     public async Task UpdateAsync(Action<LyrowSettings> configure, CancellationToken cancellationToken = default)

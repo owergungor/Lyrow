@@ -2,7 +2,9 @@
 ; Inno Setup 6.x
 
 #define MyAppName "Lyrow"
+#ifndef MyAppVersion
 #define MyAppVersion "3.5"
+#endif
 #define MyAppPublisher "Lyrow Team"
 #define MyAppURL "https://github.com/owergungor/Lyrow"
 #define MyAppExeName "Lyrow.App.exe"
@@ -21,7 +23,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..\dist
-OutputBaseFilename=Lyrow-{#MyAppVersion}-Setup-x64
+OutputBaseFilename=Lyrow-Setup-x64
 SetupIconFile=..\src\Lyrow.App\Assets\lyrow.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/max
@@ -54,12 +56,13 @@ german.KeepSettingsPrompt=Möchten Sie Ihre personalisierten Lyrow-Einstellungen
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\publish\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\publish\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*.pdb,logs,logs\*,settings.json,portable,.portable,*.tmp"
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "Lyrow"; Flags: uninsdeletevalue
 
 [Icons]
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
