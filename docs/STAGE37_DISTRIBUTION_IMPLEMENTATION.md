@@ -82,10 +82,13 @@ Tüm paketler yerel derleme çıktısı olarak `dist/` klasöründe üretilmişt
 
 ---
 
-## 5. Sürüm ve Etiket Bütünlüğü
+## 5. Sürüm, Etiket ve CI Bütünlüğü
 
+- **Commit SHA:** `3c404db` (`build(dist): implement clean distribution packaging and user-level installer`)
+- **Push Sonucu:** `5d89883..3c404db main -> main` (Başarılı)
+- **GitHub Actions CI:** [Run 43035565121](https://github.com/owergungor/Lyrow/actions/runs/43035565121) (`✓ Build & Test (Windows) in 2m44s` — SUCCESS)
 - **v3.5 Tag/Release Commit:** `2c60b2f2282f24b4b9ada9a91dceee97dc49b940` (Değiştirilmedi / Korundu)
 - **v3.6 Tag/Release Commit:** `b089c3edc990818507a56b3ca286d31c153ce247` (Değiştirilmedi / Korundu)
 - **v3.7 Tag/Release Commit:** `da855057f38cb309ac7e0a98dc9a51008915b46d` (Değiştirilmedi / Korundu)
-- **GitHub Release Asset Koruması:** Mevcut `Lyrow-v3.7-win-x64.zip` dosyasına dokunulmamış, yeni paketler yalnızca yerel `dist/` klasöründe üretilmiştir.
+- **GitHub Release Asset Koruması:** Mevcut `Lyrow-v3.7-win-x64.zip` dosyasına dokunulmamış, yeni paketler yalnızca yerel `dist/` klasöründe üretilmiş ve GitHub Release'e yüklenmemiştir.
 - **Dijital İmza Notu:** Kod imzalama sertifikası bulunmadığından paketler imzasız olarak üretilmiş, gerçeğe aykırı imza beyanında bulunulmamıştır.
