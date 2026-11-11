@@ -1150,6 +1150,8 @@ public sealed partial class LyricsWindow : Window
                 };
 
                 // Overlay TextBlock: Active highlight clipped by RectangleGeometry sequentially per sub-line
+                // Must remain Visible so WinUI measures ActualWidth/ActualHeight immediately during layout.
+                // Clipping geometry Rect(0,0,0,0) ensures completely transparent rendering until progress occurs.
                 var overlayClip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, 0, 0) };
                 var overlayBlock = new TextBlock
                 {
@@ -1162,7 +1164,7 @@ public sealed partial class LyricsWindow : Window
                     LineHeight = layoutLineHeight,
                     Foreground = ActiveLyricBrush,
                     Clip = overlayClip,
-                    Visibility = Visibility.Collapsed
+                    Visibility = Visibility.Visible
                 };
 
                 var subGrid = new Grid
@@ -1271,17 +1273,22 @@ public sealed partial class LyricsWindow : Window
                     for (int s = 0; s < overlayList.Count; s++)
                     {
                         var overlay = overlayList[s];
+                        var baseB = (s < baseList.Count) ? baseList[s] : null;
+                        double actualW = overlay.ActualWidth > 0 ? overlay.ActualWidth : (baseB != null && baseB.ActualWidth > 0 ? baseB.ActualWidth : 0.0);
+                        double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : (baseB != null && baseB.ActualHeight > 0 ? baseB.ActualHeight : 200.0);
                         double sp = (s < subProgresses.Count) ? subProgresses[s] : 0.0;
-                        double actualW = overlay.ActualWidth;
-                        double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
-                        if (actualW > 0 && sp > 0.001)
+
+                        if (overlay.Visibility != Visibility.Visible)
                         {
                             overlay.Visibility = Visibility.Visible;
+                        }
+
+                        if (actualW > 0 && sp > 0.001)
+                        {
                             clipList[s].Rect = new Windows.Foundation.Rect(0, 0, sp * actualW, actualH);
                         }
                         else
                         {
-                            overlay.Visibility = Visibility.Collapsed;
                             clipList[s].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
                         }
                     }
@@ -1410,7 +1417,11 @@ public sealed partial class LyricsWindow : Window
                 {
                     for (int s = 0; s < overlayList.Count; s++)
                     {
-                        overlayList[s].Visibility = Visibility.Collapsed;
+                        var overlay = overlayList[s];
+                        if (overlay.Visibility != Visibility.Visible)
+                        {
+                            overlay.Visibility = Visibility.Visible;
+                        }
                         if (clipList[s].Rect.Width > 0 || clipList[s].Rect.Height > 0)
                         {
                             clipList[s].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
@@ -1429,21 +1440,27 @@ public sealed partial class LyricsWindow : Window
                     nextTimestamp,
                     trackDur);
 
+                var baseList = i < _lineSubBaseBlocks.Count ? _lineSubBaseBlocks[i] : null;
+
                 for (int s = 0; s < overlayList.Count; s++)
                 {
                     var overlay = overlayList[s];
-                    double actualW = overlay.ActualWidth;
-                    double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : 200.0;
+                    var baseB = (baseList != null && s < baseList.Count) ? baseList[s] : null;
+                    double actualW = overlay.ActualWidth > 0 ? overlay.ActualWidth : (baseB != null && baseB.ActualWidth > 0 ? baseB.ActualWidth : 0.0);
+                    double actualH = overlay.ActualHeight > 0 ? overlay.ActualHeight : (baseB != null && baseB.ActualHeight > 0 ? baseB.ActualHeight : 200.0);
                     double sp = (s < subProgresses.Count) ? subProgresses[s] : 0.0;
+
+                    if (overlay.Visibility != Visibility.Visible)
+                    {
+                        overlay.Visibility = Visibility.Visible;
+                    }
 
                     if (actualW > 0 && sp > 0.001)
                     {
-                        overlay.Visibility = Visibility.Visible;
                         clipList[s].Rect = new Windows.Foundation.Rect(0, 0, sp * actualW, actualH);
                     }
                     else
                     {
-                        overlay.Visibility = Visibility.Collapsed;
                         clipList[s].Rect = new Windows.Foundation.Rect(0, 0, 0, 0);
                     }
                 }
