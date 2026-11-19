@@ -27,7 +27,7 @@
 > [!NOTE]
 > Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz.
 
-### Alternatif ve Önceki Kararlı Sürümler (Lyrow v3.7 & v3.5)
+### Alternatif ve Önceki Kararlı Sürümler (Lyrow v3.7 & Lyrow v3.5)
 Klasik sürümleri veya önceki paketleri tercih eden kullanıcılar için:
 - **v3.7 Taşınabilir Paket:** [Lyrow-v3.7-win-x64.zip](https://github.com/owergungor/Lyrow/releases/tag/v3.7)
 - **v3.5 Kurulum Sihirbazı:** [Lyrow-3.5-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/tag/v3.5)
