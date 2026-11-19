@@ -10,14 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.3.0] - 2026-11-19
 
 ### Added
-- **Dar Mod — Kenar Işığı Butonu (`BtnToggleEdgeGlowCompact`):** Compact Lyrics Show/Hide butonunun hemen soluna `26×26` ikon-odaklı Kenar Işığı aç/kapa butonu eklendi; ortak Kenar Işığı motoruna bağlıdır, aktif/pasif görsel durumu Normal Modla tam senkronize çalışır ve kullanıcı tercihini korur.
-- **v4.3 Doğrulama Test Paketi:** Dar Mod 6 Ghost Button, ikon-odaklı Audio Output (`26×26`), Dar Mod Kenar Işığı butonu, Normal Mod tıklamayla açılan `0–64 px` kalınlık ayarı ve Windows 11 Fluent ayarlar tasarımını doğrulayan 5 yeni test (`LyrowV43FeatureVerificationTests.cs`) eklendi.
+- **Dar Mod — Kenar Işığı `0–64 px` Kalınlık Ayar Butonu (`BtnToggleEdgeGlowCompact`):** Compact Lyrics Show/Hide butonunun hemen soluna `26×26` ikon-odaklı Kenar Işığı butonu eklendi; tıklandığında Normal Modla aynı `0–64 px` kalınlık sürgüsünü (`FlyoutEdgeGlowThicknessCompact`) dar pencereden taşmadan açar, `0 px`'te Kenar Işığını tamamen kapatır, `1–64 px` değerlerini anlık uygular ve Normal Mod + Ayarlar sayfasıyla 3 yönlü senkronize çalışır.
+- **v4.3 Doğrulama Test Paketi:** Dar Mod 6 Ghost Button, ikon-odaklı Audio Output (`26×26`), Dar Mod ve Normal Mod ortak tıklamayla açılan `0–64 px` kalınlık sürgüsü, sola hizalı 3 sekmeli sabit boyutlu Windows 11 Fluent ayarlar tasarımını doğrulayan testler (`LyrowV43FeatureVerificationTests.cs`) eklendi.
 
 ### Changed
 - **Dar Mod — Ghost Button Tasarımı:** Volume & Mute, Play/Pause, Previous, Next, Normal Mode ve Compact Lyrics Show/Hide butonlarının tamamı Açık/Koyu tema uyumlu `LyrowGhostButtonStyle` tasarımına geçirildi.
 - **Dar Mod — İkon-Odaklı Audio Output Butonu (`BtnDeviceSelectorCompact`):** Metin etiketi tamamen kaldırılarak Volume & Mute ile birebir aynı **`26×26` (`CornerRadius="6"`)** Ghost Button boyutuna getirildi; aktif ses çıkış aygıtı Tooltip üzerinden gösterilir ve cihaz seçme işlevi korunur.
-- **Normal Mod — Tıklamayla Açılan `0–64 px` Kenar Işığı Kalınlık Ayarı:** Hover ile açılma kaldırıldı; kullanıcı Kenar Işığı butonuna tıkladığında kalınlık sürgüsü açılır, tekrar tıkladığında veya dışarı tıkladığında kapanır. Aralık **`0–64 px`** olarak güncellendi; `0 px` Kenar Işığını tamamen kapatır, `1–64 px` anlık kalınlık uygular, kalıcı kaydedilir ve Ayarlar sayfasıyla çift yönlü senkronize çalışır.
-- **Ayarlar Sayfası — Microsoft Windows 11 Fluent Design:** Windows 11 Settings `SettingsCard` anatomisi (sol Fluent ikonlar, "Genel / Şarkı Sözleri / Sistem ve Bildirimler" tipografi hiyerarşisi, tutarlı `8 px` kart köşeleri, sol vurgu çizgili navigasyon, dar pencerede kompakt ikon rayı, Açık/Koyu/Sistem teması ve Türkçe/İngilizce yerelleştirme) ile iyileştirildi.
+- **Normal Mod — Tıklamayla Açılan `0–64 px` Kenar Işığı Kalınlık Ayarı:** Hover ile açılma kaldırıldı; kullanıcı Kenar Işığı butonuna tıkladığında kalınlık sürgüsü açılır, tekrar tıkladığında veya dışarı tıkladığında kapanır. Aralık **`0–64 px`** olarak güncellendi; `0 px` Kenar Işığını tamamen kapatır, `1–64 px` anlık kalınlık uygular, kalıcı kaydedilir ve Dar Mod + Ayarlar sayfasıyla senkronize çalışır.
+- **Ayarlar Sayfası — Sola Hizalı Sidebar, Sabit Boyut ve 3 Sekmeli Windows 11 Fluent Design:** `LyrowGhostButtonStyle` içerik hizalaması düzeltilerek sidebar öğeleri tutarlı şekilde sola hizalandı; modal genişlik/yüksekliği (`740×520`) sabitlenerek sekme geçişlerinde boyut sıçraması önlendi; ayarlar **Genel**, **Şarkı Sözleri** ve **Sistem ve Bildirimler** olmak üzere tam 3 ayrı sekmede toplandı (tüm mevcut ayarlar, Açık/Koyu/Sistem teması, Türkçe/İngilizce yerelleştirme ve ESC davranışı korunarak).
 
 ### Validation
 - **Birim ve Entegrasyon Testleri:** 711 / 711 PASS (%100 başarı).

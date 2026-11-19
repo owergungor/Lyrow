@@ -20,9 +20,9 @@
 
 | Kaynak | Dosya | Boyut | SHA-256 Doğrulama Özeti |
 |---|---|---|---|
-| **Kurulum Sihirbazı (Installer)** | `Lyrow-4.3-Setup-x64.exe` | ~64.77 MB | `FFC62CDE5A1A143920BDF2F47EAD2BDCFF7090ABC953140D8EC131ABAFBE59EC` |
-| **Taşınabilir Paket (Portable ZIP)** | `Lyrow-v4.3-win-x64-portable.zip` | ~93.43 MB | `0968753288EC4C53C92E6B8899B579B108EFC6992691569A3A06426DCC5C4F6D` |
-| **MSIX Paketi (Windows x64)** | `Lyrow-v4.3-x64.msix` *(imzasız)* | ~95.69 MB | `181BB7DE686EF5A4BF68E047D85673FDA12CFF4874C2A04B900402F065D3C4D5` |
+| **Kurulum Sihirbazı (Installer)** | `Lyrow-4.3-Setup-x64.exe` | ~64.77 MB | `EB0818786AA40E8372E6889E65F7F61FAD3A757E7263CE8D3D98E8FAE5E8EB8D` |
+| **Taşınabilir Paket (Portable ZIP)** | `Lyrow-v4.3-win-x64-portable.zip` | ~93.43 MB | `B13E7F659776DD6927E0FB30D1EA9D5A0D812C323BEA3A0DF3C031160EE0E662` |
+| **MSIX Paketi (Windows x64)** | `Lyrow-v4.3-x64.msix` *(imzasız)* | ~95.69 MB | `B75CC4A0259A7924E655A2284D8D035C955371E8F5F901E0F34644EC637694A1` |
 
 > [!NOTE]
 > Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz. MSIX paketi (`Lyrow-v4.1-x64.msix`) standart x64 Windows paket yapısında üretilir; kurulum için güvenilen bir kod imzalama sertifikası ile imzalanması (`signtool.exe` veya `LYROW_PFX_PATH`) gerekir.

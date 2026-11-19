@@ -93,7 +93,15 @@ public sealed class LyrowV43FeatureVerificationTests
         edgeTag.Should().Contain("Width=\"26\" Height=\"26\"");
         edgeTag.Should().Contain("Style=\"{StaticResource LyrowGhostButtonStyle}\"");
 
-        v4Cs.Should().Contain("BtnToggleEdgeGlowCompact.Click += async (_, _) => await ToggleEdgeGlowAsync();");
+        // Compact Edge Light opens 0-64 px thickness slider flyout cleanly outside compact bounds
+        xaml.Should().Contain("x:Name=\"FlyoutEdgeGlowThicknessCompact\"");
+        xaml.Should().Contain("Placement=\"TopEdgeAlignedRight\"");
+        xaml.Should().Contain("ShouldConstrainToRootBounds=\"False\"");
+        string compactSliderTag = ExtractOpeningTag(xaml, "SliderEdgeGlowThicknessCompact");
+        compactSliderTag.Should().Contain("Minimum=\"0\" Maximum=\"64\"");
+
+        v4Cs.Should().Contain("BtnToggleEdgeGlowCompact.Click += (_, _) => ToggleEdgeThicknessCompactFlyout();");
+        v4Cs.Should().Contain("ApplyEdgeGlowThicknessChange(thickness, source: \"compact\");");
         v4Cs.Should().Contain("BtnToggleEdgeGlowCompact.Style = _isEdgeGlowActive ? accentStyle : ghostStyle;");
     }
 
@@ -124,23 +132,39 @@ public sealed class LyrowV43FeatureVerificationTests
     }
 
     [Fact]
-    public void SettingsModal_FollowsWindows11FluentDesign_WithSectionHierarchy_AndLocalizedLabels()
+    public void SettingsModal_HasThreeCanonicalTabs_LeftAlignedSidebar_AndFixedDimensions()
     {
         string root = FindRepoRoot();
+        string appXaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "App.xaml"));
         string xaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.xaml"));
         string v4Cs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.V4Features.cs"));
 
-        xaml.Should().Contain("x:Name=\"TxtModalSubGeneral\"");
-        xaml.Should().Contain("x:Name=\"TxtModalSubLyrics\"");
-        xaml.Should().Contain("x:Name=\"TxtModalSubSystem\"");
-        xaml.Should().Contain("x:Name=\"SettingsModalSidebar\"");
+        // Ghost button template honors HorizontalContentAlignment so sidebar items stay flush-left
+        appXaml.Should().Contain("HorizontalAlignment=\"{TemplateBinding HorizontalContentAlignment}\"");
+
+        // Exactly 3 tabs: General, Lyrics, System & Notifications
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Equal("General", "Lyrics", "System");
+        ExtractOpeningTag(xaml, "BtnModalTabGeneral").Should().Contain("HorizontalContentAlignment=\"Left\"");
+        ExtractOpeningTag(xaml, "BtnModalTabLyrics").Should().Contain("HorizontalContentAlignment=\"Left\"");
+        ExtractOpeningTag(xaml, "BtnModalTabSystem").Should().Contain("HorizontalContentAlignment=\"Left\"");
+        xaml.Should().Contain("x:Name=\"ModalSectionGeneral\"");
+        xaml.Should().Contain("x:Name=\"ModalSectionLyrics\"");
+        xaml.Should().Contain("x:Name=\"ModalSectionSystem\"");
         xaml.Should().NotContain("BtnModalTabAll");
 
-        v4Cs.Should().Contain("TxtModalSubGeneral.Text = isTr ? \"Genel\" : \"General\";");
-        v4Cs.Should().Contain("TxtModalSubLyrics.Text = isTr ? \"Şarkı Sözleri\" : \"Lyrics\";");
-        v4Cs.Should().Contain("TxtModalSubSystem.Text = isTr ? \"Sistem ve Bildirimler\" : \"System & Notifications\";");
+        // Fixed modal dimensions (Width + Height) prevent size jumping on tab switch
+        string cardTag = ExtractOpeningTag(xaml, "SettingsModalCard");
+        cardTag.Should().Contain("Width=\"740\"");
+        cardTag.Should().Contain("Height=\"520\"");
+        v4Cs.Should().Contain("SettingsModalCard.Width = Math.Min(740, availableW);");
+        v4Cs.Should().Contain("SettingsModalCard.Height = Math.Min(520, availableH);");
 
-        // Verify legacy settings compatibility with 0..64 px range
+        // Turkish and English tab labels
+        v4Cs.Should().Contain("string tabGeneral = isTr ? \"Genel\" : \"General\";");
+        v4Cs.Should().Contain("string tabLyrics = isTr ? \"Şarkı Sözleri\" : \"Lyrics\";");
+        v4Cs.Should().Contain("string tabSystem = isTr ? \"Sistem ve Bildirimler\" : \"System & Notifications\";");
+
+        // Legacy settings compatibility with 0..64 px range
         var settings = LyrowSettings.CreateDefault();
         settings.GlowThickness.Should().BeInRange(0, 64);
     }

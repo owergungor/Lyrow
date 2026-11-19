@@ -121,13 +121,10 @@ public sealed class LyrowV40FeatureVerificationTests
         xaml.Should().Contain("x:Name=\"SettingsModalScrollViewer\"");
         xaml.Should().Contain("x:Name=\"BtnCloseSettingsModal\"");
 
-        // All core settings sections accessible in modal
-        xaml.Should().Contain("x:Name=\"ModalSectionAppearance\"");
-        xaml.Should().Contain("x:Name=\"ModalSectionArtwork\"");
-        xaml.Should().Contain("x:Name=\"ModalSectionAudio\"");
-        xaml.Should().Contain("x:Name=\"ModalSectionUpdates\"");
-        xaml.Should().Contain("x:Name=\"ModalSectionShortcuts\"");
-        xaml.Should().Contain("x:Name=\"ModalSectionAbout\"");
+        // All core settings sections accessible across the 3 canonical v4.3 tabs
+        xaml.Should().Contain("x:Name=\"ModalSectionGeneral\"");
+        xaml.Should().Contain("x:Name=\"ModalSectionLyrics\"");
+        xaml.Should().Contain("x:Name=\"ModalSectionSystem\"");
 
         // Smooth open/close animations & independent scroll & ESC handling
         v4Cs.Should().Contain("public void OpenSettingsModal()");

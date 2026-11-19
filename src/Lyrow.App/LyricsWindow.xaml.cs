@@ -1602,7 +1602,7 @@ public sealed partial class LyricsWindow : Window
 
         // Responsive proportional scaling for Horizontal mode
         ApplyResponsiveScaling(w, h);
-        UpdateSettingsModalResponsiveLayout(w);
+        UpdateSettingsModalResponsiveLayout(w, h);
         UpdateViewportPadding();
     }
 

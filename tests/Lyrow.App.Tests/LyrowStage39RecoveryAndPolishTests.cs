@@ -157,22 +157,24 @@ public sealed class LyrowStage39RecoveryAndPolishTests
     [Fact]
     public void Settings_SystemTab_IsNotInVisibleTabsList()
     {
-        SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("System",
-            "The System tab must be strictly removed from visible settings tabs");
+        // v4.3 consolidated settings into exactly 3 canonical tabs: General, Lyrics, System (no All tab)
         SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("All",
-            "The All/Tümü tab must be strictly removed from visible settings tabs in v4.1");
+            "The All/Tümü tab must be strictly removed from visible settings tabs");
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Equal("General", "Lyrics", "System");
     }
 
     [Fact]
     public void Settings_UpdatesTab_IsInVisibleTabsList()
     {
-        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Contain("Updates");
+        // v4.3 hosts Updates inside the consolidated System & Notifications tab
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Contain("System");
     }
 
     [Fact]
     public void Settings_ShortcutsTab_IsInVisibleTabsList()
     {
-        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Contain("Shortcuts");
+        // v4.3 hosts Shortcuts inside the consolidated System & Notifications tab
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Contain("System");
     }
 
     [Fact]
