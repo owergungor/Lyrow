@@ -54,6 +54,7 @@ public sealed class LyricsModuleSettings
 
     /// <summary>
     /// Whether the soft glow/light effect on synchronized lyrics is enabled.
+    /// Defaults to false (OFF) on fresh install; persisted when toggled by user.
     /// </summary>
-    public bool LyricsTextGlowEnabled { get; set; } = true;
+    public bool LyricsTextGlowEnabled { get; set; } = false;
 }

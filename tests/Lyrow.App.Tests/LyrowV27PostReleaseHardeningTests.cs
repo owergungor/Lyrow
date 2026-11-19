@@ -50,14 +50,18 @@ public class LyrowV27PostReleaseHardeningTests
         string manifest = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "app.manifest"));
         manifest.Should().Contain("version=\"3.5.0.0\"");
 
-        // 5. MainWindow.xaml
-        string mainXaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "MainWindow.xaml"));
-        mainXaml.Should().Contain("Current Version: v3.5");
-        mainXaml.Should().Contain("Lyrow v3.5");
-        mainXaml.Should().NotContain("Lyrow v2.4");
-        mainXaml.Should().NotContain("Lyrow v2.6");
-        mainXaml.Should().NotContain("Lyrow v2.7");
-        mainXaml.Should().NotContain("Lyrow v2.8");
+        // 5. MainWindow.xaml (removed in v4.1)
+        string mainXamlPath = Path.Combine(root, "src", "Lyrow.App", "MainWindow.xaml");
+        if (File.Exists(mainXamlPath))
+        {
+            string mainXaml = File.ReadAllText(mainXamlPath);
+            mainXaml.Should().Contain("Current Version: v3.5");
+            mainXaml.Should().Contain("Lyrow v3.5");
+            mainXaml.Should().NotContain("Lyrow v2.4");
+            mainXaml.Should().NotContain("Lyrow v2.6");
+            mainXaml.Should().NotContain("Lyrow v2.7");
+            mainXaml.Should().NotContain("Lyrow v2.8");
+        }
     }
 
     [Fact]

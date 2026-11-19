@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.1.0] - 2026-11-19
+
+### Added
+- **MSIX x64 Paket Desteği:** Dağıtım pipeline'ına (`installer/build_packages.ps1` + `installer/AppxManifest.xml.template`) standart Windows x64 MSIX paket üretimi (`Lyrow-v4.1-x64.msix`) eklendi. Her sürümde artık Windows Setup EXE, Portable ZIP ve MSIX x64 olmak üzere 3 paket otomatik üretilir ve SHA-256 doğrulamasından geçer.
+- **Kenar Işığı (Edge Light) Hızlı Kontrol Butonu:** Lyrics penceresinin alt kontrol satırında `- ms` butonunun soluna Kenar Işığı açma/kapama butonu (`BtnToggleEdgeGlow`) eklendi ve mevcut `GlowModule` + `GlowOverlayManager` altyapısına bağlandı.
+- **v4.1 Doğrulama Test Paketi:** Glow varsayılan kapalı durumu, aktif buton vurgu renkleri, Dar Modda Glow izolasyonu, sözler gizlendiğinde Glow butonunun gizlenmesi, alt kontrol satırı 28×28 boyut eşitliği ve geometrik ortalama, `Tümü/All` sekmesinin kaldırılması, `MainWindow`'un tamamen kaldırılması ve MSIX manifest/pipeline doğrulaması için 8 yeni otomatik test (`LyrowV41FeatureVerificationTests.cs`) eklendi.
+
+### Changed
+- **Kontrol Paneli Penceresinin Tamamen Kaldırılması:** Eski `MainWindow.xaml` ve `MainWindow.xaml.cs` tamamen kaldırıldı; `LyricsWindow` uygulamanın tek birincil penceresi (`App.PrimaryWindowInstance`) haline getirildi. Sistem tepsisi, tek-örnek uyandırma, global kısayollar ve güncelleme denetimi doğrudan `LyricsWindow` yaşam döngüsüne bağlandı.
+- **Alt Kontrol Satırı Düzeni ve Hizalaması:** Kenar Işığı (`BtnToggleEdgeGlow`), `- ms`, `+ ms`, Şarkı Sözü Parlaması (`BtnToggleLyricsGlow`) ve Şarkı Sözlerini Göster/Gizle (`BtnToggleLyrics`) butonlarının tamamı eşit `28×28` (`CornerRadius="6"`) boyutuna getirildi; `- ms / 0 ms / + ms` grubu simetrik `*,Auto,*` ızgarasıyla Play/Pause butonunun yatay merkezine geometrik olarak hizalandı.
+- **Glow (Şarkı Sözü Parlaması) Davranışı:** Temiz kurulumda varsayılan olarak kapalı (`false`) başlar, kullanıcı tercihi kaydedilir, aktifken Play/Pause ile birebir aynı vurgu renklerini (`AccentButtonStyle`) kullanır, şarkı sözleri gizlendiğinde tercih değiştirilmeden buton da gizlenir ve sözler tekrar açıldığında geri döner.
+- **Ayarlar Modalı Sadeleştirme ve İsimlendirme Birliği:** **"Tümü" / "All"** sekmesi ve `Tab_All` yerelleştirme anahtarları tüm dillerden kaldırıldı. Türkçe ve İngilizce arayüz metinleri denetlenerek **"Kenar Işığı" / "Edge Light"**, **"Şarkı Sözü Parlaması" / "Lyrics Glow"** ve **"Dar Mod" / "Compact Mode"** terimleri tüm arayüzde tutarlı hale getirildi.
+
+### Removed
+- **Dar Modda (Kompakt Mod) Glow Kaldırıldı:** Dar Moddaki Glow butonu (`BtnToggleLyricsGlowCompact`) ve parlama efektleri tamamen kaldırılarak sıfır GPU/CPU yükü sağlandı; Normal Moda dönüldüğünde kullanıcının Glow tercihi korunur.
+- **Eski Kontrol Paneli (`MainWindow`):** `src/Lyrow.App/MainWindow.xaml` ve `src/Lyrow.App/MainWindow.xaml.cs` projeden tamamen silindi.
+
+### Validation
+- **Birim ve Entegrasyon Testleri:** 692 / 692 PASS (%100 başarı).
+- **Dağıtım Paketleri (Yerel):** `Lyrow-4.1-Setup-x64.exe`, `Lyrow-v4.1-win-x64-portable.zip` ve `Lyrow-v4.1-x64.msix` (imzasız) yerel olarak üretildi ve SHA-256 doğrulamasından geçti.
+
+---
+
 ## [4.0.0] - 2026-11-19
 
 ### Added

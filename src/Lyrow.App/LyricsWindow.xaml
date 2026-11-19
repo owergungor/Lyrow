@@ -188,36 +188,54 @@
                                                VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </Grid>
 
-                                <!-- 9. Below Volume Bar: Offset controls on left, Lyrics Toggle button on right edge -->
+                                <!-- 9. Below Volume Bar: Left Edge Light, Center -/+ ms (aligned with Play/Pause), Right Lyrics Glow & Toggle Lyrics -->
                                 <Grid x:Name="GridOffsetRow" Width="300" Margin="0,6,0,0">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="4">
-                                        <Button x:Name="BtnOffsetMinus" AutomationProperties.Name="Decrease Lyrics Offset by 250 ms" Content="−" Width="24" Height="24" Padding="0"
-                                                CornerRadius="4" FontSize="11" ToolTipService.ToolTip="−250ms Delay" />
-                                        <TextBlock x:Name="TxtOffsetMs" Text="0 ms" FontSize="10" VerticalAlignment="Center"
-                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0" />
-                                        <Button x:Name="BtnOffsetPlus" AutomationProperties.Name="Increase Lyrics Offset by 250 ms" Content="+" Width="24" Height="24" Padding="0"
-                                                CornerRadius="4" FontSize="11" ToolTipService.ToolTip="+250ms Advance" />
-                                    </StackPanel>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
 
-                                    <!-- Right Actions: Glow Toggle Button (left of Lyrics Toggle) + Lyrics Toggle Button -->
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="8">
+                                    <!-- 1. Edge Light (Kenar Işığı) Toggle Button (same 28x28 size as -/+ ms) -->
+                                    <Button x:Name="BtnToggleEdgeGlow" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                            Width="28" Height="28" Padding="0" CornerRadius="6"
+                                            Style="{StaticResource LyrowGhostButtonStyle}"
+                                            ToolTipService.ToolTip="Edge Light: Off"
+                                            AutomationProperties.Name="Toggle Edge Light">
+                                        <FontIcon x:Name="IconToggleEdgeGlow" Glyph="&#xE793;" FontSize="13" />
+                                    </Button>
+
+                                    <!-- 2. Offset Group (- ms / value / + ms): True geometric center aligned with Play/Pause -->
+                                    <Grid x:Name="GridOffsetCenterGroup" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button x:Name="BtnOffsetMinus" Grid.Column="0" AutomationProperties.Name="Decrease Lyrics Offset by 250 ms" Content="−" Width="28" Height="28" Padding="0"
+                                                CornerRadius="6" FontSize="12" ToolTipService.ToolTip="−250ms Delay" />
+                                        <TextBlock x:Name="TxtOffsetMs" Grid.Column="1" Text="0 ms" FontSize="10.5" MinWidth="40" TextAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="4,0" />
+                                        <Button x:Name="BtnOffsetPlus" Grid.Column="2" AutomationProperties.Name="Increase Lyrics Offset by 250 ms" Content="+" Width="28" Height="28" Padding="0"
+                                                CornerRadius="6" FontSize="12" ToolTipService.ToolTip="+250ms Advance" />
+                                    </Grid>
+
+                                    <!-- 3. Right Actions: Lyrics Glow Toggle (left of Show/Hide Lyrics) + Show/Hide Lyrics Toggle (same 28x28 size) -->
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="6">
                                         <Button x:Name="BtnToggleLyricsGlow"
-                                                Width="34" Height="34" Padding="0" CornerRadius="8"
-                                                Background="{ThemeResource LyrowNeumorphActiveBgBrush}"
-                                                BorderBrush="{ThemeResource LyrowNeumorphActiveBorderBrush}"
-                                                BorderThickness="1"
-                                                ToolTipService.ToolTip="Lyrics Glow: On"
+                                                Width="28" Height="28" Padding="0" CornerRadius="6"
+                                                Style="{StaticResource LyrowGhostButtonStyle}"
+                                                ToolTipService.ToolTip="Lyrics Glow: Off"
                                                 AutomationProperties.Name="Toggle Lyrics Glow">
-                                            <FontIcon x:Name="IconToggleLyricsGlow" Glyph="&#xE706;" FontSize="14"
-                                                      Foreground="{ThemeResource LyrowAccentBrush}" />
+                                            <FontIcon x:Name="IconToggleLyricsGlow" Glyph="&#xE708;" FontSize="13" />
                                         </Button>
 
                                         <!-- Lyrics Toggle Button: Below volume bar, X at artwork right edge -->
                                         <Button x:Name="BtnToggleLyrics" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                Width="34" Height="34" Padding="0" CornerRadius="8"
-                                                ToolTipService.ToolTip="Toggle Lyrics Panel"
+                                                Width="28" Height="28" Padding="0" CornerRadius="6"
+                                                ToolTipService.ToolTip="Hide Lyrics"
                                                 AutomationProperties.Name="Toggle Lyrics">
-                                            <FontIcon x:Name="IconToggleLyrics" Glyph="&#xEC4F;" FontSize="14" />
+                                            <FontIcon x:Name="IconToggleLyrics" Glyph="&#xEC4F;" FontSize="13" />
                                         </Button>
                                     </StackPanel>
                                 </Grid>
@@ -227,8 +245,8 @@
 
                     <!-- Right Column (50%): Lyrics Viewport -->
                     <Grid x:Name="LyricsColumnContainer" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent">
-                        <!-- Lightweight GPU-accelerated Lyrics Glow Aura (toggled by BtnToggleLyricsGlow) -->
-                        <Border x:Name="LyricsGlowAuraLayer" IsHitTestVisible="False" Visibility="Visible" Opacity="0.34" Margin="8,24">
+                        <!-- Lightweight GPU-accelerated Lyrics Glow Aura (defaults OFF in v4.1; toggled by BtnToggleLyricsGlow) -->
+                        <Border x:Name="LyricsGlowAuraLayer" IsHitTestVisible="False" Visibility="Collapsed" Opacity="0.0" Margin="8,24">
                             <Border.Background>
                                 <RadialGradientBrush Center="0.45,0.5" RadiusX="0.62" RadiusY="0.34">
                                     <GradientStop x:Name="LyricsGlowStopCenter" Color="#8089B4FA" Offset="0.0" />
@@ -425,19 +443,10 @@
                                     </Button>
                                 </StackPanel>
 
-                                <!-- Right: Lyrics Glow Toggle, Lyrics Toggle button & Normal Mode button -->
+                                <!-- Right: Lyrics Toggle button & Normal Mode button (No Glow in Compact Mode) -->
                                 <StackPanel x:Name="CompactRightControlsPanel" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="4">
-                                    <Button x:Name="BtnToggleLyricsGlowCompact" Width="26" Height="26" Padding="0" CornerRadius="6"
-                                            Background="{ThemeResource LyrowNeumorphActiveBgBrush}"
-                                            BorderBrush="{ThemeResource LyrowNeumorphActiveBorderBrush}"
-                                            BorderThickness="1"
-                                            ToolTipService.ToolTip="Lyrics Glow: On"
-                                            AutomationProperties.Name="Toggle Lyrics Glow">
-                                        <FontIcon x:Name="IconToggleLyricsGlowCompact" Glyph="&#xE706;" FontSize="11"
-                                                  Foreground="{ThemeResource LyrowAccentBrush}" />
-                                    </Button>
                                     <Button x:Name="BtnExpandFromCompact" Width="26" Height="26" Padding="0" CornerRadius="6"
-                                            ToolTipService.ToolTip="Toggle Compact Lyrics"
+                                            ToolTipService.ToolTip="Show / Hide Compact Lyrics"
                                             AutomationProperties.Name="Toggle Compact Lyrics">
                                         <FontIcon x:Name="IconExpandFromCompact" Glyph="&#xEC4F;" FontSize="11" />
                                     </Button>
@@ -504,15 +513,14 @@
                         </Button>
                     </Grid>
 
-                    <!-- Category Filter Pills -->
+                    <!-- Category Filter Pills (No 'All' / 'Tümü' tab in v4.1) -->
                     <ScrollViewer Grid.Row="1" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden"
                                   VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Hidden"
                                   Padding="16,10,16,6">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Button x:Name="BtnModalTabAll" Content="All" Tag="All" Padding="12,5" CornerRadius="14" FontSize="12" Style="{ThemeResource AccentButtonStyle}" />
-                            <Button x:Name="BtnModalTabAppearance" Content="Appearance" Tag="Appearance" Padding="12,5" CornerRadius="14" FontSize="12" />
+                            <Button x:Name="BtnModalTabAppearance" Content="Appearance" Tag="Appearance" Padding="12,5" CornerRadius="14" FontSize="12" Style="{ThemeResource AccentButtonStyle}" />
                             <Button x:Name="BtnModalTabArtwork" Content="Artwork" Tag="Artwork" Padding="12,5" CornerRadius="14" FontSize="12" />
-                            <Button x:Name="BtnModalTabAudio" Content="Audio" Tag="Audio" Padding="12,5" CornerRadius="14" FontSize="12" />
+                            <Button x:Name="BtnModalTabAudio" Content="Audio &amp; Edge Light" Tag="Audio" Padding="12,5" CornerRadius="14" FontSize="12" />
                             <Button x:Name="BtnModalTabUpdates" Content="Updates" Tag="Updates" Padding="12,5" CornerRadius="14" FontSize="12" />
                             <Button x:Name="BtnModalTabShortcuts" Content="Shortcuts" Tag="Shortcuts" Padding="12,5" CornerRadius="14" FontSize="12" />
                             <Button x:Name="BtnModalTabAbout" Content="About" Tag="About" Padding="12,5" CornerRadius="14" FontSize="12" />
@@ -745,7 +753,7 @@
                                     </Grid>
 
                                     <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                                        <TextBlock x:Name="TxtModalUpdateStatus" Text="Lyrow v4.0 — Release channel: GitHub Releases" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="TxtModalUpdateStatus" Text="Lyrow v4.1 — Release channel: GitHub Releases" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
                                         <Button x:Name="BtnModalCheckUpdates" Grid.Column="1" Content="Check for Updates" Margin="8,0,0,0" AutomationProperties.Name="Modal Check for Updates" />
                                     </Grid>
                                 </StackPanel>
@@ -776,12 +784,11 @@
                                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                 <StackPanel Spacing="10">
-                                    <TextBlock Text="Lyrow v4.0" FontWeight="SemiBold" FontSize="14" />
+                                    <TextBlock Text="Lyrow v4.1" FontWeight="SemiBold" FontSize="14" />
                                     <TextBlock x:Name="TxtModalAboutSubtitle" Text="Native Windows Ambient Edge Lighting &amp; Synchronized Lyrics" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                                     <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                                        <Button x:Name="BtnModalResetSettings" Content="Reset Settings" AutomationProperties.Name="Modal Reset Settings" />
+                                        <Button x:Name="BtnModalResetSettings" Content="Reset to Defaults" AutomationProperties.Name="Modal Reset Settings" />
                                         <Button x:Name="BtnModalOpenLogs" Content="Open Diagnostic Log" AutomationProperties.Name="Modal Open Logs" />
-                                        <Button x:Name="BtnModalOpenDashboard" Content="Open Dashboard" AutomationProperties.Name="Modal Open Main Dashboard" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>

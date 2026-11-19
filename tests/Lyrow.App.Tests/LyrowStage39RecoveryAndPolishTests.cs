@@ -157,34 +157,22 @@ public sealed class LyrowStage39RecoveryAndPolishTests
     [Fact]
     public void Settings_SystemTab_IsNotInVisibleTabsList()
     {
-        MainWindow.VisibleSettingsTabKeys.Should().NotContain("System",
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("System",
             "The System tab must be strictly removed from visible settings tabs");
-
-        // In XAML, the SettingsFilterBarPanel must not contain BtnFilterSystem as a visible child
-        string xamlPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Lyrow.App", "MainWindow.xaml");
-        if (File.Exists(xamlPath))
-        {
-            string xaml = File.ReadAllText(xamlPath);
-            // Verify SettingsFilterBarPanel does not have BtnFilterSystem
-            int panelStart = xaml.IndexOf("x:Name=\"SettingsFilterBarPanel\"", StringComparison.Ordinal);
-            panelStart.Should().BeGreaterThan(0);
-            int panelEnd = xaml.IndexOf("</StackPanel>", panelStart, StringComparison.Ordinal);
-            panelEnd.Should().BeGreaterThan(panelStart);
-            string panelContent = xaml.Substring(panelStart, panelEnd - panelStart);
-            panelContent.Should().NotContain("BtnFilterSystem");
-        }
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("All",
+            "The All/Tümü tab must be strictly removed from visible settings tabs in v4.1");
     }
 
     [Fact]
     public void Settings_UpdatesTab_IsInVisibleTabsList()
     {
-        MainWindow.VisibleSettingsTabKeys.Should().Contain("Updates");
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Contain("Updates");
     }
 
     [Fact]
     public void Settings_ShortcutsTab_IsInVisibleTabsList()
     {
-        MainWindow.VisibleSettingsTabKeys.Should().Contain("Shortcuts");
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Contain("Shortcuts");
     }
 
     [Fact]

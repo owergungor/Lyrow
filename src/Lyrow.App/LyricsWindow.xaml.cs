@@ -86,11 +86,23 @@ public sealed partial class LyricsWindow : Window
     // View state
     private LyricsWindowMode _currentMode = LyricsWindowMode.Horizontal;
     private bool _isLyricsEnabled = true;
-    private bool _isLyricsGlowEnabled = true;
+    private bool _isLyricsGlowEnabled = false;
+    private bool _isEdgeGlowActive = false;
+    private bool _isExplicitExit = false;
     private bool _isSettingsModalOpen = false;
     private bool _isUpdatingModalSettingsUi = false;
-    private double _currentLyricsGlowOpacity = 0.34;
-    private string _activeModalSettingsCategory = "All";
+    private double _currentLyricsGlowOpacity = 0.0;
+    private string _activeModalSettingsCategory = "Appearance";
+
+    public static readonly string[] VisibleSettingsTabKeys =
+    {
+        "Appearance",
+        "Artwork",
+        "Audio",
+        "Updates",
+        "Shortcuts",
+        "About"
+    };
 
     // Preserved Ambient Dynamic Artwork Background Engine
     private static readonly SolidColorBrush InactiveLyricBrush = new(Windows.UI.Color.FromArgb(200, 190, 190, 205));
@@ -104,6 +116,7 @@ public sealed partial class LyricsWindow : Window
     public LyricsWindowMode CurrentMode => _currentMode;
     public bool IsLyricsEnabled => _isLyricsEnabled;
     public bool IsLyricsGlowEnabled => _isLyricsGlowEnabled;
+    public bool IsEdgeGlowActive => _isEdgeGlowActive;
     public bool IsSettingsModalOpen => _isSettingsModalOpen;
 
     public LyricsWindow(
@@ -359,9 +372,22 @@ public sealed partial class LyricsWindow : Window
             {
                 _mediaMonitor.TrackChanged -= OnMediaMonitorTrackChanged;
             }
-            if (!_isShuttingDown)
+            _uiTimer?.Stop();
+            if (App.PrimaryWindowInstance == this)
             {
-                _uiTimer?.Stop();
+                App.ShutdownApp();
+            }
+        };
+
+        AppWindow.Closing += (_, args) =>
+        {
+            bool isSmokeTest = App.IsSmokeTestMode
+                || Environment.GetCommandLineArgs().Any(a => a.Equals("--smoke-test", StringComparison.OrdinalIgnoreCase))
+                || Environment.GetEnvironmentVariable("LYROW_SMOKE_TEST") == "1";
+            if (_settingsManager.Current.MinimizeToTray && !_isExplicitExit && !isSmokeTest && _settingsManager.Current.SystemTrayEnabled)
+            {
+                args.Cancel = true;
+                AppWindow.Hide();
             }
         };
 
@@ -474,6 +500,8 @@ public sealed partial class LyricsWindow : Window
             {
                 ResizeCompactWindow(_isCompactLyricsExpanded);
             }
+            // v4.1: Ensure zero Glow visuals/GPU load in Compact mode while preserving user's saved preference
+            UpdateLyricsGlowVisualState();
         }
         else
         {
@@ -504,6 +532,7 @@ public sealed partial class LyricsWindow : Window
             }
             ApplyResponsiveScaling(RootLayout.ActualWidth > 0 ? RootLayout.ActualWidth : 960, RootLayout.ActualHeight > 0 ? RootLayout.ActualHeight : 720);
             UpdateViewportPadding();
+            UpdateLyricsGlowVisualState();
             _snapToCenterOnNextLayout = true;
         }
     }
@@ -542,6 +571,7 @@ public sealed partial class LyricsWindow : Window
             ToolTipService.SetToolTip(BtnToggleLyrics, tip);
             AutomationProperties.SetName(BtnToggleLyrics, tip);
             UpdateViewportPadding();
+            UpdateLyricsGlowVisualState();
             _snapToCenterOnNextLayout = true;
         }
         else
@@ -552,6 +582,8 @@ public sealed partial class LyricsWindow : Window
             string tip = LocalizationService.Instance["Lyrics_ShowLyrics"];
             ToolTipService.SetToolTip(BtnToggleLyrics, tip);
             AutomationProperties.SetName(BtnToggleLyrics, tip);
+            // v4.1: Hide Glow button & aura when lyrics are hidden without altering persisted Glow preference
+            UpdateLyricsGlowVisualState();
         }
     }
 

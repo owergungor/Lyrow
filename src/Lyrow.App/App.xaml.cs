@@ -16,7 +16,7 @@ namespace Lyrow.App;
 public partial class App : Application
 {
     public static IServiceProvider Services { get; private set; } = null!;
-    public static MainWindow? MainWindowInstance { get; private set; }
+    public static LyricsWindow? PrimaryWindowInstance { get; private set; }
     public static bool IsSmokeTestMode { get; set; }
 
     private const string AppGuid = "Lyrow_SingleInstance_f84b12c9-94b1-4c4f-9e63-47a61d15c89f";
@@ -76,6 +76,7 @@ public partial class App : Application
 
             var settingsManager = Services.GetRequiredService<ISettingsManager>();
             var settings = settingsManager.LoadAsync().GetAwaiter().GetResult();
+            Lyrow.Core.Localization.LocalizationService.Instance.SetLanguage(settings.Language);
 
             // Register core modules into module manager
             var moduleManager = Services.GetRequiredService<IModuleManager>();
@@ -86,46 +87,49 @@ public partial class App : Application
             moduleManager.RegisterModule(glow);
             moduleManager.RegisterModule(lyrics);
 
-            // Deterministic default startup: Modules initialize into Stopped/OFF state
-            LocalDiagnosticLogger.LogInfo("Deterministic startup: Glow and Lyrics modules default to OFF");
-            moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.BothDisabled).GetAwaiter().GetResult();
+            // v4.1: Lyrics module starts active on launch; Edge Glow defaults to OFF
+            LocalDiagnosticLogger.LogInfo("Startup v4.1: Lyrics active on launch, Glow defaults to OFF");
+            moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.LyricsOnly).GetAwaiter().GetResult();
 
-            var platformAdapter = Services.GetRequiredService<IWindowPlatformAdapter>();
-            var startupManager = Services.GetRequiredService<IWindowsStartupManager>();
-            var hotkeyManager = Services.GetRequiredService<IGlobalHotkeyManager>();
             var trayIconManager = Services.GetRequiredService<LyrowTrayIconManager>();
-            var glowOverlayManager = Services.GetRequiredService<GlowOverlayManager>();
             var artworkBitmapManager = Services.GetRequiredService<ArtworkBitmapManager>();
-            var toastService = Services.GetRequiredService<IToastNotificationService>();
+            var mediaMonitor = Services.GetRequiredService<IMediaSessionMonitor>();
             var volumeService = Services.GetRequiredService<IAudioVolumeService>();
-            var updateService = Services.GetRequiredService<IUpdateService>();
+            var audioCaptureService = Services.GetRequiredService<IAudioCaptureService>();
+            var audioRoutingService = Services.GetRequiredService<IAudioRoutingService>();
+            var timelineEngine = Services.GetRequiredService<IPlaybackTimelineEngine>();
 
-            var mainWindow = new MainWindow(
-                moduleManager,
-                settingsManager,
-                platformAdapter,
-                startupManager,
-                hotkeyManager,
-                trayIconManager,
-                glowOverlayManager,
-                artworkBitmapManager,
-                toastService,
-                volumeService,
-                updateService);
+            if (PrimaryWindowInstance == null)
+            {
+                PrimaryWindowInstance = new LyricsWindow(
+                    lyrics,
+                    settingsManager,
+                    artworkBitmapManager,
+                    mediaMonitor,
+                    volumeService,
+                    toastManager: null,
+                    audioCaptureService,
+                    audioRoutingService,
+                    timelineEngine);
+            }
 
-            MainWindowInstance = mainWindow;
+            var lyricsWindow = PrimaryWindowInstance;
 
             if (settings.SystemTrayEnabled)
             {
                 try
                 {
                     trayIconManager.Initialize(
-                        onShowMainWindow: () => mainWindow.ShowAndActivate(),
-                        onToggleGlow: () => mainWindow.ToggleGlowFromExternal(),
-                        onToggleLyrics: () => mainWindow.ToggleLyricsFromExternal(),
+                        onShowMainWindow: () => lyricsWindow.ShowAndActivate(),
+                        onToggleGlow: () => lyricsWindow.ToggleEdgeGlowFromExternal(),
+                        onToggleLyrics: () => lyricsWindow.ToggleLyricsPanelFromExternal(),
                         onToggleClickThrough: () => { },
-                        onOpenSettings: () => mainWindow.ShowAndActivate(),
-                        onExit: () => mainWindow.RequestExit());
+                        onOpenSettings: () => lyricsWindow.DispatcherQueue.TryEnqueue(() =>
+                        {
+                            lyricsWindow.ShowAndActivate();
+                            lyricsWindow.OpenSettingsModal();
+                        }),
+                        onExit: () => lyricsWindow.DispatcherQueue.TryEnqueue(() => lyricsWindow.RequestExit()));
                 }
                 catch (Exception ex)
                 {
@@ -133,30 +137,17 @@ public partial class App : Application
                 }
             }
 
-            mainWindow.ApplyTheme(settings.Theme);
-            mainWindow.Activate();
-            LocalDiagnosticLogger.LogInfo("MainWindow created and displayed successfully.");
+            lyricsWindow.ApplyTheme(settings.Theme);
+            lyricsWindow.Activate();
+            LocalDiagnosticLogger.LogInfo("Primary LyricsWindow created and displayed successfully (v4.1).");
 
-            // v4.0: Automatically open LyricsWindow on startup so user directly sees the lyrics interface
-            mainWindow.DispatcherQueue.TryEnqueue(async () =>
-            {
-                try
-                {
-                    await mainWindow.EnsureLyricsWindowOpenOnStartupAsync();
-                    LocalDiagnosticLogger.LogInfo("LyricsWindow auto-opened on startup (v4.0).");
-                }
-                catch (Exception ex)
-                {
-                    LocalDiagnosticLogger.LogError("Non-fatal error auto-opening LyricsWindow on startup", ex);
-                }
-            });
             if (IsSmokeTestMode)
             {
                 _ = Task.Run(async () =>
                 {
                     await Task.Delay(1200).ConfigureAwait(false);
-                    LocalDiagnosticLogger.LogInfo("Smoke test verified MainWindow startup; requesting clean exit (0).");
-                    mainWindow.DispatcherQueue.TryEnqueue(() => mainWindow.RequestExit());
+                    LocalDiagnosticLogger.LogInfo("Smoke test verified LyricsWindow startup; requesting clean exit (0).");
+                    lyricsWindow.DispatcherQueue.TryEnqueue(() => lyricsWindow.RequestExit());
                 });
             }
         }
@@ -357,10 +348,10 @@ public partial class App : Application
                 {
                     if (wakeEvent.WaitOne())
                     {
-                        LocalDiagnosticLogger.LogInfo("Wake signal received from secondary launch. Restoring main window.");
-                        MainWindowInstance?.DispatcherQueue.TryEnqueue(() =>
+                        LocalDiagnosticLogger.LogInfo("Wake signal received from secondary launch. Restoring primary LyricsWindow.");
+                        PrimaryWindowInstance?.DispatcherQueue.TryEnqueue(() =>
                         {
-                            MainWindowInstance?.ShowAndActivate();
+                            PrimaryWindowInstance?.ShowAndActivate();
                         });
                     }
                 }

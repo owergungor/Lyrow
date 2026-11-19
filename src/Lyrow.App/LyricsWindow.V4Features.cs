@@ -5,6 +5,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
+using Lyrow.App.Platform;
+using Lyrow.Core.Contracts;
 using Lyrow.Core.Localization;
 using Lyrow.Core.Models;
 using Lyrow.Core.Services;
@@ -14,10 +16,11 @@ namespace Lyrow.App;
 public sealed partial class LyricsWindow
 {
     private Storyboard? _activeModalStoryboard;
+    private bool _isTogglingEdgeGlow = false;
 
     private void InitializeV4LyricsGlowAndSettingsModal()
     {
-        // 1. Initialize Lyrics Glow state from persisted settings
+        // 1. Initialize Lyrics Glow state from persisted settings (defaults to false on fresh install)
         _isLyricsGlowEnabled = _settingsManager.Current.Lyrics.LyricsTextGlowEnabled;
         _currentLyricsGlowOpacity = _isLyricsGlowEnabled ? 0.34 : 0.0;
         UpdateLyricsGlowVisualState();
@@ -26,12 +29,15 @@ public sealed partial class LyricsWindow
         {
             BtnToggleLyricsGlow.Click += (_, _) => ToggleLyricsGlow();
         }
-        if (BtnToggleLyricsGlowCompact != null)
-        {
-            BtnToggleLyricsGlowCompact.Click += (_, _) => ToggleLyricsGlow();
-        }
 
-        // 2. Wire Ghost Settings Button & Modal Close Controls
+        // 2. Wire Edge Light (Kenar Işığı) button directly to GlowModule + GlowOverlayManager
+        if (BtnToggleEdgeGlow != null)
+        {
+            BtnToggleEdgeGlow.Click += async (_, _) => await ToggleEdgeGlowAsync();
+        }
+        UpdateEdgeGlowVisualState();
+
+        // 3. Wire Ghost Settings Button & Modal Close Controls
         if (BtnOpenSettingsModal != null)
         {
             BtnOpenSettingsModal.Click += (_, _) => OpenSettingsModal();
@@ -42,7 +48,6 @@ public sealed partial class LyricsWindow
         }
         if (SettingsModalBackdrop != null)
         {
-            // Block background interaction; clicking dimmed backdrop closes modal cleanly
             SettingsModalBackdrop.PointerPressed += (_, e) =>
             {
                 e.Handled = true;
@@ -50,7 +55,7 @@ public sealed partial class LyricsWindow
             };
         }
 
-        // Prevent scroll wheel inside settings modal from ever affecting lyrics behind it
+        // Prevent scroll wheel inside settings modal from affecting lyrics behind it
         if (SettingsModalScrollViewer != null)
         {
             SettingsModalScrollViewer.AddHandler(
@@ -59,8 +64,7 @@ public sealed partial class LyricsWindow
                 handledEventsToo: true);
         }
 
-        // Category pills
-        WireModalTabButton(BtnModalTabAll, "All");
+        // Category pills (No 'All' / 'Tümü' tab)
         WireModalTabButton(BtnModalTabAppearance, "Appearance");
         WireModalTabButton(BtnModalTabArtwork, "Artwork");
         WireModalTabButton(BtnModalTabAudio, "Audio");
@@ -69,6 +73,143 @@ public sealed partial class LyricsWindow
         WireModalTabButton(BtnModalTabAbout, "About");
 
         WireModalSettingsControls();
+        _ = InitializePrimaryAppServicesAsync();
+    }
+
+    private async Task InitializePrimaryAppServicesAsync()
+    {
+        try
+        {
+            if (_mediaMonitor != null && !_mediaMonitor.IsMonitoring)
+            {
+                await _mediaMonitor.StartAsync();
+            }
+
+            if (_mediaMonitor != null && _volumeService != null)
+            {
+                _volumeService.SetPreferredAppId(_mediaMonitor.SourceAppId);
+            }
+
+            ApplyHotkeysFromSettings();
+        }
+        catch (Exception ex)
+        {
+            LocalDiagnosticLogger.LogError("Non-fatal error initializing primary services in LyricsWindow", ex);
+        }
+    }
+
+    public void ShowAndActivate()
+    {
+        DispatcherQueue?.TryEnqueue(() =>
+        {
+            try
+            {
+                AppWindow?.Show();
+                Activate();
+            }
+            catch { }
+        });
+    }
+
+    public void RequestExit()
+    {
+        _isExplicitExit = true;
+        _isShuttingDown = true;
+        _uiTimer?.Stop();
+        Close();
+    }
+
+    public void ToggleEdgeGlowFromExternal()
+    {
+        DispatcherQueue?.TryEnqueue(async () => await ToggleEdgeGlowAsync());
+    }
+
+    public void ToggleLyricsPanelFromExternal()
+    {
+        DispatcherQueue?.TryEnqueue(() =>
+        {
+            ShowAndActivate();
+            if (_currentMode == LyricsWindowMode.Horizontal)
+            {
+                ToggleLyricsPanel();
+            }
+            else
+            {
+                ToggleCompactLyrics();
+            }
+        });
+    }
+
+    /// <summary>
+    /// Toggles the 4-edge screen lighting (Kenar Işığı) using the existing GlowModule and GlowOverlayManager.
+    /// </summary>
+    public async Task ToggleEdgeGlowAsync()
+    {
+        await SetEdgeGlowStateAsync(!_isEdgeGlowActive);
+    }
+
+    public async Task SetEdgeGlowStateAsync(bool active)
+    {
+        if (_isTogglingEdgeGlow) return;
+        _isTogglingEdgeGlow = true;
+        try
+        {
+            var moduleManager = App.Services?.GetService(typeof(IModuleManager)) as IModuleManager;
+            var glowOverlayManager = App.Services?.GetService(typeof(GlowOverlayManager)) as GlowOverlayManager;
+
+            if (moduleManager != null)
+            {
+                await moduleManager.SetModuleActiveAsync("glow", active);
+            }
+
+            _isEdgeGlowActive = active;
+            if (active)
+            {
+                glowOverlayManager?.StartOverlays();
+            }
+            else
+            {
+                glowOverlayManager?.StopOverlays();
+            }
+
+            UpdateEdgeGlowVisualState();
+
+            if (!_isUpdatingModalSettingsUi && SwitchModalAmbientEdgeGlow != null)
+            {
+                _isUpdatingModalSettingsUi = true;
+                try { SwitchModalAmbientEdgeGlow.IsOn = active; }
+                finally { _isUpdatingModalSettingsUi = false; }
+            }
+        }
+        catch (Exception ex)
+        {
+            LocalDiagnosticLogger.LogError("Error toggling Edge Light (Kenar Işığı)", ex);
+        }
+        finally
+        {
+            _isTogglingEdgeGlow = false;
+        }
+    }
+
+    private void UpdateEdgeGlowVisualState()
+    {
+        var loc = LocalizationService.Instance;
+        string tip = _isEdgeGlowActive ? loc["EdgeLight_On"] : loc["EdgeLight_Off"];
+
+        var accentStyle = Application.Current.Resources.TryGetValue("AccentButtonStyle", out var acc) ? acc as Style : null;
+        var ghostStyle = Application.Current.Resources.TryGetValue("LyrowGhostButtonStyle", out var gh) ? gh as Style : null;
+
+        if (BtnToggleEdgeGlow != null)
+        {
+            ToolTipService.SetToolTip(BtnToggleEdgeGlow, tip);
+            AutomationProperties.SetName(BtnToggleEdgeGlow, tip);
+            BtnToggleEdgeGlow.Style = _isEdgeGlowActive ? accentStyle : ghostStyle;
+        }
+        if (IconToggleEdgeGlow != null)
+        {
+            IconToggleEdgeGlow.Glyph = _isEdgeGlowActive ? "\uE793" : "\uE793";
+            IconToggleEdgeGlow.Opacity = _isEdgeGlowActive ? 1.0 : 0.70;
+        }
     }
 
     private void WireModalTabButton(Button? btn, string category)
@@ -103,7 +244,7 @@ public sealed partial class LyricsWindow
     }
 
     /// <summary>
-    /// Sets the lyrics glow/light effect state, updates normal & compact UI controls, and persists the setting.
+    /// Sets the lyrics glow/light effect state, updates UI controls, and persists the preference.
     /// </summary>
     public void SetLyricsGlowEnabled(bool enabled, bool persist = true)
     {
@@ -131,81 +272,48 @@ public sealed partial class LyricsWindow
         string tip = _isLyricsGlowEnabled ? loc["Lyrics_GlowOn"] : loc["Lyrics_GlowOff"];
         string glyph = _isLyricsGlowEnabled ? "\uE706" : "\uE708";
 
-        var activeBg = Application.Current.Resources.TryGetValue("LyrowNeumorphActiveBgBrush", out var ab) ? ab as Brush : null;
-        var activeBorder = Application.Current.Resources.TryGetValue("LyrowNeumorphActiveBorderBrush", out var abr) ? abr as Brush : null;
-        var inactiveBg = Application.Current.Resources.TryGetValue("LyrowNeumorphInactiveBgBrush", out var ib) ? ib as Brush : null;
-        var inactiveBorder = Application.Current.Resources.TryGetValue("LyrowNeumorphInactiveBorderBrush", out var ibr) ? ibr as Brush : null;
-        var accentBrush = Application.Current.Resources.TryGetValue("LyrowAccentBrush", out var ac) ? ac as Brush : null;
-        var secondaryBrush = Application.Current.Resources.TryGetValue("LyrowTextSecondaryBrush", out var sb) ? sb as Brush : null;
+        // Active Glow button uses exact same AccentButtonStyle colors as Play/Pause; inactive uses Ghost/Neumorphism style
+        var accentStyle = Application.Current.Resources.TryGetValue("AccentButtonStyle", out var acc) ? acc as Style : null;
+        var ghostStyle = Application.Current.Resources.TryGetValue("LyrowGhostButtonStyle", out var gh) ? gh as Style : null;
+
+        bool isCompact = _currentMode == LyricsWindowMode.Compact;
+        bool shouldShowButton = _isLyricsEnabled && !isCompact;
+        bool shouldRenderGlow = _isLyricsGlowEnabled && _isLyricsEnabled && !isCompact;
 
         if (BtnToggleLyricsGlow != null)
         {
+            BtnToggleLyricsGlow.Visibility = shouldShowButton ? Visibility.Visible : Visibility.Collapsed;
             ToolTipService.SetToolTip(BtnToggleLyricsGlow, tip);
             AutomationProperties.SetName(BtnToggleLyricsGlow, tip);
-            if (_isLyricsGlowEnabled)
-            {
-                if (activeBg != null) BtnToggleLyricsGlow.Background = activeBg;
-                if (activeBorder != null) BtnToggleLyricsGlow.BorderBrush = activeBorder;
-            }
-            else
-            {
-                if (inactiveBg != null) BtnToggleLyricsGlow.Background = inactiveBg;
-                if (inactiveBorder != null) BtnToggleLyricsGlow.BorderBrush = inactiveBorder;
-            }
+            BtnToggleLyricsGlow.Style = _isLyricsGlowEnabled ? accentStyle : ghostStyle;
         }
         if (IconToggleLyricsGlow != null)
         {
             IconToggleLyricsGlow.Glyph = glyph;
-            IconToggleLyricsGlow.Opacity = _isLyricsGlowEnabled ? 1.0 : 0.62;
-            if (_isLyricsGlowEnabled && accentBrush != null) IconToggleLyricsGlow.Foreground = accentBrush;
-            else if (!_isLyricsGlowEnabled && secondaryBrush != null) IconToggleLyricsGlow.Foreground = secondaryBrush;
+            IconToggleLyricsGlow.Opacity = _isLyricsGlowEnabled ? 1.0 : 0.72;
         }
 
-        if (BtnToggleLyricsGlowCompact != null)
-        {
-            ToolTipService.SetToolTip(BtnToggleLyricsGlowCompact, tip);
-            AutomationProperties.SetName(BtnToggleLyricsGlowCompact, tip);
-            if (_isLyricsGlowEnabled)
-            {
-                if (activeBg != null) BtnToggleLyricsGlowCompact.Background = activeBg;
-                if (activeBorder != null) BtnToggleLyricsGlowCompact.BorderBrush = activeBorder;
-            }
-            else
-            {
-                if (inactiveBg != null) BtnToggleLyricsGlowCompact.Background = inactiveBg;
-                if (inactiveBorder != null) BtnToggleLyricsGlowCompact.BorderBrush = inactiveBorder;
-            }
-        }
-        if (IconToggleLyricsGlowCompact != null)
-        {
-            IconToggleLyricsGlowCompact.Glyph = glyph;
-            IconToggleLyricsGlowCompact.Opacity = _isLyricsGlowEnabled ? 1.0 : 0.62;
-            if (_isLyricsGlowEnabled && accentBrush != null) IconToggleLyricsGlowCompact.Foreground = accentBrush;
-            else if (!_isLyricsGlowEnabled && secondaryBrush != null) IconToggleLyricsGlowCompact.Foreground = secondaryBrush;
-        }
-
-        // Update active lyric line container highlight immediately
+        // Update active lyric line container highlight (only in Normal mode when glow is ON)
         for (int i = 0; i < _lineContainers.Count; i++)
         {
-            _lineContainers[i].Background = (i == _currentActiveIndex && _isLyricsGlowEnabled)
+            _lineContainers[i].Background = (i == _currentActiveIndex && shouldRenderGlow)
                 ? ActiveLyricGlowContainerBrush
                 : TransparentBrush;
         }
 
-        // Update compact lyrics active glow tint
+        // Compact Mode strictly has NO Glow effect
         if (GridCompactLyrics != null)
         {
-            GridCompactLyrics.Background = _isLyricsGlowEnabled ? ActiveLyricGlowContainerBrush : TransparentBrush;
-            GridCompactLyrics.CornerRadius = new CornerRadius(8);
+            GridCompactLyrics.Background = TransparentBrush;
         }
 
         if (LyricsGlowAuraLayer != null)
         {
-            if (_isLyricsGlowEnabled && _isLyricsEnabled)
+            if (shouldRenderGlow)
             {
                 LyricsGlowAuraLayer.Visibility = Visibility.Visible;
             }
-            else if (!_isLyricsGlowEnabled)
+            else
             {
                 _currentLyricsGlowOpacity = 0.0;
                 LyricsGlowAuraLayer.Opacity = 0.0;
@@ -372,15 +480,18 @@ public sealed partial class LyricsWindow
 
     private void ShowModalSettingsCategory(string category)
     {
+        if (string.IsNullOrWhiteSpace(category) || string.Equals(category, "All", StringComparison.OrdinalIgnoreCase))
+        {
+            category = "Appearance";
+        }
         _activeModalSettingsCategory = category;
-        bool all = string.Equals(category, "All", StringComparison.OrdinalIgnoreCase);
 
-        if (ModalSectionAppearance != null) ModalSectionAppearance.Visibility = (all || category == "Appearance") ? Visibility.Visible : Visibility.Collapsed;
-        if (ModalSectionArtwork != null) ModalSectionArtwork.Visibility = (all || category == "Artwork") ? Visibility.Visible : Visibility.Collapsed;
-        if (ModalSectionAudio != null) ModalSectionAudio.Visibility = (all || category == "Audio") ? Visibility.Visible : Visibility.Collapsed;
-        if (ModalSectionUpdates != null) ModalSectionUpdates.Visibility = (all || category == "Updates") ? Visibility.Visible : Visibility.Collapsed;
-        if (ModalSectionShortcuts != null) ModalSectionShortcuts.Visibility = (all || category == "Shortcuts") ? Visibility.Visible : Visibility.Collapsed;
-        if (ModalSectionAbout != null) ModalSectionAbout.Visibility = (all || category == "About") ? Visibility.Visible : Visibility.Collapsed;
+        if (ModalSectionAppearance != null) ModalSectionAppearance.Visibility = category == "Appearance" ? Visibility.Visible : Visibility.Collapsed;
+        if (ModalSectionArtwork != null) ModalSectionArtwork.Visibility = category == "Artwork" ? Visibility.Visible : Visibility.Collapsed;
+        if (ModalSectionAudio != null) ModalSectionAudio.Visibility = category == "Audio" ? Visibility.Visible : Visibility.Collapsed;
+        if (ModalSectionUpdates != null) ModalSectionUpdates.Visibility = category == "Updates" ? Visibility.Visible : Visibility.Collapsed;
+        if (ModalSectionShortcuts != null) ModalSectionShortcuts.Visibility = category == "Shortcuts" ? Visibility.Visible : Visibility.Collapsed;
+        if (ModalSectionAbout != null) ModalSectionAbout.Visibility = category == "About" ? Visibility.Visible : Visibility.Collapsed;
 
         var accentStyle = Application.Current.Resources.TryGetValue("AccentButtonStyle", out var acc) ? acc as Style : null;
         var defaultStyle = Application.Current.Resources.TryGetValue("DefaultButtonStyle", out var def) ? def as Style : null;
@@ -391,7 +502,6 @@ public sealed partial class LyricsWindow
             btn.Style = string.Equals(category, tag, StringComparison.OrdinalIgnoreCase) ? accentStyle : defaultStyle;
         }
 
-        SetPillStyle(BtnModalTabAll, "All");
         SetPillStyle(BtnModalTabAppearance, "Appearance");
         SetPillStyle(BtnModalTabArtwork, "Artwork");
         SetPillStyle(BtnModalTabAudio, "Audio");
@@ -448,7 +558,7 @@ public sealed partial class LyricsWindow
             if (SliderModalArtworkCornerRadius != null) SliderModalArtworkCornerRadius.Value = radius;
             if (TxtModalArtworkRadiusValue != null) TxtModalArtworkRadiusValue.Text = $"{radius} px";
 
-            if (SwitchModalAmbientEdgeGlow != null) SwitchModalAmbientEdgeGlow.IsOn = App.MainWindowInstance?.IsGlowActive ?? s.GlowEnabled;
+            if (SwitchModalAmbientEdgeGlow != null) SwitchModalAmbientEdgeGlow.IsOn = _isEdgeGlowActive;
             if (SliderModalGlowIntensity != null) SliderModalGlowIntensity.Value = Math.Clamp(s.GlowIntensity, 10, 100);
             if (TxtModalGlowIntensityPercent != null) TxtModalGlowIntensityPercent.Text = $"{Math.Clamp(s.GlowIntensity, 10, 100)}%";
             if (SliderModalGlowThickness != null) SliderModalGlowThickness.Value = Math.Clamp(s.GlowThickness, 10, 60);
@@ -480,6 +590,26 @@ public sealed partial class LyricsWindow
         }
     }
 
+    private void ApplyHotkeysFromSettings()
+    {
+        var hotkeyManager = App.Services?.GetService(typeof(IGlobalHotkeyManager)) as IGlobalHotkeyManager;
+        if (hotkeyManager == null) return;
+
+        var hk = _settingsManager.Current.Hotkeys;
+        if (string.IsNullOrWhiteSpace(hk.ToggleGlow) && string.IsNullOrWhiteSpace(hk.ToggleLyrics))
+        {
+            hotkeyManager.UnregisterAll();
+        }
+        else
+        {
+            hotkeyManager.RegisterHotkeys(
+                hk,
+                onGlowToggle: ToggleEdgeGlowFromExternal,
+                onLyricsToggle: ToggleLyricsPanelFromExternal,
+                onClickThroughToggle: () => { });
+        }
+    }
+
     private void WireModalSettingsControls()
     {
         if (ComboModalLanguage != null)
@@ -492,7 +622,6 @@ public sealed partial class LyricsWindow
                     _settingsManager.Current.Language = lang;
                     LocalizationService.Instance.SetLanguage(lang);
                     await _settingsManager.SaveAsync(_settingsManager.Current);
-                    App.MainWindowInstance?.RefreshFromExternalSettings();
                 }
             };
         }
@@ -507,9 +636,7 @@ public sealed partial class LyricsWindow
                 {
                     _settingsManager.Current.Theme = mode;
                     ApplyTheme(mode);
-                    App.MainWindowInstance?.ApplyTheme(mode);
                     await _settingsManager.SaveAsync(_settingsManager.Current);
-                    App.MainWindowInstance?.RefreshFromExternalSettings();
                 }
             };
         }
@@ -530,7 +657,6 @@ public sealed partial class LyricsWindow
                 if (_isUpdatingModalSettingsUi) return;
                 _settingsManager.Current.EnableAnimations = SwitchModalEnableAnimations.IsOn;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -543,7 +669,6 @@ public sealed partial class LyricsWindow
                 if (TxtModalMasterOpacityPercent != null) TxtModalMasterOpacityPercent.Text = $"{pct}%";
                 _settingsManager.Current.MasterOpacity = pct / 100.0;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -558,7 +683,6 @@ public sealed partial class LyricsWindow
                 _settingsManager.Current.Lyrics.BackdropOpacity = val;
                 UpdateBackdropOpacity(val);
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -572,7 +696,6 @@ public sealed partial class LyricsWindow
                 _settingsManager.Current.FocusedLyricFontSize = val;
                 ApplyLyricsPersonalization();
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -586,7 +709,6 @@ public sealed partial class LyricsWindow
                 _settingsManager.Current.UnfocusedLyricFontSize = val;
                 ApplyLyricsPersonalization();
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -596,10 +718,9 @@ public sealed partial class LyricsWindow
             {
                 if (_isUpdatingModalSettingsUi) return;
                 _settingsManager.Current.StartWithWindows = SwitchModalStartWithWindows.IsOn;
-                var startup = App.Services?.GetService(typeof(Core.Contracts.IWindowsStartupManager)) as Core.Contracts.IWindowsStartupManager;
+                var startup = App.Services?.GetService(typeof(IWindowsStartupManager)) as IWindowsStartupManager;
                 startup?.SetStartupEnabled(SwitchModalStartWithWindows.IsOn);
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -610,7 +731,6 @@ public sealed partial class LyricsWindow
                 if (_isUpdatingModalSettingsUi) return;
                 _settingsManager.Current.SystemTrayEnabled = SwitchModalSystemTray.IsOn;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -621,7 +741,6 @@ public sealed partial class LyricsWindow
                 if (_isUpdatingModalSettingsUi) return;
                 _settingsManager.Current.MinimizeToTray = SwitchModalMinimizeToTray.IsOn;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -632,7 +751,6 @@ public sealed partial class LyricsWindow
                 if (_isUpdatingModalSettingsUi) return;
                 _settingsManager.Current.NotificationsEnabled = SwitchModalNotifications.IsOn;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -643,7 +761,6 @@ public sealed partial class LyricsWindow
                 if (_isUpdatingModalSettingsUi) return;
                 _settingsManager.Current.NotifyOnTrackChange = SwitchModalNotifyOnTrackChange.IsOn;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -658,7 +775,6 @@ public sealed partial class LyricsWindow
                     AmbientBackgroundLayer.Visibility = SwitchModalArtworkDynamicBg.IsOn ? Visibility.Visible : Visibility.Collapsed;
                 }
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -671,7 +787,6 @@ public sealed partial class LyricsWindow
                 if (TxtModalArtworkSaturationPercent != null) TxtModalArtworkSaturationPercent.Text = $"{pct}%";
                 _settingsManager.Current.ArtworkBackgroundSaturation = pct / 100.0;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -685,7 +800,6 @@ public sealed partial class LyricsWindow
                 _settingsManager.Current.ArtworkCornerRadius = r;
                 if (BorderTrackArtwork != null) BorderTrackArtwork.CornerRadius = new CornerRadius(r);
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -694,10 +808,7 @@ public sealed partial class LyricsWindow
             SwitchModalAmbientEdgeGlow.Toggled += async (_, _) =>
             {
                 if (_isUpdatingModalSettingsUi) return;
-                if (App.MainWindowInstance != null)
-                {
-                    await App.MainWindowInstance.SetGlowStateFromExternalAsync(SwitchModalAmbientEdgeGlow.IsOn);
-                }
+                await SetEdgeGlowStateAsync(SwitchModalAmbientEdgeGlow.IsOn);
             };
         }
 
@@ -710,7 +821,6 @@ public sealed partial class LyricsWindow
                 if (TxtModalGlowIntensityPercent != null) TxtModalGlowIntensityPercent.Text = $"{val}%";
                 _settingsManager.Current.GlowIntensity = val;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -723,7 +833,6 @@ public sealed partial class LyricsWindow
                 if (TxtModalGlowThicknessValue != null) TxtModalGlowThicknessValue.Text = $"{val} px";
                 _settingsManager.Current.GlowThickness = val;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -734,7 +843,6 @@ public sealed partial class LyricsWindow
                 if (_isUpdatingModalSettingsUi) return;
                 _settingsManager.Current.SyncWithAlbumArt = SwitchModalSyncWithAlbumArt.IsOn;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -748,7 +856,6 @@ public sealed partial class LyricsWindow
                 {
                     _settingsManager.Current.Glow.FftSize = fft;
                     await _settingsManager.SaveAsync(_settingsManager.Current);
-                    App.MainWindowInstance?.RefreshFromExternalSettings();
                 }
             };
         }
@@ -760,7 +867,6 @@ public sealed partial class LyricsWindow
                 if (_isUpdatingModalSettingsUi) return;
                 _settingsManager.Current.AutoUpdateEnabled = SwitchModalAutoUpdate.IsOn;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.RefreshFromExternalSettings();
             };
         }
 
@@ -774,7 +880,6 @@ public sealed partial class LyricsWindow
                 {
                     _settingsManager.Current.UpdateFrequency = freq;
                     await _settingsManager.SaveAsync(_settingsManager.Current);
-                    App.MainWindowInstance?.RefreshFromExternalSettings();
                 }
             };
         }
@@ -783,11 +888,25 @@ public sealed partial class LyricsWindow
         {
             BtnModalCheckUpdates.Click += async (_, _) =>
             {
-                if (TxtModalUpdateStatus != null) TxtModalUpdateStatus.Text = LocalizationService.Instance["Updates_Checking"];
-                if (App.MainWindowInstance != null)
+                var loc = LocalizationService.Instance;
+                if (TxtModalUpdateStatus != null) TxtModalUpdateStatus.Text = loc["Updates_Checking"];
+                try
                 {
-                    string summary = await App.MainWindowInstance.CheckForUpdatesFromExternalAsync();
-                    if (TxtModalUpdateStatus != null) TxtModalUpdateStatus.Text = summary;
+                    var updateService = App.Services?.GetService(typeof(IUpdateService)) as IUpdateService;
+                    if (updateService != null)
+                    {
+                        var result = await updateService.CheckForUpdatesAsync();
+                        if (TxtModalUpdateStatus != null)
+                        {
+                            TxtModalUpdateStatus.Text = result.IsUpdateAvailable
+                                ? $"{loc["Updates_Available"]}: v{result.LatestVersion}"
+                                : loc["Updates_UpToDate"];
+                        }
+                    }
+                }
+                catch
+                {
+                    if (TxtModalUpdateStatus != null) TxtModalUpdateStatus.Text = loc["Updates_Failed"];
                 }
             };
         }
@@ -801,7 +920,7 @@ public sealed partial class LyricsWindow
                 _settingsManager.Current.Hotkeys.ToggleGlow = string.Empty;
                 _settingsManager.Current.Hotkeys.ToggleLyrics = string.Empty;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.ApplyHotkeysFromExternal();
+                ApplyHotkeysFromSettings();
             };
         }
 
@@ -812,8 +931,11 @@ public sealed partial class LyricsWindow
                 _settingsManager.Current.Hotkeys.ToggleGlow = TxtModalHotkeyGlow?.Text?.Trim() ?? string.Empty;
                 _settingsManager.Current.Hotkeys.ToggleLyrics = TxtModalHotkeyLyrics?.Text?.Trim() ?? string.Empty;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
-                App.MainWindowInstance?.ApplyHotkeysFromExternal();
-                _toastManager?.ShowToast("Shortcuts saved.", title: LocalizationService.Instance["Tab_Shortcuts"], severity: InfoBarSeverity.Success);
+                ApplyHotkeysFromSettings();
+                _toastManager?.ShowToast(
+                    LocalizationService.Instance["Settings_ApplyHotkeys"],
+                    title: LocalizationService.Instance["Tab_Shortcuts"],
+                    severity: InfoBarSeverity.Success);
             };
         }
 
@@ -828,9 +950,12 @@ public sealed partial class LyricsWindow
                 ApplyTheme(_settingsManager.Current.Theme);
                 LocalizationService.Instance.SetLanguage(_settingsManager.Current.Language);
                 UpdateLyricsGlowVisualState();
+                UpdateEdgeGlowVisualState();
                 SyncModalSettingsFromModel();
-                App.MainWindowInstance?.RefreshFromExternalSettings();
-                _toastManager?.ShowToast("Settings reset to defaults.", title: LocalizationService.Instance["Settings_Title"], severity: InfoBarSeverity.Informational);
+                _toastManager?.ShowToast(
+                    LocalizationService.Instance["Settings_ResetDefaults"],
+                    title: LocalizationService.Instance["Settings_Title"],
+                    severity: InfoBarSeverity.Informational);
             };
         }
 
@@ -847,15 +972,6 @@ public sealed partial class LyricsWindow
                     }
                 }
                 catch { }
-            };
-        }
-
-        if (BtnModalOpenDashboard != null)
-        {
-            BtnModalOpenDashboard.Click += (_, _) =>
-            {
-                CloseSettingsModal();
-                App.MainWindowInstance?.ShowAndActivate();
             };
         }
     }
@@ -878,7 +994,6 @@ public sealed partial class LyricsWindow
 
         if (TxtSettingsModalTitle != null) TxtSettingsModalTitle.Text = loc["Settings_Title"];
 
-        if (BtnModalTabAll != null) BtnModalTabAll.Content = loc["Tab_All"];
         if (BtnModalTabAppearance != null) BtnModalTabAppearance.Content = loc["Tab_Appearance"];
         if (BtnModalTabArtwork != null) BtnModalTabArtwork.Content = loc["Tab_Artwork"];
         if (BtnModalTabAudio != null) BtnModalTabAudio.Content = loc["Tab_Audio"];
@@ -939,8 +1054,10 @@ public sealed partial class LyricsWindow
 
         if (BtnModalResetSettings != null) BtnModalResetSettings.Content = loc["Settings_ResetDefaults"];
         if (BtnModalOpenLogs != null) BtnModalOpenLogs.Content = loc["Settings_OpenLog"];
-        if (BtnModalOpenDashboard != null) BtnModalOpenDashboard.Content = loc["Settings_OpenDashboard"];
+
+        if (TxtModalAboutSubtitle != null) TxtModalAboutSubtitle.Text = loc["About_Subtitle"];
 
         UpdateLyricsGlowVisualState();
+        UpdateEdgeGlowVisualState();
     }
 }

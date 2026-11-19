@@ -253,11 +253,15 @@ public sealed class LyrowV30FeatureVerificationTests
     {
         string root = GetSolutionRoot();
 
-        // 1. MainWindow.xaml NavGlow & CardGlow should use glyph &#xE706; (BrightLight)
-        string mainXaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "MainWindow.xaml"));
-        mainXaml.Should().Contain("<FontIcon Glyph=\"&#xE706;\" />", "NavGlow must use modern Fluent BrightLight icon");
-        mainXaml.Should().Contain("<FontIcon Glyph=\"&#xE706;\" FontSize=\"22\"", "CardGlow must use modern Fluent BrightLight icon");
-        mainXaml.Should().NotContain("&#xE781;", "Legacy Flashlight/QuickNote glyph must be completely replaced");
+        // 1. MainWindow.xaml NavGlow & CardGlow (removed in v4.1; LyricsWindow Glow uses \uE706)
+        string mainXamlPath = Path.Combine(root, "src", "Lyrow.App", "MainWindow.xaml");
+        if (File.Exists(mainXamlPath))
+        {
+            string mainXaml = File.ReadAllText(mainXamlPath);
+            mainXaml.Should().Contain("<FontIcon Glyph=\"&#xE706;\" />", "NavGlow must use modern Fluent BrightLight icon");
+            mainXaml.Should().Contain("<FontIcon Glyph=\"&#xE706;\" FontSize=\"22\"", "CardGlow must use modern Fluent BrightLight icon");
+            mainXaml.Should().NotContain("&#xE781;", "Legacy Flashlight/QuickNote glyph must be completely replaced");
+        }
 
         // 2. Tray menu must use clean standard text without emoji
         string trayCode = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "Platform", "LyrowTrayIconManager.cs"));

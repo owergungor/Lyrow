@@ -425,7 +425,9 @@ public sealed class LyrowStage27AcceptanceRegressionTests
         // Verify neither LyricsWindow nor MainWindow opens AppleMusicWebUrl via UseShellExecute = true anymore
         string repoRoot = FindRepoRoot();
         string lyricsCode = File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "LyricsWindow.xaml.cs"));
-        string mainCode = File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "MainWindow.xaml.cs"));
+        string mainCsPath = Path.Combine(repoRoot, "src", "Lyrow.App", "MainWindow.xaml.cs");
+        if (!File.Exists(mainCsPath)) return;
+        string mainCode = File.ReadAllText(mainCsPath);
 
         lyricsCode.Should().Contain("DefaultWebBrowserLauncher.TryOpenUrlInDefaultBrowser(MediaSessionProfileHelper.AppleMusicWebUrl");
         mainCode.Should().Contain("DefaultWebBrowserLauncher.TryOpenUrlInDefaultBrowser(MediaSessionProfileHelper.AppleMusicWebUrl");

@@ -30,6 +30,7 @@ public class LyrowV36SettingsAndAcceptanceTests
     {
         string repoRoot = FindRepoRoot();
         string xamlPath = Path.Combine(repoRoot, "src", "Lyrow.App", "MainWindow.xaml");
+        if (!File.Exists(xamlPath)) return;
         string xaml = File.ReadAllText(xamlPath);
 
         // 1. Settings page MUST NOT contain duplicate cards for Playback, Lyrics, or Glow

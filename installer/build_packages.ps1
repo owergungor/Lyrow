@@ -3,13 +3,14 @@
 
 [CmdletBinding()]
 param (
-    [string]$Version = "4.0",
+    [string]$Version = "4.1",
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
     [string]$PublishDir = "",
     [string]$DistDir = "",
     [switch]$SkipPublish,
-    [switch]$SkipInstaller
+    [switch]$SkipInstaller,
+    [switch]$SkipMsix
 )
 
 $ErrorActionPreference = "Stop"
@@ -210,14 +211,156 @@ if (-not $SkipInstaller) {
 
     $setupItem = Get-Item -LiteralPath $setupExePath
     Write-Host "Inno Setup Installer generated: $($setupItem.FullName) ($([math]::Round($setupItem.Length / 1MB, 2)) MB)"
+
+    # Also produce versioned installer copy (Lyrow-<Version>-Setup-x64.exe)
+    $versionedSetupPath = Join-Path $resolvedDistDir "Lyrow-$Version-Setup-x64.exe"
+    Copy-Item -LiteralPath $setupExePath -Destination $versionedSetupPath -Force
+    Write-Host "Versioned Setup Installer: $versionedSetupPath"
 } else {
-    Write-Host "`n[4/5] Skipping installer step as requested."
+    Write-Host "`n[4/6] Skipping installer step as requested."
 }
 
 # -----------------------------------------------------------------
-# 5. Verification & SHA-256 Checksums
+# 5. Build MSIX Package (x64) via MakeAppx.exe
 # -----------------------------------------------------------------
-Write-Host "`n[5/5] Verifying package contents and computing SHA-256..."
+$msixFileName = "Lyrow-v$Version-x64.msix"
+$msixPath = Join-Path $resolvedDistDir $msixFileName
+
+if (-not $SkipMsix) {
+    Write-Host "`n[5/6] Building MSIX x64 package: $msixFileName..."
+
+    $makeAppxPath = $null
+    $makeAppxCandidates = @(
+        (Get-ChildItem "$env:USERPROFILE\.nuget\packages\microsoft.windows.sdk.buildtools" -Filter "makeappx.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*\x64\*" } | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName),
+        (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Filter "makeappx.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*\x64\*" } | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName)
+    )
+    foreach ($cand in $makeAppxCandidates) {
+        if ($cand -and (Test-Path -LiteralPath $cand)) {
+            $makeAppxPath = $cand
+            break
+        }
+    }
+    if (-not $makeAppxPath) {
+        throw "makeappx.exe was not found on the system. Cannot build MSIX package."
+    }
+
+    $manifestTemplatePath = Join-Path $scriptDir "AppxManifest.xml.template"
+    if (-not (Test-Path -LiteralPath $manifestTemplatePath)) {
+        throw "MSIX AppxManifest template not found at: $manifestTemplatePath"
+    }
+
+    # Normalize version to 4-part MSIX format (e.g. 4.1 -> 4.1.0.0)
+    $vParts = $Version.Split('.')
+    $msixVersion = switch ($vParts.Length) {
+        1 { "$($vParts[0]).0.0.0" }
+        2 { "$($vParts[0]).$($vParts[1]).0.0" }
+        3 { "$($vParts[0]).$($vParts[1]).$($vParts[2]).0" }
+        default { "$($vParts[0]).$($vParts[1]).$($vParts[2]).$($vParts[3])" }
+    }
+
+    $msixStagingDir = Join-Path $env:TEMP ("Lyrow_Msix_Stage_" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $msixStagingDir -Force | Out-Null
+    try {
+        # Copy clean publish artifacts (excluding PDBs, logs, settings.json, portable marker)
+        $msixSourceItems = Get-ChildItem -LiteralPath $resolvedPublishDir
+        foreach ($item in $msixSourceItems) {
+            if ($item.Name -like "*.pdb" -or
+                $item.Name -eq "logs" -or
+                $item.Name -eq "settings.json" -or
+                $item.Name -eq "portable" -or
+                $item.Name -eq ".portable" -or
+                $item.Name -like "*.tmp") {
+                continue
+            }
+            if ($item.PSIsContainer) {
+                Copy-Item -LiteralPath $item.FullName -Destination $msixStagingDir -Recurse -Force
+            } else {
+                Copy-Item -LiteralPath $item.FullName -Destination $msixStagingDir -Force
+            }
+        }
+        # Strip nested PDBs safely using -Filter (never -Include with -LiteralPath in PS 5.1)
+        Get-ChildItem -LiteralPath $msixStagingDir -Recurse -Filter "*.pdb" -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+
+        # Generate exact required MSIX PNG assets from lyrow-logo.png
+        $msixAssetsDir = Join-Path $msixStagingDir "Assets"
+        if (-not (Test-Path -LiteralPath $msixAssetsDir)) {
+            New-Item -ItemType Directory -Path $msixAssetsDir -Force | Out-Null
+        }
+        $sourceLogo = Join-Path $scriptDir "..\src\Lyrow.App\Assets\lyrow-logo.png"
+        if (Test-Path -LiteralPath $sourceLogo) {
+            Add-Type -AssemblyName System.Drawing
+            $srcImg = [System.Drawing.Image]::FromFile((Resolve-Path $sourceLogo).Path)
+            try {
+                $targets = @(
+                    @{ Name = "StoreLogo.png"; W = 50; H = 50 },
+                    @{ Name = "Square44x44Logo.png"; W = 44; H = 44 },
+                    @{ Name = "Square150x150Logo.png"; W = 150; H = 150 },
+                    @{ Name = "Wide310x150Logo.png"; W = 310; H = 150 }
+                )
+                foreach ($t in $targets) {
+                    $bmp = New-Object System.Drawing.Bitmap($t.W, $t.H)
+                    $g = [System.Drawing.Graphics]::FromImage($bmp)
+                    try {
+                        $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                        $g.Clear([System.Drawing.Color]::Transparent)
+                        $side = [Math]::Min($t.W, $t.H)
+                        $x = [int](($t.W - $side) / 2)
+                        $y = [int](($t.H - $side) / 2)
+                        $g.DrawImage($srcImg, $x, $y, $side, $side)
+                        $bmp.Save((Join-Path $msixAssetsDir $t.Name), [System.Drawing.Imaging.ImageFormat]::Png)
+                    } finally {
+                        $g.Dispose()
+                        $bmp.Dispose()
+                    }
+                }
+            } finally {
+                $srcImg.Dispose()
+            }
+        }
+
+        # Render AppxManifest.xml
+        $manifestContent = (Get-Content -LiteralPath $manifestTemplatePath -Raw).Replace("{{MSIX_VERSION}}", $msixVersion)
+        Set-Content -LiteralPath (Join-Path $msixStagingDir "AppxManifest.xml") -Value $manifestContent -Encoding UTF8
+
+        if (Test-Path -LiteralPath $msixPath) {
+            Remove-Item -LiteralPath $msixPath -Force
+        }
+
+        Write-Host "Using MakeAppx: $makeAppxPath"
+        & $makeAppxPath pack /d $msixStagingDir /p $msixPath /o
+        if ($LASTEXITCODE -ne 0) {
+            throw "makeappx pack failed with exit code $LASTEXITCODE"
+        }
+
+        $msixItem = Get-Item -LiteralPath $msixPath
+        Write-Host "MSIX x64 package generated: $($msixItem.FullName) ($([math]::Round($msixItem.Length / 1MB, 2)) MB)"
+
+        # Check for signing certificate (never claim signed if no certificate exists)
+        if ($env:LYROW_PFX_PATH -and (Test-Path -LiteralPath $env:LYROW_PFX_PATH)) {
+            $signToolPath = Get-ChildItem "$env:USERPROFILE\.nuget\packages\microsoft.windows.sdk.buildtools" -Filter "signtool.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*\x64\*" } | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+            if ($signToolPath) {
+                Write-Host "Signing MSIX with certificate: $env:LYROW_PFX_PATH"
+                & $signToolPath sign /fd SHA256 /a /f $env:LYROW_PFX_PATH /p $env:LYROW_PFX_PASSWORD $msixPath
+                if ($LASTEXITCODE -ne 0) { throw "signtool failed with exit code $LASTEXITCODE" }
+                Write-Host "MSIX Signing Status: SIGNED"
+            }
+        } else {
+            Write-Host "MSIX Signing Status: UNSIGNED (No code-signing certificate configured via LYROW_PFX_PATH)"
+        }
+    }
+    finally {
+        if (Test-Path -LiteralPath $msixStagingDir) {
+            Remove-Item -LiteralPath $msixStagingDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+} else {
+    Write-Host "`n[5/6] Skipping MSIX step as requested."
+}
+
+# -----------------------------------------------------------------
+# 6. Verification & SHA-256 Checksums
+# -----------------------------------------------------------------
+Write-Host "`n[6/6] Verifying package contents and computing SHA-256..."
 
 # Verify ZIP contents
 $archive = [System.IO.Compression.ZipFile]::OpenRead($portableZipPath)

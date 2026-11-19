@@ -195,10 +195,9 @@ public sealed class LyrowStage38UiLyricsAndSettingsTests
         // Verify Turkish locale contains all required keys with proper Turkish characters
         loc.SetLanguage("tr");
 
-        loc["Tab_All"].Should().Be("Tümü");
         loc["Tab_Appearance"].Should().Be("Görünüm");
         loc["Tab_Artwork"].Should().Be("Albüm Kapağı");
-        loc["Tab_Audio"].Should().Be("Ses");
+        loc["Tab_Audio"].Should().Be("Ses ve Kenar Işığı");
         loc["Tab_Updates"].Should().Be("Güncellemeler");
         loc["Tab_Shortcuts"].Should().Be("Kısayollar");
         loc["Tab_About"].Should().Be("Hakkında");
@@ -218,10 +217,9 @@ public sealed class LyrowStage38UiLyricsAndSettingsTests
         // Verify English locale contains matching keys
         loc.SetLanguage("en");
 
-        loc["Tab_All"].Should().Be("All");
         loc["Tab_Appearance"].Should().Be("Appearance");
         loc["Tab_Artwork"].Should().Be("Artwork");
-        loc["Tab_Audio"].Should().Be("Audio");
+        loc["Tab_Audio"].Should().Be("Audio & Edge Light");
         loc["Tab_Updates"].Should().Be("Updates");
         loc["Tab_Shortcuts"].Should().Be("Shortcuts");
         loc["Tab_About"].Should().Be("About");

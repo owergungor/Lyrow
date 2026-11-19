@@ -39,19 +39,15 @@ public sealed class LyrowV40FeatureVerificationTests
     {
         string root = FindRepoRoot();
         string appCs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "App.xaml.cs"));
-        string mainCs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "MainWindow.xaml.cs"));
 
-        // App.xaml.cs invokes EnsureLyricsWindowOpenOnStartupAsync on UI thread after MainWindow activation
-        appCs.Should().Contain("EnsureLyricsWindowOpenOnStartupAsync()");
-
-        // MainWindow prevents duplicate LyricsWindow creation with both null check and creation guard
-        mainCs.Should().Contain("private bool _isOpeningLyricsWindow");
-        mainCs.Should().Contain("if (_lyricsWindow == null && !_isOpeningLyricsWindow && _lyricsModule != null)");
-        mainCs.Should().Contain("public async Task EnsureLyricsWindowOpenOnStartupAsync()");
+        // v4.1: App.xaml.cs creates LyricsWindow directly as the single PrimaryWindowInstance
+        appCs.Should().Contain("if (PrimaryWindowInstance == null)");
+        appCs.Should().Contain("PrimaryWindowInstance = new LyricsWindow(");
+        appCs.Should().Contain("lyricsWindow.Activate();");
     }
 
     [Fact]
-    public void LyricsGlowToggleButton_PositionedLeftOfShowHideLyrics_InNormalAndCompactModes()
+    public void LyricsGlowToggleButton_PositionedLeftOfShowHideLyrics_InNormalModeAndAbsentInCompactMode()
     {
         string root = FindRepoRoot();
         string xaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.xaml"));
@@ -62,11 +58,8 @@ public sealed class LyrowV40FeatureVerificationTests
         glowIdx.Should().BeGreaterThan(0);
         toggleLyricsIdx.Should().BeGreaterThan(glowIdx, "Glow toggle button must be positioned to the left of Show/Hide Lyrics button");
 
-        // Compact mode: BtnToggleLyricsGlowCompact appears before BtnExpandFromCompact
-        int compactGlowIdx = xaml.IndexOf("x:Name=\"BtnToggleLyricsGlowCompact\"", StringComparison.Ordinal);
-        int compactLyricsIdx = xaml.IndexOf("x:Name=\"BtnExpandFromCompact\"", StringComparison.Ordinal);
-        compactGlowIdx.Should().BeGreaterThan(0);
-        compactLyricsIdx.Should().BeGreaterThan(compactGlowIdx, "Compact Glow toggle button must be positioned to the left of Compact Lyrics toggle button");
+        // v4.1: Compact mode must NOT have any Glow button
+        xaml.Should().NotContain("BtnToggleLyricsGlowCompact");
 
         // Lightweight GPU glow aura layer present and non-interactive
         xaml.Should().Contain("x:Name=\"LyricsGlowAuraLayer\" IsHitTestVisible=\"False\"");
@@ -82,14 +75,14 @@ public sealed class LyrowV40FeatureVerificationTests
         v4Cs.Should().Contain("public void SetLyricsGlowEnabled(bool enabled, bool persist = true)");
         v4Cs.Should().Contain("\\uE706"); // Active glow glyph
         v4Cs.Should().Contain("\\uE708"); // Inactive dimmed glyph
-        v4Cs.Should().Contain("LyrowNeumorphActiveBgBrush");
-        v4Cs.Should().Contain("LyrowNeumorphInactiveBgBrush");
+        v4Cs.Should().Contain("AccentButtonStyle"); // Active matches Play/Pause
+        v4Cs.Should().Contain("LyrowGhostButtonStyle"); // Inactive uses Ghost/Neumorphism style
 
-        // Backward compatibility: older settings JSON without LyricsTextGlowEnabled deserializes cleanly with default true
+        // v4.1: Backward compatibility: older settings JSON without LyricsTextGlowEnabled defaults to false (OFF)
         var legacyJson = """{"Lyrics":{"SyncOffsetMs":0,"BackdropOpacity":85}}""";
         var deserialized = JsonSerializer.Deserialize<LyrowSettings>(legacyJson);
         deserialized.Should().NotBeNull();
-        deserialized!.Lyrics.LyricsTextGlowEnabled.Should().BeTrue();
+        deserialized!.Lyrics.LyricsTextGlowEnabled.Should().BeFalse();
     }
 
     [Fact]
@@ -196,7 +189,8 @@ public sealed class LyrowV40FeatureVerificationTests
             "Settings_LyricsGlowLabel",
             "Settings_LyricsGlowDesc",
             "Settings_MinimizeToTrayLabel",
-            "Settings_OpenDashboard"
+            "EdgeLight_On",
+            "EdgeLight_Off"
         };
 
         var loc = LocalizationService.Instance;
