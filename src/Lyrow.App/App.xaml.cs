@@ -75,7 +75,8 @@ public partial class App : Application
             Services = services.BuildServiceProvider();
 
             var settingsManager = Services.GetRequiredService<ISettingsManager>();
-            var settings = settingsManager.LoadAsync().GetAwaiter().GetResult();
+            // Execute on thread-pool to avoid capturing WinUI DispatcherQueueSynchronizationContext
+            var settings = Task.Run(() => settingsManager.LoadAsync()).GetAwaiter().GetResult();
             Lyrow.Core.Localization.LocalizationService.Instance.SetLanguage(settings.Language);
 
             // Register core modules into module manager
@@ -86,10 +87,6 @@ public partial class App : Application
 
             moduleManager.RegisterModule(glow);
             moduleManager.RegisterModule(lyrics);
-
-            // v4.1: Lyrics module starts active on launch; Edge Glow defaults to OFF
-            LocalDiagnosticLogger.LogInfo("Startup v4.1: Lyrics active on launch, Glow defaults to OFF");
-            moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.LyricsOnly).GetAwaiter().GetResult();
 
             var trayIconManager = Services.GetRequiredService<LyrowTrayIconManager>();
             var artworkBitmapManager = Services.GetRequiredService<ArtworkBitmapManager>();
@@ -139,7 +136,22 @@ public partial class App : Application
 
             lyricsWindow.ApplyTheme(settings.Theme);
             lyricsWindow.Activate();
-            LocalDiagnosticLogger.LogInfo("Primary LyricsWindow created and displayed successfully (v4.1).");
+            LocalDiagnosticLogger.LogInfo("Primary LyricsWindow created and displayed successfully (v4.2).");
+
+            // Start LyricsOnly execution mode asynchronously off the WinUI UI thread to prevent WinRT/GSMTC UI-thread deadlock
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    LocalDiagnosticLogger.LogInfo("Startup v4.2: Activating LyricsOnly mode asynchronously (Glow defaults to OFF).");
+                    await moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.LyricsOnly).ConfigureAwait(false);
+                    LocalDiagnosticLogger.LogInfo("Startup v4.2: LyricsOnly mode activated successfully.");
+                }
+                catch (Exception ex)
+                {
+                    LocalDiagnosticLogger.LogError("Non-fatal error activating LyricsOnly mode on startup", ex);
+                }
+            });
 
             if (IsSmokeTestMode)
             {

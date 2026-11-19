@@ -3,7 +3,7 @@
 **Tarih:** 2026-11-19  
 **Temel Sürüm:** v4.1 (`c56738f`)  
 **Hedef Platform:** Windows 10 / 11 (x64, Self-Contained)  
-**Test Sonucu:** 705 / 705 PASS (%100)
+**Test Sonucu:** 706 / 706 PASS (%100)
 
 ---
 
@@ -38,6 +38,6 @@
 
 | Paket | Dosya Adı | Boyut | İmza Durumu | SHA-256 |
 |---|---|---|---|---|
-| **Windows Setup EXE** | `Lyrow-4.2-Setup-x64.exe` | 64.76 MB | İmzasız | `ECEADF46033ACF6C0355652B244287F547DD65AC20C1935B3D854F3DAA57B21C` |
-| **Portable ZIP** | `Lyrow-v4.2-win-x64-portable.zip` | 93.43 MB | — | `269189C24BE2D9226F75598E185A1FF29F1F6EB8F49395C076087A4E78639380` |
-| **MSIX x64** | `Lyrow-v4.2-x64.msix` | 95.68 MB | İmzasız | `7B52E0D2420E634CC9136F92C83C054CBB51787C06F01C673EACA6F147A8EB9C` |
+| **Windows Setup EXE** | `Lyrow-4.2-Setup-x64.exe` | 64.77 MB | İmzasız | `EEB4F3A0631380DDB44CF7810625EEC793C207788AACEAC9C08BB060B9F12757` |
+| **Portable ZIP** | `Lyrow-v4.2-win-x64-portable.zip` | 93.43 MB | — | `DCEDB75A942C19845FD4EC182A5D74851F6C64C0DF9CC74C413D1C936060BF63` |
+| **MSIX x64** | `Lyrow-v4.2-x64.msix` | 95.69 MB | İmzasız | `E3E50BDFE2D615342C4EA4ABFF0F97502FC41259FA182CD50F54D0B49AB1F920` |

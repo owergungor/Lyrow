@@ -266,4 +266,15 @@ public sealed class LyrowV42FeatureVerificationTests
         mid.Height.Should().Be(720);
         end.Should().Be(target);
     }
+
+    [Fact]
+    public void Startup_DoesNotBlockWinUiDispatcherThread_WithSyncOverAsyncModuleActivation()
+    {
+        string root = FindRepoRoot();
+        string appCs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "App.xaml.cs"));
+
+        // Prevents WinUI 3 UI-thread deadlock when WinRT GSMTC RequestAsync() runs during OnLaunched
+        appCs.Should().NotContain("ApplyExecutionModeAsync(ModuleExecutionMode.LyricsOnly).GetAwaiter().GetResult()");
+        appCs.Should().Contain("await moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.LyricsOnly).ConfigureAwait(false)");
+    }
 }
