@@ -19,6 +19,7 @@ public sealed class ArtworkBitmapManager
     private readonly IArtworkService _artworkService;
     private readonly ConcurrentDictionary<string, byte[]> _rawBytesCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, GlowPalette> _paletteCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, GlowPalette> _paletteByContentHash = new(StringComparer.Ordinal);
 
     public ArtworkBitmapManager(IArtworkService artworkService)
     {
@@ -255,6 +256,15 @@ public sealed class ArtworkBitmapManager
             return GlowPalette.Default;
         }
 
+        // Deduplicate identical album covers across different tracks without re-running pixel analysis
+        string contentHash = ComputeContentHash(rawBytes);
+        if (_paletteByContentHash.TryGetValue(contentHash, out var hashCachedPalette))
+        {
+            _paletteCache[key] = hashCachedPalette;
+            PruneCache(_paletteCache, key);
+            return hashCachedPalette;
+        }
+
         var palette = await Task.Run(async () =>
         {
             try
@@ -300,9 +310,27 @@ public sealed class ArtworkBitmapManager
         if (palette != GlowPalette.Default)
         {
             _paletteCache[key] = palette;
+            _paletteByContentHash[contentHash] = palette;
             PruneCache(_paletteCache, key);
+            PruneCache(_paletteByContentHash, contentHash);
         }
         return palette;
+    }
+
+    private static string ComputeContentHash(byte[] data)
+    {
+        unchecked
+        {
+            ulong hash = 14695981039346656037UL;
+            int step = Math.Max(1, data.Length / 1024);
+            for (int i = 0; i < data.Length; i += step)
+            {
+                hash ^= data[i];
+                hash *= 1099511628211UL;
+            }
+            hash ^= (ulong)data.Length;
+            return hash.ToString("X16");
+        }
     }
 
     private static void PruneCache<T>(ConcurrentDictionary<string, T> dict, string retainKey)
@@ -340,6 +368,7 @@ public sealed class ArtworkBitmapManager
     {
         _rawBytesCache.Clear();
         _paletteCache.Clear();
+        _paletteByContentHash.Clear();
         _artworkService.ClearCache();
     }
 }

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.2.0] - 2026-11-19
+
+### Added
+- **Albüm Kapağına Göre Otomatik Kenar Işığı Rengi:** Çalan parçanın albüm kapağı analiz edilerek baskın ve temsil edici renkler çıkarılır (`ArtworkColorExtractor` + içerik özeti önbellekli `ArtworkBitmapManager`), Kenar Işığı (`GlowOverlayManager`) bu renklere yumuşak cross-fade animasyonuyla otomatik geçiş yapar; kapak bulunamazsa varsayılan palete güvenli dönüş yapılır.
+- **Kenar Işığı Kalınlığı Hover Sürgüsü:** Kenar Işığı aç/kapa butonunun (`BtnToggleEdgeGlow`) üzerine gelindiğinde Dar Moddaki ses açılır kontrolüne benzer akıcı kalınlık ayar sürgüsü (`FlyoutEdgeGlowThickness` / `SliderEdgeGlowThickness`) açılır; kalınlık anlık güncellenir, fare ayrıldığında gecikmeli kapanır, klavye (Yukarı/Aşağı ok) ile erişilebilir ve kalıcı kaydedilir.
+- **Şarkı Sözlerini Göster/Gizle — 2× / 0.5× Akıcı Pencere Genişliği Geçişi:** `LyricsWindowWidthAnimatorCalculator` ile Normal Modda sözler gizlendiğinde pencere X genişliği tam yarıya iner, tekrar açıldığında tam iki katına çıkar; Y konumu ve pencere yüksekliği korunur, ekran dışı taşma engellenir, farklı DPI ve çözünürlükler ile hızlı çift tıklama iptali desteklenir.
+- **v4.2 Doğrulama Test Paketi:** Kapak renk analizi ve önbellekleme, Kenar Işığı renk eşitleme, kalınlık hover sürgüsü, Dar Modda üç nokta gizleme, 7 Ghost Button stili, Windows 11 iki panelli ayarlar modalı ve DPI/çözünürlük/ekran kenarı 2×/0.5× pencere genişliği hesaplamalarını doğrulayan 12 yeni test (`LyrowV42FeatureVerificationTests.cs`) eklendi.
+
+### Changed
+- **Modern Windows 11 Ayarlar Sayfası:** Ayarlar modalı sıfırdan iki panelli Windows 11 Fluent düzeniyle tasarlandı — solda vurgu çizgili ve ikonlu kategori navigasyonu (`SettingsModalSidebar`), sağda bağımsız kaydırılabilir Settings Cards içeriği, dar pencerede otomatik kompakt ikon rayı, Açık/Koyu tema ve eksiksiz Türkçe/İngilizce yerelleştirme ("Tümü" sekmesi olmadan, tüm mevcut ayarlar korunarak).
+- **Ghost Button Tasarımı:** Dar Mod (`BtnDarMod`), Tam Ekran (`BtnFullscreen`), Önceki Parça (`BtnPrev`), Sonraki Parça (`BtnNext`), Oynat/Duraklat (`BtnPlayPause` — merkez konumu ve 46×46 boyut hiyerarşisi korunarak), MS azaltma (`BtnOffsetMinus`) ve MS artırma (`BtnOffsetPlus`) butonları `LyrowGhostButtonStyle` tasarımına geçirildi.
+- **Dar Modda Üç Nokta Butonu:** Dar Modda sol üst köşedeki üç nokta ayarlar butonu (`BtnOpenSettingsModal`) tamamen gizlenir, Normal Moda dönüldüğünde tekrar görünür.
+
+### Validation
+- **Birim ve Entegrasyon Testleri:** 705 / 705 PASS (%100 başarı).
+- **Dağıtım Paketleri (Yerel):** `Lyrow-4.2-Setup-x64.exe`, `Lyrow-v4.2-win-x64-portable.zip` ve `Lyrow-v4.2-x64.msix` (imzasız) yerel olarak üretildi ve SHA-256 doğrulamasından geçti.
+
+---
+
 ## [4.1.0] - 2026-11-19
 
 ### Added

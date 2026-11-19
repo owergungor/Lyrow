@@ -6,23 +6,23 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011%20Native-08a1f7?logo=windows)](https://microsoft.com/windows)
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![UI](https://img.shields.io/badge/UI-WinUI%203%20%2F%20Windows%20App%20SDK%201.8-03c1f4?logo=windows)](https://learn.microsoft.com/windows/apps/winui/winui3/)
-[![Release](https://img.shields.io/badge/Release-v4.1-success)](https://github.com/owergungor/Lyrow/releases)
-[![Tests](https://img.shields.io/badge/Tests-692%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
+[![Release](https://img.shields.io/badge/Release-v4.2-success)](https://github.com/owergungor/Lyrow/releases)
+[![Tests](https://img.shields.io/badge/Tests-705%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
 [![License](https://img.shields.io/badge/License-MIT-750014.svg)](LICENSE)
 
-**Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; doğrudan birincil pencere olarak açılan senkronize şarkı sözleri arayüzü, kelime seviyesinde karaoke vurgulama, isteğe bağlı açılabilen Şarkı Sözü Parlaması (Lyrics Glow), doğrudan alt satırdan kontrol edilebilen 4 kenarlı ortam aydınlatması (Kenar Işığı / Edge Light), temizlenmiş merkezlenmiş modal ayarlar penceresi ve kompakt Dar Mod (Mini Player) sunar.
+**Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; doğrudan birincil pencere olarak açılan senkronize şarkı sözleri arayüzü, albüm kapağına göre otomatik renk değiştiren 4 kenarlı Kenar Işığı (Edge Light), hover kalınlık sürgüsü, modern Windows 11 iki panelli ayarlar modalı, Ghost Button oynatma kontrolleri, 2×/0.5× akıcı pencere genişliği geçişli şarkı sözü paneli ve kompakt Dar Mod (Mini Player) sunar.
 
 ---
 
 ## 📥 İndirme ve Kurulum
 
-### Güncel Sürüm: Lyrow v4.1 (Yerel Paketler Hazır — Setup EXE, Portable ZIP & MSIX)
+### Güncel Sürüm: Lyrow v4.2 (Yerel Paketler Hazır — Setup EXE, Portable ZIP & MSIX)
 
 | Kaynak | Dosya | Boyut | SHA-256 Doğrulama Özeti |
 |---|---|---|---|
-| **Kurulum Sihirbazı (Installer)** | `Lyrow-4.1-Setup-x64.exe` | ~64.80 MB | `0E3A6D0A7FCE394C785BFFCF37980E394A8D0EB66CFB87B158625AF0A8C9F72C` |
-| **Taşınabilir Paket (Portable ZIP)** | `Lyrow-v4.1-win-x64-portable.zip` | ~93.43 MB | `86396D0E63D02605AFD342659B522833B15CCE02950417A2975E7BA158341B88` |
-| **MSIX Paketi (Windows x64)** | `Lyrow-v4.1-x64.msix` *(imzasız)* | ~95.68 MB | `8D0831F437DC0BD22FA3E982C5B4F13500DE61242E482434D53450CB89722918` |
+| **Kurulum Sihirbazı (Installer)** | `Lyrow-4.2-Setup-x64.exe` | ~64.76 MB | `ECEADF46033ACF6C0355652B244287F547DD65AC20C1935B3D854F3DAA57B21C` |
+| **Taşınabilir Paket (Portable ZIP)** | `Lyrow-v4.2-win-x64-portable.zip` | ~93.43 MB | `269189C24BE2D9226F75598E185A1FF29F1F6EB8F49395C076087A4E78639380` |
+| **MSIX Paketi (Windows x64)** | `Lyrow-v4.2-x64.msix` *(imzasız)* | ~95.68 MB | `7B52E0D2420E634CC9136F92C83C054CBB51787C06F01C673EACA6F147A8EB9C` |
 
 > [!NOTE]
 > Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz. MSIX paketi (`Lyrow-v4.1-x64.msix`) standart x64 Windows paket yapısında üretilir; kurulum için güvenilen bir kod imzalama sertifikası ile imzalanması (`signtool.exe` veya `LYROW_PFX_PATH`) gerekir.

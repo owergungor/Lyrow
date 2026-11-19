@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Lyrow.App.Platform;
 using Lyrow.Core.Contracts;
+using Lyrow.Core.Layout;
 using Lyrow.Core.Localization;
 using Lyrow.Core.Models;
 using Lyrow.Core.Services;
@@ -17,6 +18,15 @@ public sealed partial class LyricsWindow
 {
     private Storyboard? _activeModalStoryboard;
     private bool _isTogglingEdgeGlow = false;
+    private GlowPalette _lastArtworkGlowPalette = GlowPalette.Default;
+    private DispatcherTimer? _edgeThicknessCloseTimer;
+    private DispatcherTimer? _edgeThicknessSaveDebounceTimer;
+    private bool _isPointerOverEdgeGlowButton = false;
+    private bool _isPointerOverEdgeThicknessPopup = false;
+    private bool _isUpdatingEdgeThicknessSlider = false;
+    private int _recordedSinglePanelWidthPx = 0;
+    private long _widthAnimationGeneration = 0;
+    private DispatcherTimer? _windowWidthAnimTimer;
 
     private void InitializeV4LyricsGlowAndSettingsModal()
     {
@@ -31,11 +41,12 @@ public sealed partial class LyricsWindow
             BtnToggleLyricsGlow.Click += (_, _) => ToggleLyricsGlow();
         }
 
-        // 2. Wire Edge Light (Kenar Işığı) button directly to GlowModule + GlowOverlayManager
+        // 2. Wire Edge Light (Kenar Işığı) button & hover thickness slider flyout
         if (BtnToggleEdgeGlow != null)
         {
             BtnToggleEdgeGlow.Click += async (_, _) => await ToggleEdgeGlowAsync();
         }
+        InitializeEdgeGlowThicknessHoverFlyout();
         UpdateEdgeGlowVisualState();
 
         // 3. Wire Ghost Settings Button & Modal Close Controls
@@ -81,9 +92,17 @@ public sealed partial class LyricsWindow
     {
         try
         {
-            if (_mediaMonitor != null && !_mediaMonitor.IsMonitoring)
+            if (_mediaMonitor != null)
             {
-                await _mediaMonitor.StartAsync();
+                _mediaMonitor.TimelineChanged += (_, timeline) =>
+                {
+                    SyncEdgeGlowPlaybackState(timeline.Status, _mediaMonitor.HasActiveSession);
+                };
+
+                if (!_mediaMonitor.IsMonitoring)
+                {
+                    await _mediaMonitor.StartAsync();
+                }
             }
 
             if (_mediaMonitor != null && _volumeService != null)
@@ -167,6 +186,11 @@ public sealed partial class LyricsWindow
             if (active)
             {
                 glowOverlayManager?.StartOverlays();
+                SyncEdgeGlowPalette(_lastArtworkGlowPalette);
+                if (_mediaMonitor != null)
+                {
+                    glowOverlayManager?.UpdatePlaybackState(_mediaMonitor.CurrentTimeline.Status, _mediaMonitor.HasActiveSession);
+                }
             }
             else
             {
@@ -211,6 +235,278 @@ public sealed partial class LyricsWindow
             IconToggleEdgeGlow.Glyph = _isEdgeGlowActive ? "\uE793" : "\uE793";
             IconToggleEdgeGlow.Opacity = _isEdgeGlowActive ? 1.0 : 0.70;
         }
+    }
+
+    /// <summary>
+    /// Updates the Edge Light (Kenar Işığı) overlay palette from the active album artwork (or fallback preset).
+    /// Smoothly cross-fades inside GlowOverlayWindow.
+    /// </summary>
+    internal void SyncEdgeGlowPalette(GlowPalette? artworkPalette)
+    {
+        var effectiveArtwork = artworkPalette ?? GlowPalette.Default;
+        _lastArtworkGlowPalette = effectiveArtwork;
+
+        var glowOverlayManager = App.Services?.GetService(typeof(GlowOverlayManager)) as GlowOverlayManager;
+        if (glowOverlayManager == null) return;
+
+        GlowPalette target = _settingsManager.Current.SyncWithAlbumArt
+            ? effectiveArtwork
+            : ResolveFallbackGlowPalette(_settingsManager.Current.FallbackPalettePresetIndex);
+
+        glowOverlayManager.SetCustomPalette(target);
+    }
+
+    internal void SyncEdgeGlowPlaybackState(MediaPlaybackStatus status, bool hasSession)
+    {
+        var glowOverlayManager = App.Services?.GetService(typeof(GlowOverlayManager)) as GlowOverlayManager;
+        glowOverlayManager?.UpdatePlaybackState(status, hasSession);
+    }
+
+    private static GlowPalette ResolveFallbackGlowPalette(int presetIndex) => presetIndex switch
+    {
+        1 => GlowPalette.Aurora,
+        2 => GlowPalette.NeonSunset,
+        3 => GlowPalette.Cyberpunk,
+        _ => GlowPalette.Default
+    };
+
+    private void InitializeEdgeGlowThicknessHoverFlyout()
+    {
+        SyncEdgeThicknessSliderFromSettings();
+
+        _edgeThicknessCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(320) };
+        _edgeThicknessCloseTimer.Tick += (_, _) =>
+        {
+            _edgeThicknessCloseTimer?.Stop();
+            if (!_isPointerOverEdgeGlowButton && !_isPointerOverEdgeThicknessPopup)
+            {
+                try { FlyoutEdgeGlowThickness?.Hide(); } catch { }
+            }
+        };
+
+        _edgeThicknessSaveDebounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(260) };
+        _edgeThicknessSaveDebounceTimer.Tick += async (_, _) =>
+        {
+            _edgeThicknessSaveDebounceTimer?.Stop();
+            await _settingsManager.SaveAsync(_settingsManager.Current);
+        };
+
+        if (BtnToggleEdgeGlow != null)
+        {
+            BtnToggleEdgeGlow.PointerEntered += (_, _) =>
+            {
+                _isPointerOverEdgeGlowButton = true;
+                _edgeThicknessCloseTimer?.Stop();
+                ShowEdgeThicknessFlyout();
+            };
+
+            BtnToggleEdgeGlow.PointerExited += (_, _) =>
+            {
+                _isPointerOverEdgeGlowButton = false;
+                ScheduleEdgeThicknessFlyoutClose();
+            };
+
+            // Keyboard accessibility: Up/Down or Context Menu opens thickness slider and focuses it
+            BtnToggleEdgeGlow.KeyDown += (_, e) =>
+            {
+                if (e.Key == Windows.System.VirtualKey.Up || e.Key == Windows.System.VirtualKey.Down)
+                {
+                    ShowEdgeThicknessFlyout();
+                    SliderEdgeGlowThickness?.Focus(FocusState.Keyboard);
+                    e.Handled = true;
+                }
+            };
+        }
+
+        if (GridEdgeThicknessPopup != null)
+        {
+            GridEdgeThicknessPopup.PointerEntered += (_, _) =>
+            {
+                _isPointerOverEdgeThicknessPopup = true;
+                _edgeThicknessCloseTimer?.Stop();
+            };
+
+            GridEdgeThicknessPopup.PointerExited += (_, _) =>
+            {
+                _isPointerOverEdgeThicknessPopup = false;
+                ScheduleEdgeThicknessFlyoutClose();
+            };
+        }
+
+        if (SliderEdgeGlowThickness != null)
+        {
+            SliderEdgeGlowThickness.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingEdgeThicknessSlider) return;
+                int thickness = Math.Clamp((int)Math.Round(e.NewValue), 10, 60);
+                _settingsManager.Current.GlowThickness = thickness;
+                if (TxtEdgeGlowThicknessHoverValue != null)
+                {
+                    TxtEdgeGlowThicknessHoverValue.Text = $"{thickness} px";
+                }
+
+                // Keep Settings Modal slider in sync
+                if (!_isUpdatingModalSettingsUi && SliderModalGlowThickness != null)
+                {
+                    _isUpdatingModalSettingsUi = true;
+                    try
+                    {
+                        SliderModalGlowThickness.Value = thickness;
+                        if (TxtModalGlowThicknessValue != null) TxtModalGlowThicknessValue.Text = $"{thickness} px";
+                    }
+                    finally
+                    {
+                        _isUpdatingModalSettingsUi = false;
+                    }
+                }
+
+                // Debounced persistence
+                _edgeThicknessSaveDebounceTimer?.Stop();
+                _edgeThicknessSaveDebounceTimer?.Start();
+            };
+        }
+    }
+
+    private void SyncEdgeThicknessSliderFromSettings()
+    {
+        int thickness = Math.Clamp(_settingsManager.Current.GlowThickness, 10, 60);
+        _isUpdatingEdgeThicknessSlider = true;
+        try
+        {
+            if (SliderEdgeGlowThickness != null) SliderEdgeGlowThickness.Value = thickness;
+            if (TxtEdgeGlowThicknessHoverValue != null) TxtEdgeGlowThicknessHoverValue.Text = $"{thickness} px";
+        }
+        finally
+        {
+            _isUpdatingEdgeThicknessSlider = false;
+        }
+    }
+
+    private void ShowEdgeThicknessFlyout()
+    {
+        if (BtnToggleEdgeGlow == null || FlyoutEdgeGlowThickness == null || _currentMode != LyricsWindowMode.Horizontal) return;
+        SyncEdgeThicknessSliderFromSettings();
+        try
+        {
+            if (!FlyoutEdgeGlowThickness.IsOpen)
+            {
+                FlyoutEdgeGlowThickness.ShowAt(BtnToggleEdgeGlow);
+            }
+        }
+        catch { }
+    }
+
+    private void ScheduleEdgeThicknessFlyoutClose()
+    {
+        _edgeThicknessCloseTimer?.Stop();
+        _edgeThicknessCloseTimer?.Start();
+    }
+
+    /// <summary>
+    /// Smoothly animates the Normal Mode window X-width (2x when showing lyrics, 0.5x when hiding lyrics)
+    /// while strictly preserving Y position and Height and clamping within the current monitor work area.
+    /// </summary>
+    internal void AnimateLyricsToggleWindowWidth(bool isExpandingToShowLyrics)
+    {
+        if (_currentMode != LyricsWindowMode.Horizontal) return;
+        if (AppWindow == null) return;
+
+        // Do not alter window dimensions while maximized or fullscreen
+        if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter overlapped)
+        {
+            if (overlapped.State == Microsoft.UI.Windowing.OverlappedPresenterState.Maximized) return;
+        }
+        else if (AppWindow.Presenter.Kind == Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen)
+        {
+            return;
+        }
+
+        long generation = Interlocked.Increment(ref _widthAnimationGeneration);
+        _windowWidthAnimTimer?.Stop();
+
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        uint dpi = GetDpiForWindow(hwnd);
+        double scale = dpi > 0 ? (dpi / 96.0) : 1.0;
+
+        // Allow single-panel minimum width when lyrics are hidden; restore dual-panel minimum when shown
+        if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter ov)
+        {
+            int minLogicalW = isExpandingToShowLyrics ? 640 : LyricsWindowWidthAnimatorCalculator.DefaultMinSinglePanelLogicalWidth;
+            ov.PreferredMinimumWidth = (int)Math.Round(minLogicalW * scale);
+        }
+
+        var pos = AppWindow.Position;
+        var size = AppWindow.Size;
+        var currentBounds = new WindowRectBounds(pos.X, pos.Y, size.Width, size.Height);
+
+        WindowRectBounds workArea;
+        try
+        {
+            var displayArea = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(
+                AppWindow.Id,
+                Microsoft.UI.Windowing.DisplayAreaFallback.Nearest);
+            var wa = displayArea.WorkArea;
+            workArea = new WindowRectBounds(wa.X, wa.Y, wa.Width, wa.Height);
+        }
+        catch
+        {
+            workArea = new WindowRectBounds(0, 0, Math.Max(size.Width * 2, 1920), Math.Max(size.Height, 1080));
+        }
+
+        var calc = LyricsWindowWidthAnimatorCalculator.ComputeTargetBounds(
+            currentBounds,
+            workArea,
+            isExpandingToShowLyrics,
+            _recordedSinglePanelWidthPx,
+            scale);
+
+        _recordedSinglePanelWidthPx = calc.RecordedSinglePanelWidthPx;
+        var targetBounds = calc.TargetBounds;
+
+        if (!_settingsManager.Current.EnableAnimations || currentBounds.Width == targetBounds.Width)
+        {
+            try
+            {
+                AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(
+                    targetBounds.X, targetBounds.Y, targetBounds.Width, targetBounds.Height));
+            }
+            catch { }
+            return;
+        }
+
+        var startTime = DateTime.UtcNow;
+        const double durationMs = 210.0;
+
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        _windowWidthAnimTimer = timer;
+        timer.Tick += (_, _) =>
+        {
+            if (Interlocked.Read(ref _widthAnimationGeneration) != generation)
+            {
+                timer.Stop();
+                return;
+            }
+
+            double elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            double t = Math.Clamp(elapsed / durationMs, 0.0, 1.0);
+            var step = LyricsWindowWidthAnimatorCalculator.InterpolateBounds(currentBounds, targetBounds, t);
+
+            try
+            {
+                AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(step.X, step.Y, step.Width, step.Height));
+            }
+            catch
+            {
+                timer.Stop();
+                return;
+            }
+
+            if (t >= 1.0)
+            {
+                timer.Stop();
+            }
+        };
+        timer.Start();
     }
 
     private void WireModalTabButton(Button? btn, string category)
@@ -517,23 +813,52 @@ public sealed partial class LyricsWindow
         if (ModalSectionShortcuts != null) ModalSectionShortcuts.Visibility = category == "Shortcuts" ? Visibility.Visible : Visibility.Collapsed;
         if (ModalSectionAbout != null) ModalSectionAbout.Visibility = category == "About" ? Visibility.Visible : Visibility.Collapsed;
 
-        var accentStyle = Application.Current.Resources.TryGetValue("AccentButtonStyle", out var acc) ? acc as Style : null;
-        var defaultStyle = Application.Current.Resources.TryGetValue("DefaultButtonStyle", out var def) ? def as Style : null;
+        var selectedBg = Application.Current.Resources.TryGetValue("SubtleFillColorSecondaryBrush", out var sb) ? sb as Brush : null;
+        var primaryFg = Application.Current.Resources.TryGetValue("TextFillColorPrimaryBrush", out var pf) ? pf as Brush : null;
+        var secondaryFg = Application.Current.Resources.TryGetValue("TextFillColorSecondaryBrush", out var sf) ? sf as Brush : null;
 
-        void SetPillStyle(Button? btn, string tag)
+        void SetNavState(Button? btn, Border? indicator, string tag)
         {
-            if (btn == null) return;
-            btn.Style = string.Equals(category, tag, StringComparison.OrdinalIgnoreCase) ? accentStyle : defaultStyle;
+            bool isActive = string.Equals(category, tag, StringComparison.OrdinalIgnoreCase);
+            if (indicator != null)
+            {
+                indicator.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
+            }
+            if (btn != null)
+            {
+                btn.Background = isActive ? (selectedBg ?? TransparentBrush) : TransparentBrush;
+                btn.Foreground = isActive ? primaryFg : secondaryFg;
+                btn.FontWeight = isActive ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
+            }
         }
 
-        SetPillStyle(BtnModalTabAppearance, "Appearance");
-        SetPillStyle(BtnModalTabArtwork, "Artwork");
-        SetPillStyle(BtnModalTabAudio, "Audio");
-        SetPillStyle(BtnModalTabUpdates, "Updates");
-        SetPillStyle(BtnModalTabShortcuts, "Shortcuts");
-        SetPillStyle(BtnModalTabAbout, "About");
+        SetNavState(BtnModalTabAppearance, NavIndicatorAppearance, "Appearance");
+        SetNavState(BtnModalTabArtwork, NavIndicatorArtwork, "Artwork");
+        SetNavState(BtnModalTabAudio, NavIndicatorAudio, "Audio");
+        SetNavState(BtnModalTabUpdates, NavIndicatorUpdates, "Updates");
+        SetNavState(BtnModalTabShortcuts, NavIndicatorShortcuts, "Shortcuts");
+        SetNavState(BtnModalTabAbout, NavIndicatorAbout, "About");
 
+        UpdateSettingsModalResponsiveLayout(RootLayout?.ActualWidth ?? 960);
         SettingsModalScrollViewer?.ChangeView(null, 0, null, disableAnimation: true);
+    }
+
+    internal void UpdateSettingsModalResponsiveLayout(double windowWidth)
+    {
+        if (SettingsModalCard == null || ColSettingsSidebar == null) return;
+        double available = Math.Max(320, windowWidth - 40);
+        SettingsModalCard.Width = Math.Min(760, available);
+
+        bool compactSidebar = available < 620;
+        ColSettingsSidebar.Width = new GridLength(compactSidebar ? 54 : 204);
+        var labelVis = compactSidebar ? Visibility.Collapsed : Visibility.Visible;
+
+        if (TxtModalNavAppearance != null) TxtModalNavAppearance.Visibility = labelVis;
+        if (TxtModalNavArtwork != null) TxtModalNavArtwork.Visibility = labelVis;
+        if (TxtModalNavAudio != null) TxtModalNavAudio.Visibility = labelVis;
+        if (TxtModalNavUpdates != null) TxtModalNavUpdates.Visibility = labelVis;
+        if (TxtModalNavShortcuts != null) TxtModalNavShortcuts.Visibility = labelVis;
+        if (TxtModalNavAbout != null) TxtModalNavAbout.Visibility = labelVis;
     }
 
     private void SyncModalSettingsFromModel()
@@ -856,6 +1181,7 @@ public sealed partial class LyricsWindow
                 int val = Math.Clamp((int)Math.Round(e.NewValue), 10, 60);
                 if (TxtModalGlowThicknessValue != null) TxtModalGlowThicknessValue.Text = $"{val} px";
                 _settingsManager.Current.GlowThickness = val;
+                SyncEdgeThicknessSliderFromSettings();
                 await _settingsManager.SaveAsync(_settingsManager.Current);
             };
         }
@@ -866,6 +1192,7 @@ public sealed partial class LyricsWindow
             {
                 if (_isUpdatingModalSettingsUi) return;
                 _settingsManager.Current.SyncWithAlbumArt = SwitchModalSyncWithAlbumArt.IsOn;
+                SyncEdgeGlowPalette(_lastArtworkGlowPalette);
                 await _settingsManager.SaveAsync(_settingsManager.Current);
             };
         }
@@ -1018,12 +1345,20 @@ public sealed partial class LyricsWindow
 
         if (TxtSettingsModalTitle != null) TxtSettingsModalTitle.Text = loc["Settings_Title"];
 
-        if (BtnModalTabAppearance != null) BtnModalTabAppearance.Content = loc["Tab_Appearance"];
-        if (BtnModalTabArtwork != null) BtnModalTabArtwork.Content = loc["Tab_Artwork"];
-        if (BtnModalTabAudio != null) BtnModalTabAudio.Content = loc["Tab_Audio"];
-        if (BtnModalTabUpdates != null) BtnModalTabUpdates.Content = loc["Tab_Updates"];
-        if (BtnModalTabShortcuts != null) BtnModalTabShortcuts.Content = loc["Tab_Shortcuts"];
-        if (BtnModalTabAbout != null) BtnModalTabAbout.Content = loc["Tab_About"];
+        if (TxtModalNavAppearance != null) TxtModalNavAppearance.Text = loc["Tab_Appearance"];
+        if (TxtModalNavArtwork != null) TxtModalNavArtwork.Text = loc["Tab_Artwork"];
+        if (TxtModalNavAudio != null) TxtModalNavAudio.Text = loc["Tab_Audio"];
+        if (TxtModalNavUpdates != null) TxtModalNavUpdates.Text = loc["Tab_Updates"];
+        if (TxtModalNavShortcuts != null) TxtModalNavShortcuts.Text = loc["Tab_Shortcuts"];
+        if (TxtModalNavAbout != null) TxtModalNavAbout.Text = loc["Tab_About"];
+        if (TxtModalSectionAbout != null) TxtModalSectionAbout.Text = loc["Tab_About"];
+
+        if (BtnModalTabAppearance != null) { ToolTipService.SetToolTip(BtnModalTabAppearance, loc["Tab_Appearance"]); AutomationProperties.SetName(BtnModalTabAppearance, loc["Tab_Appearance"]); }
+        if (BtnModalTabArtwork != null) { ToolTipService.SetToolTip(BtnModalTabArtwork, loc["Tab_Artwork"]); AutomationProperties.SetName(BtnModalTabArtwork, loc["Tab_Artwork"]); }
+        if (BtnModalTabAudio != null) { ToolTipService.SetToolTip(BtnModalTabAudio, loc["Tab_Audio"]); AutomationProperties.SetName(BtnModalTabAudio, loc["Tab_Audio"]); }
+        if (BtnModalTabUpdates != null) { ToolTipService.SetToolTip(BtnModalTabUpdates, loc["Tab_Updates"]); AutomationProperties.SetName(BtnModalTabUpdates, loc["Tab_Updates"]); }
+        if (BtnModalTabShortcuts != null) { ToolTipService.SetToolTip(BtnModalTabShortcuts, loc["Tab_Shortcuts"]); AutomationProperties.SetName(BtnModalTabShortcuts, loc["Tab_Shortcuts"]); }
+        if (BtnModalTabAbout != null) { ToolTipService.SetToolTip(BtnModalTabAbout, loc["Tab_About"]); AutomationProperties.SetName(BtnModalTabAbout, loc["Tab_About"]); }
 
         if (TxtModalSectionAppearance != null) TxtModalSectionAppearance.Text = loc["Section_Appearance"];
         if (TxtModalLanguageLabel != null) TxtModalLanguageLabel.Text = loc["Settings_Language"];

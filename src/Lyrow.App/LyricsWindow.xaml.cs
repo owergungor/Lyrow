@@ -489,6 +489,14 @@ public sealed partial class LyricsWindow : Window
         _currentMode = mode;
         if (mode == LyricsWindowMode.Compact)
         {
+            if (_isSettingsModalOpen)
+            {
+                CloseSettingsModal();
+            }
+            if (BtnOpenSettingsModal != null)
+            {
+                BtnOpenSettingsModal.Visibility = Visibility.Collapsed;
+            }
             HorizontalView.Visibility = Visibility.Collapsed;
             CompactPlayerView.Visibility = Visibility.Visible;
             Grid.SetRow(MainViewportArea, 0);
@@ -513,6 +521,10 @@ public sealed partial class LyricsWindow : Window
             }
             CompactPlayerView.Visibility = Visibility.Collapsed;
             HorizontalView.Visibility = Visibility.Visible;
+            if (BtnOpenSettingsModal != null)
+            {
+                BtnOpenSettingsModal.Visibility = Visibility.Visible;
+            }
             Grid.SetRow(MainViewportArea, 1);
             Grid.SetRowSpan(MainViewportArea, 1);
             LyricsTitleBar.Height = double.NaN;
@@ -569,6 +581,7 @@ public sealed partial class LyricsWindow : Window
             UpdateLyricsToggleVisualState();
             UpdateViewportPadding();
             UpdateLyricsGlowVisualState();
+            AnimateLyricsToggleWindowWidth(isExpandingToShowLyrics: true);
             _snapToCenterOnNextLayout = true;
         }
         else
@@ -578,6 +591,7 @@ public sealed partial class LyricsWindow : Window
             UpdateLyricsToggleVisualState();
             // v4.1: Hide Glow button & aura when lyrics are hidden without altering persisted Glow preference
             UpdateLyricsGlowVisualState();
+            AnimateLyricsToggleWindowWidth(isExpandingToShowLyrics: false);
         }
     }
 
@@ -830,6 +844,10 @@ public sealed partial class LyricsWindow : Window
         ImgTrackArtworkCompact.Source = null;
         IconArtworkPlaceholderCompact.Visibility = Visibility.Visible;
         _targetAmbientPalette = AmbientBackgroundPalette.Default;
+        if (newTrack.IsEmpty)
+        {
+            SyncEdgeGlowPalette(GlowPalette.Default);
+        }
 
         // 5. Update song titles and artist metadata
         if (newTrack.IsEmpty)
@@ -1083,6 +1101,7 @@ public sealed partial class LyricsWindow : Window
             var palette = await _artworkBitmapManager.ExtractArtworkPaletteAsync(track);
             if (sequenceId > 0 && Interlocked.Read(ref _windowTrackSequence) != sequenceId) return;
             _targetAmbientPalette = ArtworkPaletteExtractor.ExtractAmbientPalette(palette);
+            SyncEdgeGlowPalette(palette);
         }
         catch
         {
@@ -1092,6 +1111,7 @@ public sealed partial class LyricsWindow : Window
             ImgTrackArtworkCompact.Source = null;
             IconArtworkPlaceholderCompact.Visibility = Visibility.Visible;
             _targetAmbientPalette = AmbientBackgroundPalette.Default;
+            SyncEdgeGlowPalette(GlowPalette.Default);
         }
     }
 
@@ -1567,7 +1587,9 @@ public sealed partial class LyricsWindow : Window
             return;
         }
 
-        if (w <= LyricsViewportCalculator.NormalToCompactWidthThreshold || h <= LyricsViewportCalculator.NormalToCompactHeightThreshold)
+        if ((_isLyricsEnabled && w <= LyricsViewportCalculator.NormalToCompactWidthThreshold) ||
+            (!_isLyricsEnabled && w <= 340.0) ||
+            h <= LyricsViewportCalculator.NormalToCompactHeightThreshold)
         {
             SetWindowMode(LyricsWindowMode.Compact, resizeWindow: true);
             return;
@@ -1575,6 +1597,7 @@ public sealed partial class LyricsWindow : Window
 
         // Responsive proportional scaling for Horizontal mode
         ApplyResponsiveScaling(w, h);
+        UpdateSettingsModalResponsiveLayout(w);
         UpdateViewportPadding();
     }
 
