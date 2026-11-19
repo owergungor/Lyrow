@@ -233,6 +233,7 @@
                                         <!-- Lyrics Toggle Button: Below volume bar, X at artwork right edge -->
                                         <Button x:Name="BtnToggleLyrics" HorizontalAlignment="Right" VerticalAlignment="Center"
                                                 Width="28" Height="28" Padding="0" CornerRadius="6"
+                                                Style="{ThemeResource AccentButtonStyle}"
                                                 ToolTipService.ToolTip="Hide Lyrics"
                                                 AutomationProperties.Name="Toggle Lyrics">
                                             <FontIcon x:Name="IconToggleLyrics" Glyph="&#xEC4F;" FontSize="13" />

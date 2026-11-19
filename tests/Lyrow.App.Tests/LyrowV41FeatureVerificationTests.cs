@@ -204,4 +204,34 @@ public sealed class LyrowV41FeatureVerificationTests
         script.Should().Contain("makeappx.exe");
         script.Should().Contain(".msix");
     }
+
+    [Fact]
+    public void ToggleLyricsButton_MatchesGlowButtonVisualStyle_ActiveInactiveStates_AndFixed28x28Size()
+    {
+        string root = FindRepoRoot();
+        string xaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.xaml"));
+        string v4Cs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.V4Features.cs"));
+        string lyricsCs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.xaml.cs"));
+
+        // Both BtnToggleLyricsGlow and BtnToggleLyrics share 28x28, Padding=0, CornerRadius=6, FontSize=13
+        int btnStart = xaml.IndexOf("x:Name=\"BtnToggleLyrics\"", StringComparison.Ordinal);
+        int btnEnd = xaml.IndexOf("</Button>", btnStart, StringComparison.Ordinal);
+        btnStart.Should().BeGreaterThan(0);
+        btnEnd.Should().BeGreaterThan(btnStart);
+        string btnBlock = xaml.Substring(btnStart, btnEnd - btnStart);
+        btnBlock.Should().Contain("Width=\"28\" Height=\"28\" Padding=\"0\" CornerRadius=\"6\"");
+        btnBlock.Should().Contain("Style=\"{ThemeResource AccentButtonStyle}\"");
+        btnBlock.Should().Contain("Glyph=\"&#xEC4F;\" FontSize=\"13\"");
+
+        // Active/Inactive visual state logic matches BtnToggleLyricsGlow exactly
+        v4Cs.Should().Contain("private void UpdateLyricsToggleVisualState()");
+        v4Cs.Should().Contain("BtnToggleLyrics.Style = _isLyricsEnabled ? accentStyle : ghostStyle;");
+        v4Cs.Should().Contain("IconToggleLyrics.Opacity = _isLyricsEnabled ? 1.0 : 0.72;");
+        v4Cs.Should().Contain("string glyph = _isLyricsEnabled ? \"\\uEC4F\" : \"\\uE8D6\";");
+
+        // ToggleLyricsPanel invokes UpdateLyricsToggleVisualState and responsive layout does not override 28x28
+        lyricsCs.Should().Contain("UpdateLyricsToggleVisualState();");
+        lyricsCs.Should().NotContain("BtnToggleLyrics.Width = metrics.UtilityButtonSize;");
+        lyricsCs.Should().NotContain("BtnToggleLyrics.Height = metrics.UtilityButtonSize;");
+    }
 }

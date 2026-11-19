@@ -566,10 +566,7 @@ public sealed partial class LyricsWindow : Window
         {
             ColLyrics.Width = new GridLength(1, GridUnitType.Star);
             LyricsColumnContainer.Visibility = Visibility.Visible;
-            IconToggleLyrics.Glyph = "\uEC4F";
-            string tip = LocalizationService.Instance["Lyrics_HideLyrics"];
-            ToolTipService.SetToolTip(BtnToggleLyrics, tip);
-            AutomationProperties.SetName(BtnToggleLyrics, tip);
+            UpdateLyricsToggleVisualState();
             UpdateViewportPadding();
             UpdateLyricsGlowVisualState();
             _snapToCenterOnNextLayout = true;
@@ -578,10 +575,7 @@ public sealed partial class LyricsWindow : Window
         {
             ColLyrics.Width = new GridLength(0);
             LyricsColumnContainer.Visibility = Visibility.Collapsed;
-            IconToggleLyrics.Glyph = "\uE8D6";
-            string tip = LocalizationService.Instance["Lyrics_ShowLyrics"];
-            ToolTipService.SetToolTip(BtnToggleLyrics, tip);
-            AutomationProperties.SetName(BtnToggleLyrics, tip);
+            UpdateLyricsToggleVisualState();
             // v4.1: Hide Glow button & aura when lyrics are hidden without altering persisted Glow preference
             UpdateLyricsGlowVisualState();
         }
@@ -1637,8 +1631,6 @@ public sealed partial class LyricsWindow : Window
             BtnDarMod.Height = metrics.UtilityButtonSize;
             BtnFullscreen.Width = metrics.UtilityButtonSize;
             BtnFullscreen.Height = metrics.UtilityButtonSize;
-            BtnToggleLyrics.Width = metrics.UtilityButtonSize;
-            BtnToggleLyrics.Height = metrics.UtilityButtonSize;
 
             GridVolumeRow.Width = metrics.VolumeBarWidth;
             GridOffsetRow.Width = metrics.PlayerColumnWidth;

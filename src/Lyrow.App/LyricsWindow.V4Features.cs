@@ -24,6 +24,7 @@ public sealed partial class LyricsWindow
         _isLyricsGlowEnabled = _settingsManager.Current.Lyrics.LyricsTextGlowEnabled;
         _currentLyricsGlowOpacity = _isLyricsGlowEnabled ? 0.34 : 0.0;
         UpdateLyricsGlowVisualState();
+        UpdateLyricsToggleVisualState();
 
         if (BtnToggleLyricsGlow != null)
         {
@@ -263,6 +264,29 @@ public sealed partial class LyricsWindow
         if (persist)
         {
             _ = _settingsManager.SaveAsync(_settingsManager.Current);
+        }
+    }
+
+    private void UpdateLyricsToggleVisualState()
+    {
+        var loc = LocalizationService.Instance;
+        string tip = _isLyricsEnabled ? loc["Lyrics_HideLyrics"] : loc["Lyrics_ShowLyrics"];
+        string glyph = _isLyricsEnabled ? "\uEC4F" : "\uE8D6";
+
+        // Matches BtnToggleLyricsGlow exact visual logic: AccentButtonStyle when active, LyrowGhostButtonStyle when inactive
+        var accentStyle = Application.Current.Resources.TryGetValue("AccentButtonStyle", out var acc) ? acc as Style : null;
+        var ghostStyle = Application.Current.Resources.TryGetValue("LyrowGhostButtonStyle", out var gh) ? gh as Style : null;
+
+        if (BtnToggleLyrics != null)
+        {
+            ToolTipService.SetToolTip(BtnToggleLyrics, tip);
+            AutomationProperties.SetName(BtnToggleLyrics, tip);
+            BtnToggleLyrics.Style = _isLyricsEnabled ? accentStyle : ghostStyle;
+        }
+        if (IconToggleLyrics != null)
+        {
+            IconToggleLyrics.Glyph = glyph;
+            IconToggleLyrics.Opacity = _isLyricsEnabled ? 1.0 : 0.72;
         }
     }
 
