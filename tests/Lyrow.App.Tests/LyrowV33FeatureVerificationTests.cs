@@ -63,7 +63,7 @@ public class LyrowV33FeatureVerificationTests
         xaml.Should().Contain("x:Name=\"TxtElapsedCompact\"");
         xaml.Should().Contain("x:Name=\"TxtRemainingCompact\"");
         xaml.Should().Contain("x:Name=\"IconDeviceCompact\"");
-        xaml.Should().Contain("x:Name=\"TxtDeviceCompact\"");
+        xaml.Should().Contain("x:Name=\"BtnDeviceSelectorCompact\"");
         xaml.Should().Contain("x:Name=\"BtnPrevCompact\"");
         xaml.Should().Contain("x:Name=\"BtnPlayPauseCompact\"");
         xaml.Should().Contain("x:Name=\"BtnNextCompact\"");

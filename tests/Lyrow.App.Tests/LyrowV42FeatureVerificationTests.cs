@@ -101,11 +101,9 @@ public sealed class LyrowV42FeatureVerificationTests
         xaml.Should().Contain("x:Name=\"SliderEdgeGlowThickness\"");
         xaml.Should().Contain("x:Name=\"TxtEdgeGlowThicknessHoverValue\"");
 
-        v4Cs.Should().Contain("InitializeEdgeGlowThicknessHoverFlyout()");
-        v4Cs.Should().Contain("BtnToggleEdgeGlow.PointerEntered +=");
-        v4Cs.Should().Contain("BtnToggleEdgeGlow.PointerExited +=");
+        v4Cs.Should().Contain("InitializeEdgeGlowThicknessClickFlyout()");
+        v4Cs.Should().Contain("BtnToggleEdgeGlow.Click +=");
         v4Cs.Should().Contain("BtnToggleEdgeGlow.KeyDown +=");
-        v4Cs.Should().Contain("_edgeThicknessCloseTimer");
         v4Cs.Should().Contain("_settingsManager.Current.GlowThickness = thickness;");
         v4Cs.Should().Contain("_edgeThicknessSaveDebounceTimer");
     }

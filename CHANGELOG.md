@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.3.0] - 2026-11-19
+
+### Added
+- **Dar Mod — Kenar Işığı Butonu (`BtnToggleEdgeGlowCompact`):** Compact Lyrics Show/Hide butonunun hemen soluna `26×26` ikon-odaklı Kenar Işığı aç/kapa butonu eklendi; ortak Kenar Işığı motoruna bağlıdır, aktif/pasif görsel durumu Normal Modla tam senkronize çalışır ve kullanıcı tercihini korur.
+- **v4.3 Doğrulama Test Paketi:** Dar Mod 6 Ghost Button, ikon-odaklı Audio Output (`26×26`), Dar Mod Kenar Işığı butonu, Normal Mod tıklamayla açılan `0–64 px` kalınlık ayarı ve Windows 11 Fluent ayarlar tasarımını doğrulayan 5 yeni test (`LyrowV43FeatureVerificationTests.cs`) eklendi.
+
+### Changed
+- **Dar Mod — Ghost Button Tasarımı:** Volume & Mute, Play/Pause, Previous, Next, Normal Mode ve Compact Lyrics Show/Hide butonlarının tamamı Açık/Koyu tema uyumlu `LyrowGhostButtonStyle` tasarımına geçirildi.
+- **Dar Mod — İkon-Odaklı Audio Output Butonu (`BtnDeviceSelectorCompact`):** Metin etiketi tamamen kaldırılarak Volume & Mute ile birebir aynı **`26×26` (`CornerRadius="6"`)** Ghost Button boyutuna getirildi; aktif ses çıkış aygıtı Tooltip üzerinden gösterilir ve cihaz seçme işlevi korunur.
+- **Normal Mod — Tıklamayla Açılan `0–64 px` Kenar Işığı Kalınlık Ayarı:** Hover ile açılma kaldırıldı; kullanıcı Kenar Işığı butonuna tıkladığında kalınlık sürgüsü açılır, tekrar tıkladığında veya dışarı tıkladığında kapanır. Aralık **`0–64 px`** olarak güncellendi; `0 px` Kenar Işığını tamamen kapatır, `1–64 px` anlık kalınlık uygular, kalıcı kaydedilir ve Ayarlar sayfasıyla çift yönlü senkronize çalışır.
+- **Ayarlar Sayfası — Microsoft Windows 11 Fluent Design:** Windows 11 Settings `SettingsCard` anatomisi (sol Fluent ikonlar, "Genel / Şarkı Sözleri / Sistem ve Bildirimler" tipografi hiyerarşisi, tutarlı `8 px` kart köşeleri, sol vurgu çizgili navigasyon, dar pencerede kompakt ikon rayı, Açık/Koyu/Sistem teması ve Türkçe/İngilizce yerelleştirme) ile iyileştirildi.
+
+### Validation
+- **Birim ve Entegrasyon Testleri:** 711 / 711 PASS (%100 başarı).
+- **Gerçek Çalıştırma Doğrulaması:** Hem `publish\win-x64\Lyrow.App.exe` hem `AppData\Local\Programs\Lyrow\Lyrow.App.exe` `--smoke-test` (`ExitCode: 0`) ve canlı pencere açılışıyla doğrulandı.
+- **Dağıtım Paketleri (Yerel):** `Lyrow-4.3-Setup-x64.exe`, `Lyrow-v4.3-win-x64-portable.zip` ve `Lyrow-v4.3-x64.msix` (imzasız) yerel olarak üretildi ve SHA-256 doğrulamasından geçti.
+
+---
+
 ## [4.2.0] - 2026-11-19
 
 ### Added

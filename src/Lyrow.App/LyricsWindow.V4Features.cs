@@ -19,10 +19,7 @@ public sealed partial class LyricsWindow
     private Storyboard? _activeModalStoryboard;
     private bool _isTogglingEdgeGlow = false;
     private GlowPalette _lastArtworkGlowPalette = GlowPalette.Default;
-    private DispatcherTimer? _edgeThicknessCloseTimer;
     private DispatcherTimer? _edgeThicknessSaveDebounceTimer;
-    private bool _isPointerOverEdgeGlowButton = false;
-    private bool _isPointerOverEdgeThicknessPopup = false;
     private bool _isUpdatingEdgeThicknessSlider = false;
     private int _recordedSinglePanelWidthPx = 0;
     private long _widthAnimationGeneration = 0;
@@ -41,12 +38,14 @@ public sealed partial class LyricsWindow
             BtnToggleLyricsGlow.Click += (_, _) => ToggleLyricsGlow();
         }
 
-        // 2. Wire Edge Light (Kenar Işığı) button & hover thickness slider flyout
-        if (BtnToggleEdgeGlow != null)
+        // 2. Wire Edge Light (Kenar Işığı) buttons:
+        //    - Normal Mode: Click toggles the 0-64 px thickness slider flyout (no hover open)
+        //    - Compact Mode: Click directly toggles Edge Light ON/OFF using the shared Edge Light engine
+        InitializeEdgeGlowThicknessClickFlyout();
+        if (BtnToggleEdgeGlowCompact != null)
         {
-            BtnToggleEdgeGlow.Click += async (_, _) => await ToggleEdgeGlowAsync();
+            BtnToggleEdgeGlowCompact.Click += async (_, _) => await ToggleEdgeGlowAsync();
         }
-        InitializeEdgeGlowThicknessHoverFlyout();
         UpdateEdgeGlowVisualState();
 
         // 3. Wire Ghost Settings Button & Modal Close Controls
@@ -232,8 +231,19 @@ public sealed partial class LyricsWindow
         }
         if (IconToggleEdgeGlow != null)
         {
-            IconToggleEdgeGlow.Glyph = _isEdgeGlowActive ? "\uE793" : "\uE793";
+            IconToggleEdgeGlow.Glyph = "\uE793";
             IconToggleEdgeGlow.Opacity = _isEdgeGlowActive ? 1.0 : 0.70;
+        }
+        if (BtnToggleEdgeGlowCompact != null)
+        {
+            ToolTipService.SetToolTip(BtnToggleEdgeGlowCompact, tip);
+            AutomationProperties.SetName(BtnToggleEdgeGlowCompact, tip);
+            BtnToggleEdgeGlowCompact.Style = _isEdgeGlowActive ? accentStyle : ghostStyle;
+        }
+        if (IconToggleEdgeGlowCompact != null)
+        {
+            IconToggleEdgeGlowCompact.Glyph = "\uE793";
+            IconToggleEdgeGlowCompact.Opacity = _isEdgeGlowActive ? 1.0 : 0.70;
         }
     }
 
@@ -270,19 +280,9 @@ public sealed partial class LyricsWindow
         _ => GlowPalette.Default
     };
 
-    private void InitializeEdgeGlowThicknessHoverFlyout()
+    private void InitializeEdgeGlowThicknessClickFlyout()
     {
         SyncEdgeThicknessSliderFromSettings();
-
-        _edgeThicknessCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(320) };
-        _edgeThicknessCloseTimer.Tick += (_, _) =>
-        {
-            _edgeThicknessCloseTimer?.Stop();
-            if (!_isPointerOverEdgeGlowButton && !_isPointerOverEdgeThicknessPopup)
-            {
-                try { FlyoutEdgeGlowThickness?.Hide(); } catch { }
-            }
-        };
 
         _edgeThicknessSaveDebounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(260) };
         _edgeThicknessSaveDebounceTimer.Tick += async (_, _) =>
@@ -293,20 +293,10 @@ public sealed partial class LyricsWindow
 
         if (BtnToggleEdgeGlow != null)
         {
-            BtnToggleEdgeGlow.PointerEntered += (_, _) =>
-            {
-                _isPointerOverEdgeGlowButton = true;
-                _edgeThicknessCloseTimer?.Stop();
-                ShowEdgeThicknessFlyout();
-            };
+            // v4.3: Click-only toggle (NO hover open); clicking again or outside closes the flyout
+            BtnToggleEdgeGlow.Click += (_, _) => ToggleEdgeThicknessFlyout();
 
-            BtnToggleEdgeGlow.PointerExited += (_, _) =>
-            {
-                _isPointerOverEdgeGlowButton = false;
-                ScheduleEdgeThicknessFlyoutClose();
-            };
-
-            // Keyboard accessibility: Up/Down or Context Menu opens thickness slider and focuses it
+            // Keyboard accessibility: Up/Down opens thickness slider and focuses it
             BtnToggleEdgeGlow.KeyDown += (_, e) =>
             {
                 if (e.Key == Windows.System.VirtualKey.Up || e.Key == Windows.System.VirtualKey.Down)
@@ -318,58 +308,66 @@ public sealed partial class LyricsWindow
             };
         }
 
-        if (GridEdgeThicknessPopup != null)
-        {
-            GridEdgeThicknessPopup.PointerEntered += (_, _) =>
-            {
-                _isPointerOverEdgeThicknessPopup = true;
-                _edgeThicknessCloseTimer?.Stop();
-            };
-
-            GridEdgeThicknessPopup.PointerExited += (_, _) =>
-            {
-                _isPointerOverEdgeThicknessPopup = false;
-                ScheduleEdgeThicknessFlyoutClose();
-            };
-        }
-
         if (SliderEdgeGlowThickness != null)
         {
             SliderEdgeGlowThickness.ValueChanged += (_, e) =>
             {
                 if (_isUpdatingEdgeThicknessSlider) return;
-                int thickness = Math.Clamp((int)Math.Round(e.NewValue), 10, 60);
-                _settingsManager.Current.GlowThickness = thickness;
-                if (TxtEdgeGlowThicknessHoverValue != null)
-                {
-                    TxtEdgeGlowThicknessHoverValue.Text = $"{thickness} px";
-                }
-
-                // Keep Settings Modal slider in sync
-                if (!_isUpdatingModalSettingsUi && SliderModalGlowThickness != null)
-                {
-                    _isUpdatingModalSettingsUi = true;
-                    try
-                    {
-                        SliderModalGlowThickness.Value = thickness;
-                        if (TxtModalGlowThicknessValue != null) TxtModalGlowThicknessValue.Text = $"{thickness} px";
-                    }
-                    finally
-                    {
-                        _isUpdatingModalSettingsUi = false;
-                    }
-                }
-
-                // Debounced persistence
-                _edgeThicknessSaveDebounceTimer?.Stop();
-                _edgeThicknessSaveDebounceTimer?.Start();
+                int thickness = Math.Clamp((int)Math.Round(e.NewValue), 0, 64);
+                ApplyEdgeGlowThicknessChange(thickness, fromModalSlider: false);
             };
         }
     }
 
+    private void ApplyEdgeGlowThicknessChange(int thickness, bool fromModalSlider)
+    {
+        thickness = Math.Clamp(thickness, 0, 64);
+        _settingsManager.Current.GlowThickness = thickness;
+
+        if (!fromModalSlider)
+        {
+            if (TxtEdgeGlowThicknessHoverValue != null)
+            {
+                TxtEdgeGlowThicknessHoverValue.Text = $"{thickness} px";
+            }
+
+            if (!_isUpdatingModalSettingsUi && SliderModalGlowThickness != null)
+            {
+                _isUpdatingModalSettingsUi = true;
+                try
+                {
+                    SliderModalGlowThickness.Value = thickness;
+                    if (TxtModalGlowThicknessValue != null) TxtModalGlowThicknessValue.Text = $"{thickness} px";
+                }
+                finally
+                {
+                    _isUpdatingModalSettingsUi = false;
+                }
+            }
+        }
+        else
+        {
+            SyncEdgeThicknessSliderFromSettings();
+        }
+
+        // 0 px completely turns Edge Light OFF; 1-64 px ensures Edge Light is active with live thickness
+        if (thickness == 0 && _isEdgeGlowActive)
+        {
+            _ = SetEdgeGlowStateAsync(false);
+        }
+        else if (thickness > 0 && !_isEdgeGlowActive)
+        {
+            _ = SetEdgeGlowStateAsync(true);
+        }
+
+        // Debounced persistence
+        _edgeThicknessSaveDebounceTimer?.Stop();
+        _edgeThicknessSaveDebounceTimer?.Start();
+    }
+
     private void SyncEdgeThicknessSliderFromSettings()
     {
-        int thickness = Math.Clamp(_settingsManager.Current.GlowThickness, 10, 60);
+        int thickness = Math.Clamp(_settingsManager.Current.GlowThickness, 0, 64);
         _isUpdatingEdgeThicknessSlider = true;
         try
         {
@@ -380,6 +378,23 @@ public sealed partial class LyricsWindow
         {
             _isUpdatingEdgeThicknessSlider = false;
         }
+    }
+
+    private void ToggleEdgeThicknessFlyout()
+    {
+        if (BtnToggleEdgeGlow == null || FlyoutEdgeGlowThickness == null || _currentMode != LyricsWindowMode.Horizontal) return;
+        try
+        {
+            if (FlyoutEdgeGlowThickness.IsOpen)
+            {
+                FlyoutEdgeGlowThickness.Hide();
+            }
+            else
+            {
+                ShowEdgeThicknessFlyout();
+            }
+        }
+        catch { }
     }
 
     private void ShowEdgeThicknessFlyout()
@@ -394,12 +409,6 @@ public sealed partial class LyricsWindow
             }
         }
         catch { }
-    }
-
-    private void ScheduleEdgeThicknessFlyoutClose()
-    {
-        _edgeThicknessCloseTimer?.Stop();
-        _edgeThicknessCloseTimer?.Start();
     }
 
     /// <summary>
@@ -910,8 +919,8 @@ public sealed partial class LyricsWindow
             if (SwitchModalAmbientEdgeGlow != null) SwitchModalAmbientEdgeGlow.IsOn = _isEdgeGlowActive;
             if (SliderModalGlowIntensity != null) SliderModalGlowIntensity.Value = Math.Clamp(s.GlowIntensity, 10, 100);
             if (TxtModalGlowIntensityPercent != null) TxtModalGlowIntensityPercent.Text = $"{Math.Clamp(s.GlowIntensity, 10, 100)}%";
-            if (SliderModalGlowThickness != null) SliderModalGlowThickness.Value = Math.Clamp(s.GlowThickness, 10, 60);
-            if (TxtModalGlowThicknessValue != null) TxtModalGlowThicknessValue.Text = $"{Math.Clamp(s.GlowThickness, 10, 60)} px";
+            if (SliderModalGlowThickness != null) SliderModalGlowThickness.Value = Math.Clamp(s.GlowThickness, 0, 64);
+            if (TxtModalGlowThicknessValue != null) TxtModalGlowThicknessValue.Text = $"{Math.Clamp(s.GlowThickness, 0, 64)} px";
             if (SwitchModalSyncWithAlbumArt != null) SwitchModalSyncWithAlbumArt.IsOn = s.SyncWithAlbumArt;
 
             if (SwitchModalAutoUpdate != null) SwitchModalAutoUpdate.IsOn = s.AutoUpdateEnabled;
@@ -1175,14 +1184,12 @@ public sealed partial class LyricsWindow
 
         if (SliderModalGlowThickness != null)
         {
-            SliderModalGlowThickness.ValueChanged += async (_, e) =>
+            SliderModalGlowThickness.ValueChanged += (_, e) =>
             {
                 if (_isUpdatingModalSettingsUi) return;
-                int val = Math.Clamp((int)Math.Round(e.NewValue), 10, 60);
+                int val = Math.Clamp((int)Math.Round(e.NewValue), 0, 64);
                 if (TxtModalGlowThicknessValue != null) TxtModalGlowThicknessValue.Text = $"{val} px";
-                _settingsManager.Current.GlowThickness = val;
-                SyncEdgeThicknessSliderFromSettings();
-                await _settingsManager.SaveAsync(_settingsManager.Current);
+                ApplyEdgeGlowThicknessChange(val, fromModalSlider: true);
             };
         }
 
@@ -1361,6 +1368,10 @@ public sealed partial class LyricsWindow
         if (BtnModalTabAbout != null) { ToolTipService.SetToolTip(BtnModalTabAbout, loc["Tab_About"]); AutomationProperties.SetName(BtnModalTabAbout, loc["Tab_About"]); }
 
         if (TxtModalSectionAppearance != null) TxtModalSectionAppearance.Text = loc["Section_Appearance"];
+        bool isTr = string.Equals(loc.CurrentLanguage, "tr", StringComparison.OrdinalIgnoreCase);
+        if (TxtModalSubGeneral != null) TxtModalSubGeneral.Text = isTr ? "Genel" : "General";
+        if (TxtModalSubLyrics != null) TxtModalSubLyrics.Text = isTr ? "Şarkı Sözleri" : "Lyrics";
+        if (TxtModalSubSystem != null) TxtModalSubSystem.Text = isTr ? "Sistem ve Bildirimler" : "System & Notifications";
         if (TxtModalLanguageLabel != null) TxtModalLanguageLabel.Text = loc["Settings_Language"];
         if (TxtModalLanguageDesc != null) TxtModalLanguageDesc.Text = loc["Settings_LanguageDesc"];
         if (TxtModalThemeLabel != null) TxtModalThemeLabel.Text = loc["Settings_Theme"];

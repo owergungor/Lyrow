@@ -1060,7 +1060,12 @@ public sealed partial class LyricsWindow : Window
         IconDevice.Glyph = glyph;
         TxtDevice.Text = deviceName;
         IconDeviceCompact.Glyph = glyph;
-        TxtDeviceCompact.Text = deviceName;
+        if (BtnDeviceSelectorCompact != null)
+        {
+            string audioTip = $"{LocalizationService.Instance["Tab_Audio"]}: {deviceName}";
+            ToolTipService.SetToolTip(BtnDeviceSelectorCompact, audioTip);
+            AutomationProperties.SetName(BtnDeviceSelectorCompact, audioTip);
+        }
     }
 
     private async Task UpdateArtworkAsync(MediaTrackInfo track, long sequenceId = 0)
@@ -1867,8 +1872,6 @@ public sealed partial class LyricsWindow : Window
     {
         BtnDeviceSelector.PointerEntered += (_, _) => BtnDeviceSelector.Opacity = 1.0;
         BtnDeviceSelector.PointerExited += (_, _) => BtnDeviceSelector.Opacity = 0.75;
-        BtnDeviceSelectorCompact.PointerEntered += (_, _) => BtnDeviceSelectorCompact.Opacity = 1.0;
-        BtnDeviceSelectorCompact.PointerExited += (_, _) => BtnDeviceSelectorCompact.Opacity = 0.75;
 
         FlyoutAudioDevices.Opening += (_, _) => PopulateAudioDeviceFlyout(FlyoutAudioDevices);
         FlyoutAudioDevicesCompact.Opening += (_, _) => PopulateAudioDeviceFlyout(FlyoutAudioDevicesCompact);
@@ -1943,7 +1946,12 @@ public sealed partial class LyricsWindow : Window
                     {
                         // 1. Immediately update UI labels & glyph for immediate tactile feedback
                         TxtDevice.Text = dev.Name;
-                        TxtDeviceCompact.Text = dev.Name;
+                        if (BtnDeviceSelectorCompact != null)
+                        {
+                            string audioTip = $"{LocalizationService.Instance["Tab_Audio"]}: {dev.Name}";
+                            ToolTipService.SetToolTip(BtnDeviceSelectorCompact, audioTip);
+                            AutomationProperties.SetName(BtnDeviceSelectorCompact, audioTip);
+                        }
                         string immediateGlyph = dev.Name.ToLowerInvariant().Contains("headphone") || dev.Name.ToLowerInvariant().Contains("headset")
                             ? "\uE7F6"
                             : (dev.Name.ToLowerInvariant().Contains("bluetooth") ? "\uE702" : "\uE767");

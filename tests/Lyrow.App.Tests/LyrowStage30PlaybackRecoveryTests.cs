@@ -219,11 +219,8 @@ public sealed class LyrowStage30PlaybackRecoveryTests
         File.Exists(xamlPath).Should().BeTrue();
         string content = File.ReadAllText(xamlPath);
 
-        // TxtDeviceCompact MaxWidth must be <= 60 DIPs to fit comfortably next to volume button without clipping
-        content.Should().Contain("x:Name=\"TxtDeviceCompact\"");
-        content.Should().Contain("MaxWidth=\"60\"");
-
-        // IconDeviceCompact must use primary brush
+        // v4.3: Compact Audio Output selector is icon-only 26x26 (zero text clipping next to volume button)
+        content.Should().Contain("x:Name=\"BtnDeviceSelectorCompact\"");
         content.Should().Contain("x:Name=\"IconDeviceCompact\"");
     }
 
