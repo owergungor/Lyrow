@@ -291,7 +291,25 @@ public sealed class LocalizationService
             ["Offset_Delay"] = "Delay",
             ["Offset_Advance"] = "Advance",
             ["Offset_Decrease"] = "Decrease Lyrics Offset by 250 ms",
-            ["Offset_Increase"] = "Increase Lyrics Offset by 250 ms"
+            ["Offset_Increase"] = "Increase Lyrics Offset by 250 ms",
+            ["Lyrics_GlowOn"] = "Lyrics Glow: On",
+            ["Lyrics_GlowOff"] = "Lyrics Glow: Off",
+            ["Lyrics_GlowToggle"] = "Toggle Lyrics Glow",
+            ["Lyrics_OpenSettings"] = "Settings",
+            ["Modal_Close"] = "Close (Esc)",
+            ["Settings_LyricsGlowLabel"] = "Lyrics Glow Effect",
+            ["Settings_LyricsGlowDesc"] = "Soft luminous aura on active synchronized lyrics",
+            ["Settings_MinimizeToTrayLabel"] = "Minimize to System Tray",
+            ["Settings_MinimizeToTrayDesc"] = "Hide to the system tray when closing the dashboard window",
+            ["Settings_OpenDashboard"] = "Open Dashboard",
+            ["Settings_FocusedFontSize"] = "Active Lyric Font Size",
+            ["Settings_UnfocusedFontSize"] = "Inactive Lyric Font Size",
+            ["Settings_BackdropOpacity"] = "Lyrics Backdrop Opacity",
+            ["Settings_AmbientGlowLabel"] = "Ambient Edge Glow",
+            ["Settings_AmbientGlowDesc"] = "4-edge music reactive screen lighting",
+            ["Settings_GlowIntensity"] = "Glow Brightness",
+            ["Settings_GlowThickness"] = "Glow Edge Thickness",
+            ["Settings_SyncWithAlbumArt"] = "Sync Glow with Album Art"
         },
 
         ["fr"] = new(StringComparer.OrdinalIgnoreCase)
@@ -860,7 +878,25 @@ public sealed class LocalizationService
             ["Offset_Delay"] = "Gecikme",
             ["Offset_Advance"] = "İlerleme",
             ["Offset_Decrease"] = "Şarkı Sözü Zamanını 250 ms Geciktir",
-            ["Offset_Increase"] = "Şarkı Sözü Zamanını 250 ms İlerlet"
+            ["Offset_Increase"] = "Şarkı Sözü Zamanını 250 ms İlerlet",
+            ["Lyrics_GlowOn"] = "Şarkı Sözü Parlaması: Açık",
+            ["Lyrics_GlowOff"] = "Şarkı Sözü Parlaması: Kapalı",
+            ["Lyrics_GlowToggle"] = "Şarkı Sözü Parlamasını Aç/Kapat",
+            ["Lyrics_OpenSettings"] = "Ayarlar",
+            ["Modal_Close"] = "Kapat (Esc)",
+            ["Settings_LyricsGlowLabel"] = "Şarkı Sözü Parlama Efekti",
+            ["Settings_LyricsGlowDesc"] = "Aktif senkronize şarkı sözlerinde yumuşak parlama efekti",
+            ["Settings_MinimizeToTrayLabel"] = "Sistem Tepsisine Küçült",
+            ["Settings_MinimizeToTrayDesc"] = "Kontrol paneli kapatıldığında sistem tepsisine gizle",
+            ["Settings_OpenDashboard"] = "Kontrol Panelini Aç",
+            ["Settings_FocusedFontSize"] = "Aktif Söz Yazı Boyutu",
+            ["Settings_UnfocusedFontSize"] = "Pasif Söz Yazı Boyutu",
+            ["Settings_BackdropOpacity"] = "Söz Arka Plan Opaklığı",
+            ["Settings_AmbientGlowLabel"] = "Ortam Kenar Aydınlatması (Glow)",
+            ["Settings_AmbientGlowDesc"] = "4 kenar müziğe duyarlı ekran aydınlatması",
+            ["Settings_GlowIntensity"] = "Parlaklık Şiddeti",
+            ["Settings_GlowThickness"] = "Kenar Parlama Kalınlığı",
+            ["Settings_SyncWithAlbumArt"] = "Albüm Kapağıyla Renk Eşitle"
         }
     };
 }

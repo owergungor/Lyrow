@@ -136,6 +136,20 @@ public partial class App : Application
             mainWindow.ApplyTheme(settings.Theme);
             mainWindow.Activate();
             LocalDiagnosticLogger.LogInfo("MainWindow created and displayed successfully.");
+
+            // v4.0: Automatically open LyricsWindow on startup so user directly sees the lyrics interface
+            mainWindow.DispatcherQueue.TryEnqueue(async () =>
+            {
+                try
+                {
+                    await mainWindow.EnsureLyricsWindowOpenOnStartupAsync();
+                    LocalDiagnosticLogger.LogInfo("LyricsWindow auto-opened on startup (v4.0).");
+                }
+                catch (Exception ex)
+                {
+                    LocalDiagnosticLogger.LogError("Non-fatal error auto-opening LyricsWindow on startup", ex);
+                }
+            });
             if (IsSmokeTestMode)
             {
                 _ = Task.Run(async () =>

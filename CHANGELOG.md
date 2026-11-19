@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.0.0] - 2026-11-19
+
+### Added
+- **Açılışta Otomatik Lyrics Penceresi:** Lyrow başlatıldığında Lyrics penceresi otomatik olarak açılır ve kullanıcı doğrudan şarkı sözleri arayüzünü görür; tekil pencere koruması (`_isOpeningLyricsWindow` & `_lyricsWindow` guard) ile aynı pencerenin birden fazla kez oluşturulması engellenir.
+- **Şarkı Sözü Parlama (Lyrics Glow) Açma/Kapama Butonu:** Hem Normal Modda ("Şarkı Sözlerini Göster/Gizle" butonunun solunda) hem de Kompakt Modda yer alan, neumorphism tasarım diline uygun, açık (`\uE706`) ve kapalı (`\uE708`) durumları görsel olarak ayrışan ve sıfır bellek tahsisli GPU hızlandırmalı parlama efektini kontrol eden buton eklendi.
+- **Sol Üst Üç Nokta (`...`) Ghost Button & Merkezlenmiş Modal Ayarlar Penceresi:** Lyrics penceresinin en sol üst köşesine Ghost Button (`\uE712`) eklendi; tıklandığında pencere boyut ve konumunu değiştirmeden arka planı yarı saydam koyu katmanla karartan, arka plan etkileşimini engelleyen, bağımsız kaydırılabilen, ESC ve kapatma butonuyla kapanan, yumuşak açılış/kapanış animasyonlu ve tüm Lyrow ayarlarını içeren merkezlenmiş modal ayarlar penceresi eklendi.
+- **v4.0 Doğrulama Test Paketi:** Açılış davranışı, Glow butonu konum/durum/geriye dönük uyumluluk, Ghost Button & Modal Ayarlar, yeni Dar Mod ikonu, Açık/Koyu tema ve Türkçe/İngilizce yerelleştirme kapsamını doğrulayan 8 yeni otomatik test (`LyrowV40FeatureVerificationTests.cs`) eklendi.
+
+### Changed
+- **Dar Mod (Kompakt Görünüm) Buton İkonu:** Lyrics penceresindeki Dar Mod butonu ikonu (`BtnDarMod`), kompakt görünüme geçişi daha anlaşılır temsil eden Windows 11 Segoe Fluent Icons `BackToWindow` (`\uE73F`) ikonu ile güncellendi ve Kompakt Moddan Normal Moda dönüş ikonu (`\uE740`) ile görsel olarak eşleştirildi.
+
+### Validation
+- **Birim ve Entegrasyon Testleri:** 684 / 684 PASS (%100 başarı).
+- **Dağıtım Paketleri:** Portable ZIP (`Lyrow-v4.0-win-x64-portable.zip`) ve Inno Setup Installer (`Lyrow-4.0-Setup-x64.exe`) başarıyla üretildi ve SHA-256 doğrulamasından geçti.
+
+---
+
 ## [3.8.0] - 2026-11-11
 
 ### Added

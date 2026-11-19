@@ -51,4 +51,9 @@ public sealed class LyricsModuleSettings
     /// Translucency level of the lyrics window background canvas [40, 100].
     /// </summary>
     public int BackdropOpacity { get; set; } = 85;
+
+    /// <summary>
+    /// Whether the soft glow/light effect on synchronized lyrics is enabled.
+    /// </summary>
+    public bool LyricsTextGlowEnabled { get; set; } = true;
 }

@@ -38,6 +38,16 @@
         <Grid RowDefinitions="Auto,*">
             <!-- Custom WinUI 3 TitleBar -->
             <TitleBar x:Name="LyricsTitleBar" Grid.Row="0" Canvas.ZIndex="100">
+                <TitleBar.LeftHeader>
+                    <Button x:Name="BtnOpenSettingsModal"
+                            Style="{StaticResource LyrowGhostButtonStyle}"
+                            Width="32" Height="28" Margin="4,0,2,0"
+                            VerticalAlignment="Center"
+                            ToolTipService.ToolTip="Settings"
+                            AutomationProperties.Name="Open Settings">
+                        <FontIcon x:Name="IconOpenSettingsModal" Glyph="&#xE712;" FontSize="14" />
+                    </Button>
+                </TitleBar.LeftHeader>
                 <TitleBar.IconSource>
                     <ImageIconSource ImageSource="Assets/lyrow.ico" />
                 </TitleBar.IconSource>
@@ -130,7 +140,7 @@
                                             Width="34" Height="34" Padding="0" CornerRadius="8"
                                             ToolTipService.ToolTip="Compact Player (Dar Mod)"
                                             AutomationProperties.Name="Compact Player">
-                                        <FontIcon Glyph="&#xEE49;" FontSize="13" />
+                                        <FontIcon x:Name="IconDarMod" Glyph="&#xE73F;" FontSize="13" />
                                     </Button>
 
                                     <!-- Playback Controls Centered -->
@@ -189,13 +199,27 @@
                                                 CornerRadius="4" FontSize="11" ToolTipService.ToolTip="+250ms Advance" />
                                     </StackPanel>
 
-                                    <!-- Lyrics Toggle Button: Below volume bar, X at artwork right edge -->
-                                    <Button x:Name="BtnToggleLyrics" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                            Width="34" Height="34" Padding="0" CornerRadius="8"
-                                            ToolTipService.ToolTip="Toggle Lyrics Panel"
-                                            AutomationProperties.Name="Toggle Lyrics">
-                                        <FontIcon x:Name="IconToggleLyrics" Glyph="&#xEC4F;" FontSize="14" />
-                                    </Button>
+                                    <!-- Right Actions: Glow Toggle Button (left of Lyrics Toggle) + Lyrics Toggle Button -->
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="8">
+                                        <Button x:Name="BtnToggleLyricsGlow"
+                                                Width="34" Height="34" Padding="0" CornerRadius="8"
+                                                Background="{ThemeResource LyrowNeumorphActiveBgBrush}"
+                                                BorderBrush="{ThemeResource LyrowNeumorphActiveBorderBrush}"
+                                                BorderThickness="1"
+                                                ToolTipService.ToolTip="Lyrics Glow: On"
+                                                AutomationProperties.Name="Toggle Lyrics Glow">
+                                            <FontIcon x:Name="IconToggleLyricsGlow" Glyph="&#xE706;" FontSize="14"
+                                                      Foreground="{ThemeResource LyrowAccentBrush}" />
+                                        </Button>
+
+                                        <!-- Lyrics Toggle Button: Below volume bar, X at artwork right edge -->
+                                        <Button x:Name="BtnToggleLyrics" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                Width="34" Height="34" Padding="0" CornerRadius="8"
+                                                ToolTipService.ToolTip="Toggle Lyrics Panel"
+                                                AutomationProperties.Name="Toggle Lyrics">
+                                            <FontIcon x:Name="IconToggleLyrics" Glyph="&#xEC4F;" FontSize="14" />
+                                        </Button>
+                                    </StackPanel>
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>
@@ -203,6 +227,17 @@
 
                     <!-- Right Column (50%): Lyrics Viewport -->
                     <Grid x:Name="LyricsColumnContainer" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent">
+                        <!-- Lightweight GPU-accelerated Lyrics Glow Aura (toggled by BtnToggleLyricsGlow) -->
+                        <Border x:Name="LyricsGlowAuraLayer" IsHitTestVisible="False" Visibility="Visible" Opacity="0.34" Margin="8,24">
+                            <Border.Background>
+                                <RadialGradientBrush Center="0.45,0.5" RadiusX="0.62" RadiusY="0.34">
+                                    <GradientStop x:Name="LyricsGlowStopCenter" Color="#8089B4FA" Offset="0.0" />
+                                    <GradientStop x:Name="LyricsGlowStopMid" Color="#3389B4FA" Offset="0.52" />
+                                    <GradientStop Color="#00000000" Offset="1.0" />
+                                </RadialGradientBrush>
+                            </Border.Background>
+                        </Border>
+
                         <ScrollViewer x:Name="LyricsScrollViewer"
                                       VerticalScrollMode="Enabled"
                                       VerticalScrollBarVisibility="Hidden"
@@ -390,8 +425,17 @@
                                     </Button>
                                 </StackPanel>
 
-                                <!-- Right: Lyrics Toggle button & Normal Mode / List View button -->
+                                <!-- Right: Lyrics Glow Toggle, Lyrics Toggle button & Normal Mode button -->
                                 <StackPanel x:Name="CompactRightControlsPanel" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="4">
+                                    <Button x:Name="BtnToggleLyricsGlowCompact" Width="26" Height="26" Padding="0" CornerRadius="6"
+                                            Background="{ThemeResource LyrowNeumorphActiveBgBrush}"
+                                            BorderBrush="{ThemeResource LyrowNeumorphActiveBorderBrush}"
+                                            BorderThickness="1"
+                                            ToolTipService.ToolTip="Lyrics Glow: On"
+                                            AutomationProperties.Name="Toggle Lyrics Glow">
+                                        <FontIcon x:Name="IconToggleLyricsGlowCompact" Glyph="&#xE706;" FontSize="11"
+                                                  Foreground="{ThemeResource LyrowAccentBrush}" />
+                                    </Button>
                                     <Button x:Name="BtnExpandFromCompact" Width="26" Height="26" Padding="0" CornerRadius="6"
                                             ToolTipService.ToolTip="Toggle Compact Lyrics"
                                             AutomationProperties.Name="Toggle Compact Lyrics">
@@ -416,6 +460,336 @@
                             Spacing="8"
                             Canvas.ZIndex="1000" />
             </Grid>
+        </Grid>
+
+        <!-- Centered Modal Settings Dialog Overlay (v4.0) -->
+        <Grid x:Name="SettingsModalOverlay" Visibility="Collapsed" Canvas.ZIndex="2000" IsHitTestVisible="True">
+            <!-- Semi-transparent Dimming Backdrop (blocks all pointer interaction with main window) -->
+            <Border x:Name="SettingsModalBackdrop"
+                    Background="{ThemeResource LyrowModalBackdropBrush}"
+                    Opacity="0"
+                    IsHitTestVisible="True" />
+
+            <!-- Centered Neumorphic Modal Dialog Container -->
+            <Border x:Name="SettingsModalCard"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    MaxWidth="640"
+                    MaxHeight="580"
+                    Margin="24,42,24,24"
+                    CornerRadius="18"
+                    Background="{ThemeResource LyrowModalSurfaceBrush}"
+                    BorderBrush="{ThemeResource LyrowModalBorderBrush}"
+                    BorderThickness="1"
+                    Opacity="0"
+                    RenderTransformOrigin="0.5,0.5">
+                <Border.RenderTransform>
+                    <ScaleTransform x:Name="SettingsModalCardScale" ScaleX="0.95" ScaleY="0.95" />
+                </Border.RenderTransform>
+
+                <Grid RowDefinitions="Auto,Auto,*" MinWidth="280">
+                    <!-- Modal Header -->
+                    <Grid Grid.Row="0" Padding="20,16,14,12" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" HorizontalAlignment="Left">
+                            <FontIcon Glyph="&#xE713;" FontSize="17" Foreground="{ThemeResource LyrowAccentBrush}" />
+                            <TextBlock x:Name="TxtSettingsModalTitle" Text="Settings" FontWeight="SemiBold" FontSize="18" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Button x:Name="BtnCloseSettingsModal"
+                                Style="{StaticResource LyrowGhostButtonStyle}"
+                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Width="32" Height="32"
+                                ToolTipService.ToolTip="Close (Esc)"
+                                AutomationProperties.Name="Close Settings Modal">
+                            <FontIcon Glyph="&#xE711;" FontSize="13" />
+                        </Button>
+                    </Grid>
+
+                    <!-- Category Filter Pills -->
+                    <ScrollViewer Grid.Row="1" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden"
+                                  VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Hidden"
+                                  Padding="16,10,16,6">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button x:Name="BtnModalTabAll" Content="All" Tag="All" Padding="12,5" CornerRadius="14" FontSize="12" Style="{ThemeResource AccentButtonStyle}" />
+                            <Button x:Name="BtnModalTabAppearance" Content="Appearance" Tag="Appearance" Padding="12,5" CornerRadius="14" FontSize="12" />
+                            <Button x:Name="BtnModalTabArtwork" Content="Artwork" Tag="Artwork" Padding="12,5" CornerRadius="14" FontSize="12" />
+                            <Button x:Name="BtnModalTabAudio" Content="Audio" Tag="Audio" Padding="12,5" CornerRadius="14" FontSize="12" />
+                            <Button x:Name="BtnModalTabUpdates" Content="Updates" Tag="Updates" Padding="12,5" CornerRadius="14" FontSize="12" />
+                            <Button x:Name="BtnModalTabShortcuts" Content="Shortcuts" Tag="Shortcuts" Padding="12,5" CornerRadius="14" FontSize="12" />
+                            <Button x:Name="BtnModalTabAbout" Content="About" Tag="About" Padding="12,5" CornerRadius="14" FontSize="12" />
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Independently Scrollable Settings Content -->
+                    <ScrollViewer x:Name="SettingsModalScrollViewer"
+                                  Grid.Row="2"
+                                  VerticalScrollMode="Enabled"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollMode="Disabled"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Padding="20,8,20,20">
+                        <StackPanel x:Name="SettingsModalContentPanel" Spacing="14">
+
+                            <!-- 1. Appearance, Language & Lyrics Personalization -->
+                            <Border x:Name="ModalSectionAppearance" Padding="16" CornerRadius="12"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <StackPanel Spacing="12">
+                                    <TextBlock x:Name="TxtModalSectionAppearance" Text="Appearance &amp; Personalization" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+
+                                    <Grid ColumnDefinitions="*,170" VerticalAlignment="Center">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalLanguageLabel" Text="Language" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalLanguageDesc" Text="Interface display language" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ComboBox x:Name="ComboModalLanguage" Grid.Column="1" HorizontalAlignment="Stretch" AutomationProperties.Name="Modal Language Selector">
+                                            <ComboBoxItem Content="English" Tag="en" />
+                                            <ComboBoxItem Content="Français" Tag="fr" />
+                                            <ComboBoxItem Content="Español" Tag="es" />
+                                            <ComboBoxItem Content="Deutsch" Tag="de" />
+                                            <ComboBoxItem Content="Türkçe" Tag="tr" />
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,170" VerticalAlignment="Center">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalThemeLabel" Text="Theme" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalThemeDesc" Text="Light, Dark, or follow Windows system theme" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ComboBox x:Name="ComboModalTheme" Grid.Column="1" HorizontalAlignment="Stretch" AutomationProperties.Name="Modal Theme Selector">
+                                            <ComboBoxItem Content="System Default" Tag="SystemDefault" />
+                                            <ComboBoxItem Content="Dark" Tag="Dark" />
+                                            <ComboBoxItem Content="Light" Tag="Light" />
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalLyricsGlowLabel" Text="Lyrics Glow Effect" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalLyricsGlowDesc" Text="Soft luminous aura on active synchronized lyrics" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SwitchModalLyricsGlow" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Lyrics Glow Toggle" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalAnimationsLabel" Text="Fluid Motion &amp; Animations" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalAnimationsDesc" Text="Enable smooth visual transitions and interactive physics" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SwitchModalEnableAnimations" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Animations Toggle" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock x:Name="TxtModalMasterOpacityLabel" Text="Window Opacity" FontWeight="Medium" FontSize="13.5" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="TxtModalMasterOpacityPercent" Grid.Column="1" Text="95%" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Slider x:Name="SliderModalMasterOpacity" Minimum="50" Maximum="100" Value="95" StepFrequency="1" AutomationProperties.Name="Modal Master Opacity Slider" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock x:Name="TxtModalBackdropOpacityLabel" Text="Lyrics Backdrop Opacity" FontWeight="Medium" FontSize="13.5" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="TxtModalBackdropOpacityPercent" Grid.Column="1" Text="85%" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Slider x:Name="SliderModalBackdropOpacity" Minimum="40" Maximum="100" Value="85" StepFrequency="5" AutomationProperties.Name="Modal Lyrics Backdrop Opacity Slider" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock x:Name="TxtModalFocusedFontLabel" Text="Active Lyric Font Size" FontWeight="Medium" FontSize="13.5" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="TxtModalFocusedFontValue" Grid.Column="1" Text="28 px" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Slider x:Name="SliderModalFocusedFontSize" Minimum="18" Maximum="42" Value="28" StepFrequency="1" AutomationProperties.Name="Modal Active Lyric Font Size Slider" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock x:Name="TxtModalUnfocusedFontLabel" Text="Inactive Lyric Font Size" FontWeight="Medium" FontSize="13.5" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="TxtModalUnfocusedFontValue" Grid.Column="1" Text="20 px" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Slider x:Name="SliderModalUnfocusedFontSize" Minimum="14" Maximum="32" Value="20" StepFrequency="1" AutomationProperties.Name="Modal Inactive Lyric Font Size Slider" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalStartupLabel" Text="Launch on Windows Startup" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalStartupDesc" Text="Start Lyrow automatically when signing into Windows" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SwitchModalStartWithWindows" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Launch on Startup" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalSystemTrayLabel" Text="System Tray Integration" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalSystemTrayDesc" Text="Keep Lyrow accessible in the Windows notification area" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SwitchModalSystemTray" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal System Tray Toggle" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalMinimizeToTrayLabel" Text="Minimize to System Tray" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalMinimizeToTrayDesc" Text="Hide to the system tray when closing the dashboard window" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SwitchModalMinimizeToTray" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Minimize to Tray Toggle" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalNotificationsLabel" Text="Desktop Notifications" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalNotificationsDesc" Text="Show notifications for updates and system events" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SwitchModalNotifications" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Desktop Notifications Toggle" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalNotifyOnTrackChangeLabel" Text="Notify on Track Change" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalNotifyOnTrackChangeDesc" Text="Display a brief notification when the playing track changes" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SwitchModalNotifyOnTrackChange" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Notify on Track Change Toggle" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 2. Artwork & Dynamic Background -->
+                            <Border x:Name="ModalSectionArtwork" Padding="16" CornerRadius="12"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <StackPanel Spacing="12">
+                                    <TextBlock x:Name="TxtModalSectionArtwork" Text="Artwork &amp; Dynamic Background" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalArtworkDynamicBgLabel" Text="Dynamic Ambient Background Layer" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalArtworkDynamicBgDesc" Text="Subtle, fluidly tinted blurred artwork atmosphere" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SwitchModalArtworkDynamicBg" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Dynamic Ambient Background Toggle" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock x:Name="TxtModalArtworkSaturationLabel" Text="Ambient Background Saturation" FontWeight="Medium" FontSize="13.5" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="TxtModalArtworkSaturationPercent" Grid.Column="1" Text="100%" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Slider x:Name="SliderModalArtworkSaturation" Minimum="10" Maximum="150" Value="100" StepFrequency="5" AutomationProperties.Name="Modal Artwork Saturation Slider" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock x:Name="TxtModalArtworkRadiusLabel" Text="Artwork Corner Radius" FontWeight="Medium" FontSize="13.5" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="TxtModalArtworkRadiusValue" Grid.Column="1" Text="12 px" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Slider x:Name="SliderModalArtworkCornerRadius" Minimum="4" Maximum="24" Value="12" StepFrequency="1" AutomationProperties.Name="Modal Artwork Corner Radius Slider" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 3. Audio Engine & Ambient Edge Glow -->
+                            <Border x:Name="ModalSectionAudio" Padding="16" CornerRadius="12"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <StackPanel Spacing="12">
+                                    <TextBlock x:Name="TxtModalSectionAudio" Text="Audio Engine &amp; Ambient Edge Glow" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalAmbientGlowLabel" Text="Ambient Edge Glow" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalAmbientGlowDesc" Text="4-edge music reactive screen lighting" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SwitchModalAmbientEdgeGlow" Grid.Column="1" IsOn="False" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Ambient Edge Glow Toggle" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock x:Name="TxtModalGlowIntensityLabel" Text="Glow Brightness" FontWeight="Medium" FontSize="13.5" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="TxtModalGlowIntensityPercent" Grid.Column="1" Text="80%" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Slider x:Name="SliderModalGlowIntensity" Minimum="10" Maximum="100" Value="80" StepFrequency="5" AutomationProperties.Name="Modal Glow Intensity Slider" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock x:Name="TxtModalGlowThicknessLabel" Text="Glow Edge Thickness" FontWeight="Medium" FontSize="13.5" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="TxtModalGlowThicknessValue" Grid.Column="1" Text="24 px" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Slider x:Name="SliderModalGlowThickness" Minimum="10" Maximum="60" Value="24" StepFrequency="2" AutomationProperties.Name="Modal Glow Thickness Slider" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock x:Name="TxtModalSyncAlbumArtLabel" Text="Sync Glow with Album Art" FontWeight="Medium" FontSize="13.5" VerticalAlignment="Center" />
+                                        <ToggleSwitch x:Name="SwitchModalSyncWithAlbumArt" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Sync Glow with Album Art" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,170" VerticalAlignment="Center">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalFftSizeLabel" Text="FFT Analysis Window Size" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalFftSizeDesc" Text="Sample window for frequency analysis" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ComboBox x:Name="ComboModalFftSize" Grid.Column="1" SelectedIndex="1" HorizontalAlignment="Stretch" AutomationProperties.Name="Modal FFT Size Selector">
+                                            <ComboBoxItem Content="1024 samples" Tag="1024" />
+                                            <ComboBoxItem Content="2048 samples (Standard)" Tag="2048" />
+                                            <ComboBoxItem Content="4096 samples (High Res)" Tag="4096" />
+                                        </ComboBox>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 4. Updates -->
+                            <Border x:Name="ModalSectionUpdates" Padding="16" CornerRadius="12"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <StackPanel Spacing="12">
+                                    <TextBlock x:Name="TxtModalSectionUpdates" Text="Updates" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Name="TxtModalAutoUpdatesLabel" Text="Automatic Update Checks" FontWeight="Medium" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtModalAutoUpdatesDesc" Text="Check GitHub Releases in the background" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SwitchModalAutoUpdate" Grid.Column="1" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Auto Update Toggle" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,170" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TxtModalUpdateFreqLabel" Text="Check Frequency" FontWeight="Medium" FontSize="13.5" VerticalAlignment="Center" />
+                                        <ComboBox x:Name="ComboModalUpdateFrequency" Grid.Column="1" HorizontalAlignment="Stretch" AutomationProperties.Name="Modal Update Frequency Selector">
+                                            <ComboBoxItem Content="On Startup" Tag="OnStartup" />
+                                            <ComboBoxItem Content="Daily" Tag="Daily" />
+                                            <ComboBoxItem Content="Weekly" Tag="Weekly" />
+                                            <ComboBoxItem Content="Monthly" Tag="Monthly" />
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TxtModalUpdateStatus" Text="Lyrow v4.0 — Release channel: GitHub Releases" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                        <Button x:Name="BtnModalCheckUpdates" Grid.Column="1" Content="Check for Updates" Margin="8,0,0,0" AutomationProperties.Name="Modal Check for Updates" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 5. Shortcuts -->
+                            <Border x:Name="ModalSectionShortcuts" Padding="16" CornerRadius="12"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <StackPanel Spacing="10">
+                                    <TextBlock x:Name="TxtModalSectionShortcuts" Text="Shortcuts" FontWeight="SemiBold" FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="8">
+                                        <TextBlock x:Name="TxtModalShortcutGlowLabel" Text="Toggle Glow:" VerticalAlignment="Center" FontSize="13" />
+                                        <TextBox x:Name="TxtModalHotkeyGlow" Grid.Column="1" Width="150" PlaceholderText="e.g. Ctrl+Alt+G" AutomationProperties.Name="Modal Hotkey Glow" />
+
+                                        <TextBlock x:Name="TxtModalShortcutLyricsLabel" Grid.Row="1" Text="Toggle Lyrics:" VerticalAlignment="Center" FontSize="13" />
+                                        <TextBox x:Name="TxtModalHotkeyLyrics" Grid.Row="1" Grid.Column="1" Width="150" PlaceholderText="e.g. Ctrl+Alt+L" AutomationProperties.Name="Modal Hotkey Lyrics" />
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,4,0,0">
+                                        <Button x:Name="BtnModalClearHotkeys" Content="Clear" AutomationProperties.Name="Modal Clear Shortcuts" />
+                                        <Button x:Name="BtnModalSaveHotkeys" Content="Apply Shortcuts" Style="{ThemeResource AccentButtonStyle}" AutomationProperties.Name="Modal Apply Shortcuts" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 6. About & Diagnostics -->
+                            <Border x:Name="ModalSectionAbout" Padding="16" CornerRadius="12"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="Lyrow v4.0" FontWeight="SemiBold" FontSize="14" />
+                                    <TextBlock x:Name="TxtModalAboutSubtitle" Text="Native Windows Ambient Edge Lighting &amp; Synchronized Lyrics" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                        <Button x:Name="BtnModalResetSettings" Content="Reset Settings" AutomationProperties.Name="Modal Reset Settings" />
+                                        <Button x:Name="BtnModalOpenLogs" Content="Open Diagnostic Log" AutomationProperties.Name="Modal Open Logs" />
+                                        <Button x:Name="BtnModalOpenDashboard" Content="Open Dashboard" AutomationProperties.Name="Modal Open Main Dashboard" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
         </Grid>
     </Grid>
 </Window>

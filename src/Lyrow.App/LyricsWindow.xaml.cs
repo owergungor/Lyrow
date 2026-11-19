@@ -86,10 +86,16 @@ public sealed partial class LyricsWindow : Window
     // View state
     private LyricsWindowMode _currentMode = LyricsWindowMode.Horizontal;
     private bool _isLyricsEnabled = true;
+    private bool _isLyricsGlowEnabled = true;
+    private bool _isSettingsModalOpen = false;
+    private bool _isUpdatingModalSettingsUi = false;
+    private double _currentLyricsGlowOpacity = 0.34;
+    private string _activeModalSettingsCategory = "All";
 
     // Preserved Ambient Dynamic Artwork Background Engine
     private static readonly SolidColorBrush InactiveLyricBrush = new(Windows.UI.Color.FromArgb(200, 190, 190, 205));
     private static readonly SolidColorBrush ActiveLyricBrush = new(Windows.UI.Color.FromArgb(255, 255, 255, 255));
+    private static readonly SolidColorBrush ActiveLyricGlowContainerBrush = new(Windows.UI.Color.FromArgb(24, 255, 255, 255));
     private static readonly SolidColorBrush TransparentBrush = new(Windows.UI.Color.FromArgb(0, 0, 0, 0));
 
     private AmbientBackgroundPalette _currentAmbientPalette = AmbientBackgroundPalette.Default;
@@ -97,6 +103,8 @@ public sealed partial class LyricsWindow : Window
 
     public LyricsWindowMode CurrentMode => _currentMode;
     public bool IsLyricsEnabled => _isLyricsEnabled;
+    public bool IsLyricsGlowEnabled => _isLyricsGlowEnabled;
+    public bool IsSettingsModalOpen => _isSettingsModalOpen;
 
     public LyricsWindow(
         LyricsModule lyricsModule,
@@ -283,6 +291,16 @@ public sealed partial class LyricsWindow : Window
         RootLayout.SizeChanged += (_, _) => UpdateLayoutForCurrentSize();
         RootLayout.KeyDown += async (_, e) =>
         {
+            if (_isSettingsModalOpen)
+            {
+                if (e.Key == Windows.System.VirtualKey.Escape)
+                {
+                    CloseSettingsModal();
+                    e.Handled = true;
+                }
+                return;
+            }
+
             if (e.Key == Windows.System.VirtualKey.F11)
             {
                 ToggleFullscreen();
@@ -312,6 +330,8 @@ public sealed partial class LyricsWindow : Window
                 e.Handled = true;
             }
         };
+
+        InitializeV4LyricsGlowAndSettingsModal();
 
         LyricsScrollViewer.SizeChanged += (_, _) =>
         {
@@ -431,6 +451,8 @@ public sealed partial class LyricsWindow : Window
 
         if (TxtEmptyState != null) TxtEmptyState.Text = loc["Status_WaitingMedia"];
         if (TxtEmptyStateSub != null) TxtEmptyStateSub.Text = loc["Status_PlayInApp"];
+
+        ApplyV4Localization();
     }
 
     /// <summary>
@@ -1233,6 +1255,9 @@ public sealed partial class LyricsWindow : Window
             var target = LyricsViewportCalculator.GetLineVisualTarget(i, activeIdx, focusedSize, unfocusedSize);
             _targetOpacities[i] = target.TargetOpacity;
             _targetScales[i] = isThisLineActive ? target.TargetScale : 1.0;
+            _lineContainers[i].Background = (isThisLineActive && _isLyricsGlowEnabled)
+                ? ActiveLyricGlowContainerBrush
+                : TransparentBrush;
 
             if (!isThisLineActive && _currentScales[i] > 1.0)
             {
@@ -1493,6 +1518,9 @@ public sealed partial class LyricsWindow : Window
         StopTopLeft.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Dominant.R, _currentAmbientPalette.Dominant.G, _currentAmbientPalette.Dominant.B);
         StopCenter.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Secondary.R, _currentAmbientPalette.Secondary.G, _currentAmbientPalette.Secondary.B);
         StopBottomRight.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Tertiary.R, _currentAmbientPalette.Tertiary.G, _currentAmbientPalette.Tertiary.B);
+
+        // 5. Lightweight zero-allocation Lyrics Glow aura update
+        StepLyricsGlowAuraAnimation();
     }
 
     private void UpdateLayoutForCurrentSize()

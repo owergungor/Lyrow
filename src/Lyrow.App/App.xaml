@@ -23,6 +23,16 @@
                     <SolidColorBrush x:Key="LyrowTextPrimaryBrush" Color="#CDD6F4" />
                     <SolidColorBrush x:Key="LyrowTextSecondaryBrush" Color="#A6ADC8" />
                     <SolidColorBrush x:Key="LyrowTextTertiaryBrush" Color="#9399B2" />
+                    <SolidColorBrush x:Key="LyrowGhostHoverBackgroundBrush" Color="#26FFFFFF" />
+                    <SolidColorBrush x:Key="LyrowGhostPressedBackgroundBrush" Color="#3DFFFFFF" />
+                    <SolidColorBrush x:Key="LyrowGhostBorderBrush" Color="#2EFFFFFF" />
+                    <SolidColorBrush x:Key="LyrowModalBackdropBrush" Color="#A6000000" />
+                    <SolidColorBrush x:Key="LyrowModalSurfaceBrush" Color="#F2191A24" />
+                    <SolidColorBrush x:Key="LyrowModalBorderBrush" Color="#38FFFFFF" />
+                    <SolidColorBrush x:Key="LyrowNeumorphActiveBgBrush" Color="#2E89B4FA" />
+                    <SolidColorBrush x:Key="LyrowNeumorphActiveBorderBrush" Color="#9989B4FA" />
+                    <SolidColorBrush x:Key="LyrowNeumorphInactiveBgBrush" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="LyrowNeumorphInactiveBorderBrush" Color="#22FFFFFF" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
                     <SolidColorBrush x:Key="LyrowAccentBrush" Color="#1E66F5" />
@@ -36,6 +46,16 @@
                     <SolidColorBrush x:Key="LyrowTextPrimaryBrush" Color="#0F172A" />
                     <SolidColorBrush x:Key="LyrowTextSecondaryBrush" Color="#475569" />
                     <SolidColorBrush x:Key="LyrowTextTertiaryBrush" Color="#64748B" />
+                    <SolidColorBrush x:Key="LyrowGhostHoverBackgroundBrush" Color="#180F172A" />
+                    <SolidColorBrush x:Key="LyrowGhostPressedBackgroundBrush" Color="#280F172A" />
+                    <SolidColorBrush x:Key="LyrowGhostBorderBrush" Color="#240F172A" />
+                    <SolidColorBrush x:Key="LyrowModalBackdropBrush" Color="#8C0F172A" />
+                    <SolidColorBrush x:Key="LyrowModalSurfaceBrush" Color="#FAF8FAFC" />
+                    <SolidColorBrush x:Key="LyrowModalBorderBrush" Color="#330F172A" />
+                    <SolidColorBrush x:Key="LyrowNeumorphActiveBgBrush" Color="#241E66F5" />
+                    <SolidColorBrush x:Key="LyrowNeumorphActiveBorderBrush" Color="#881E66F5" />
+                    <SolidColorBrush x:Key="LyrowNeumorphInactiveBgBrush" Color="#120F172A" />
+                    <SolidColorBrush x:Key="LyrowNeumorphInactiveBorderBrush" Color="#1F0F172A" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
 
@@ -67,6 +87,71 @@
             <Duration x:Key="LyrowAnimDurationFast">0:0:0.15</Duration>
             <Duration x:Key="LyrowAnimDurationNormal">0:0:0.25</Duration>
             <Duration x:Key="LyrowAnimDurationSmooth">0:0:0.35</Duration>
+
+            <!-- Ghost Button Style (Unobtrusive at rest, distinct hover & pressed states) -->
+            <Style x:Key="LyrowGhostButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="RootBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="{TemplateBinding CornerRadius}"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter x:Name="ContentPresenter"
+                                                  Content="{TemplateBinding Content}"
+                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Foreground="{TemplateBinding Foreground}" />
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootBorder" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource LyrowGhostHoverBackgroundBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootBorder" Storyboard.TargetProperty="BorderBrush">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource LyrowGhostBorderBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Foreground">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootBorder" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource LyrowGhostPressedBackgroundBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootBorder" Storyboard.TargetProperty="BorderBrush">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource LyrowNeumorphActiveBorderBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Foreground">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled">
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="RootBorder" Storyboard.TargetProperty="Opacity" To="0.4" Duration="0" />
+                                            </Storyboard>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

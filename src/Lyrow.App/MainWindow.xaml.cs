@@ -55,7 +55,11 @@ public sealed partial class MainWindow : Window
     private bool _isUpdatingToggles = false;
     private bool _isUpdatingVolumeUi = false;
     private bool _isUpdatingSettingsUi = false;
+    private bool _isOpeningLyricsWindow = false;
     private bool _isDraggingHomeProgress = false;
+
+    public bool IsLyricsWindowOpen => _lyricsWindow != null;
+    public bool IsGlowActive => SwitchHomeGlow?.IsOn ?? false;
     private string _currentActivePage = "Home";
     private bool _isCompact = false;
     private int _currentWizardStep = 0;
@@ -1824,22 +1828,30 @@ public sealed partial class MainWindow : Window
                 TxtLyricsStatus.Text = "Running (Active)";
                 TxtLyricsStatus.Foreground = (Brush)Application.Current.Resources["LyrowSuccessBrush"];
 
-                if (_lyricsWindow == null && _lyricsModule != null)
+                if (_lyricsWindow == null && !_isOpeningLyricsWindow && _lyricsModule != null)
                 {
-                    _lyricsWindow = new LyricsWindow(
-                        _lyricsModule,
-                        _settingsManager,
-                        _artworkBitmapManager,
-                        _mediaMonitor,
-                        _volumeService,
-                        _toastManager,
-                        App.Services?.GetService<IAudioCaptureService>(),
-                        App.Services?.GetService<IAudioRoutingService>());
-                    _lyricsWindow.Closed += (_, _) =>
+                    _isOpeningLyricsWindow = true;
+                    try
                     {
-                        _lyricsWindow = null;
-                        _ = SetLyricsStateAsync(false);
-                    };
+                        _lyricsWindow = new LyricsWindow(
+                            _lyricsModule,
+                            _settingsManager,
+                            _artworkBitmapManager,
+                            _mediaMonitor,
+                            _volumeService,
+                            _toastManager,
+                            App.Services?.GetService<IAudioCaptureService>(),
+                            App.Services?.GetService<IAudioRoutingService>());
+                        _lyricsWindow.Closed += (_, _) =>
+                        {
+                            _lyricsWindow = null;
+                            _ = SetLyricsStateAsync(false);
+                        };
+                    }
+                    finally
+                    {
+                        _isOpeningLyricsWindow = false;
+                    }
                 }
                 _lyricsWindow?.Activate();
                 ShowToast("Synchronized Lyrics window opened.", InfoBarSeverity.Success);
@@ -2316,6 +2328,80 @@ public sealed partial class MainWindow : Window
         DispatcherQueue.TryEnqueue(async () =>
         {
             await SetLyricsStateAsync(!SwitchHomeLyrics.IsOn);
+        });
+    }
+
+    /// <summary>
+    /// Automatically opens and activates the single LyricsWindow instance on application launch (v4.0).
+    /// Prevents duplicate window creation if already open.
+    /// </summary>
+    public async Task EnsureLyricsWindowOpenOnStartupAsync()
+    {
+        if (_lyricsWindow != null)
+        {
+            _lyricsWindow.Activate();
+            return;
+        }
+        await SetLyricsStateAsync(true);
+    }
+
+    public Task SetGlowStateFromExternalAsync(bool active)
+    {
+        var tcs = new TaskCompletionSource();
+        DispatcherQueue.TryEnqueue(async () =>
+        {
+            try
+            {
+                await SetGlowStateAsync(active);
+                tcs.TrySetResult();
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+            }
+        });
+        return tcs.Task;
+    }
+
+    public void RefreshFromExternalSettings()
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            InitializeSettingsUi();
+        });
+    }
+
+    public async Task<string> CheckForUpdatesFromExternalAsync()
+    {
+        try
+        {
+            await CheckForUpdatesInternalAsync(userInitiated: true);
+            return TxtUpdateStatusSummary?.Text ?? LocalizationService.Instance["Updates_UpToDate"];
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
+    public void ApplyHotkeysFromExternal()
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            var hk = _settingsManager.Current.Hotkeys;
+            if (string.IsNullOrWhiteSpace(hk.ToggleGlow) && string.IsNullOrWhiteSpace(hk.ToggleLyrics))
+            {
+                _hotkeyManager.UnregisterAll();
+            }
+            else
+            {
+                _hotkeyManager.RegisterHotkeys(
+                    hk,
+                    onGlowToggle: ToggleGlowFromExternal,
+                    onLyricsToggle: ToggleLyricsFromExternal,
+                    onClickThroughToggle: () => { });
+            }
+            InitializeSettingsUi();
         });
     }
 
