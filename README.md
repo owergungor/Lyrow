@@ -16,19 +16,19 @@
 
 ## 📥 İndirme ve Kurulum
 
-### Güncel Sürüm: Lyrow v4.4 (Yerel Paketler Hazır — Setup EXE, Portable ZIP & MSIX)
+### Güncel Sürüm: [Lyrow v4.4](https://github.com/owergungor/Lyrow/releases/tag/v4.4) (Setup EXE, Portable ZIP & MSIX)
 
 | Kaynak | Dosya | Boyut | SHA-256 Doğrulama Özeti |
 |---|---|---|---|
-| **Kurulum Sihirbazı (Installer)** | `Lyrow-4.4-Setup-x64.exe` | 64.79 MB | `73BEE5BEA6E99646D27502CC13C9E7ADB40B65C966BB97809D8EA6F7C825E282` |
-| **Taşınabilir Paket (Portable ZIP)** | `Lyrow-v4.4-win-x64-portable.zip` | 93.45 MB | `A0F13BB98B42B3A5612043AA9E0962C7B192DCC2AB2159543D225EF1C8423AEF` |
-| **MSIX Paketi (Windows x64)** | `Lyrow-v4.4-x64.msix` *(imzasız)* | 95.70 MB | `FF6B43D9E9E16A12B36C81A94BD22E6E9C80CE5E3DD732510F517CCA64EBB0E7` |
+| **Kurulum Sihirbazı (Installer)** | [Lyrow-4.4-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/download/v4.4/Lyrow-4.4-Setup-x64.exe) | 64.79 MB | `73BEE5BEA6E99646D27502CC13C9E7ADB40B65C966BB97809D8EA6F7C825E282` |
+| **Taşınabilir Paket (Portable ZIP)** | [Lyrow-v4.4-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/download/v4.4/Lyrow-v4.4-win-x64-portable.zip) | 93.45 MB | `A0F13BB98B42B3A5612043AA9E0962C7B192DCC2AB2159543D225EF1C8423AEF` |
+| **MSIX Paketi (Windows x64)** | [Lyrow-v4.4-x64.msix](https://github.com/owergungor/Lyrow/releases/download/v4.4/Lyrow-v4.4-x64.msix) *(imzasız)* | 95.70 MB | `FF6B43D9E9E16A12B36C81A94BD22E6E9C80CE5E3DD732510F517CCA64EBB0E7` |
 
 > [!NOTE]
 > Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz. MSIX paketi (`Lyrow-v4.4-x64.msix`) **imzasız** olarak standart x64 Windows paket yapısında üretilir; Windows üzerinde doğrudan yüklemek için güvenilen bir kod imzalama sertifikasıyla imzalanması (`signtool.exe` veya `LYROW_PFX_PATH`) gerekir.
 
-### Yayınlanmış Kararlı Sürümler (v4.3, v4.2, v4.1, v4.0, v3.8, v3.7 & v3.5)
-GitHub Releases üzerinde yayında olan sürümler:
+### Önceki Kararlı Sürümler (v4.3, v4.2, v4.1, v4.0, v3.8, v3.7 & v3.5)
+Önceki yayınlanmış sürümleri tercih eden kullanıcılar için:
 - **v4.3 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.3](https://github.com/owergungor/Lyrow/releases/tag/v4.3)
 - **v4.2 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.2](https://github.com/owergungor/Lyrow/releases/tag/v4.2)
 - **v4.1 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.1](https://github.com/owergungor/Lyrow/releases/tag/v4.1)
@@ -83,9 +83,11 @@ Lyrow, iki bağımsız ancak birbiriyle tam senkron çalışan ana modülden olu
 - **Windows 11 Fluent Design Ayarlar Modalı:** Sabit boyutlu (`740×520`), sola hizalı 7 sekmeli (**Genel**, **Görünüm**, **Işık**, **Şarkı Sözleri**, **Sistem**, **Güncellemeler**, **Hakkında**) modern ayarlar arayüzü; Açık/Koyu/Sistem teması ve Türkçe/İngilizce dil desteği.
 - **Yüksek Çözünürlüklü & Animasyonlu Kapaklar:** Kapak görselleri ham kalitesinde korunur; animasyonlu GIF ve WebP kapakları donanım hızlandırmalı oynatılır.
 
-### 3. Sistem ve Ses Entegrasyonu
+### 3. Sistem, Ses ve Otomatik Güncelleme Entegrasyonu
 - **İkon-Odaklı Ses Çıkış Aygıtı Seçimi:** Normal ve Tam Ekran Modda alt araç çubuğunda Kenar Işığı butonunun hemen sağında (`28×28`), Dar Modda ise Volume & Mute butonunun yanında (`26×26`) konumlanan ikon-odaklı ses çıkışı butonu ile Windows ses yürütme cihazı (Kulaklık, Hoparlör, Bluetooth) anında değiştirilir; aktif cihaz bilgisi Tooltip üzerinde gösterilir ve tüm modlarda senkronize çalışır.
 - **Kayan Ses Düzeyi Popup'ı:** Dar modda ses simgesine tıklandığında açılan, sessize alma (mute) butonlu yatay ses kaydırıcısı.
+- **Sağ Üst Windows 11 Fluent Güncelleme Toast Bildirimi:** Yeni sürüm tespit edildiğinde Normal, Tam Ekran ve Dar modların tamamında ekranın sağ üst köşesinde Açık/Koyu tema uyumlu, `ThemeShadow` gölgeli bir toast bildirimi görünür. **Şimdi Kur** butonu indirme, PE + SHA-256 doğrulama ve güvenli yeniden başlatma akışını başlatır; **Sonra** butonu bildirimi aynı oturumda kapatır ancak güncelleme bilgisini silmeden **Ayarlar > Güncellemeler** bölümünde hazır tutar.
+- **Ayarlar > Güncellemeler (**Yeni Sürümü Kur**):** Manuel veya zamanlanmış denetimlerde yeni sürüm numarası, yayın tarihi, kısa sürüm açıklaması, belirgin **Yeni Sürümü Kur** butonu, canlı indirme/kurulum ilerlemesi ve hata durumunda yeniden deneme sunulur; MSIX ve Portable dağıtımları için güvenli yönlendirme sağlanır.
 
 ---
 
@@ -134,7 +136,7 @@ Lyrow v3.7 ile baştan yazılan **Playback Timeline Engine**, müzik çalarlarda
 ## 🚀 Kullanım Talimatları
 
 ### Hızlı Başlangıç
-1. [Lyrow v4.3 Releases](https://github.com/owergungor/Lyrow/releases/tag/v4.3) sayfasından `Lyrow-4.3-Setup-x64.exe` kurulum dosyasını veya `Lyrow-v4.3-win-x64-portable.zip` taşınabilir paketini indirin.
+1. [Lyrow v4.4 Releases](https://github.com/owergungor/Lyrow/releases/tag/v4.4) sayfasından `Lyrow-4.4-Setup-x64.exe` kurulum dosyasını veya `Lyrow-v4.4-win-x64-portable.zip` taşınabilir paketini indirin.
 2. Kurulum sihirbazını çalıştırın veya taşınabilir ZIP arşivini bir klasöre çıkartın.
 3. `Lyrow.App.exe` dosyasını çalıştırın.
 
@@ -164,7 +166,7 @@ Lyrow her aşamada sıkı otomatik testler ve platform doğrulamalarıyla geliş
 
 ## 📜 Sürüm Geçmişi
 
-### [v4.4] — 2026-11-20 (Yerel Hazırlık)
+### [v4.4] — 2026-11-20 (Güncel)
 - **Sağ Üst Windows 11 Fluent Güncelleme Toast Bildirimi:** Yeni sürüm bulunduğunda Normal, Tam Ekran ve Dar modların tamamında sağ üst köşede **Şimdi Kur** ve **Sonra** aksiyonlarıyla modern toast bildirimi gösterilir.
 - **Zenginleştirilmiş Ayarlar > Güncellemeler:** Sürüm numarası, yayın tarihi, kısa sürüm özeti, belirgin **Yeni Sürümü Kur** butonu, canlı indirme/doğrulama/kurulum ilerlemesi, hata durumunda yeniden deneme ve MSIX/Portable dağıtımları için bilgilendirme.
 - **Ortak Güncelleme Koordinatörü (`UpdateCoordinator`):** Toast ve Ayarlar tek servis üzerinden çalışır; çift indirme engellenir, PE + SHA-256 doğrulaması korunur ve çıkış öncesi ayarlar güvenle kaydedilir.

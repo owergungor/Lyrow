@@ -1,4 +1,4 @@
-# Lyrow v4.4 — Sürüm Notları (Yerel Hazırlık)
+# Lyrow v4.4 — Sürüm Notları
 
 **Tarih:** 2026-11-20  
 **Temel Sürüm:** v4.3 (`27f1371`)  
@@ -30,7 +30,7 @@
 
 ---
 
-## Yerel Dağıtım Paketleri ve SHA-256 Doğrulama Özetleri
+## Dağıtım Paketleri ve SHA-256 Doğrulama Özetleri
 
 | Paket | Dosya Adı | Boyut | İmza Durumu | SHA-256 |
 |---|---|---|---|---|

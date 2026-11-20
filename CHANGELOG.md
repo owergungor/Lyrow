@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Validation
 - **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** 728 / 728 PASS (%100 başarı).
 - **Gerçek Çalıştırma Doğrulaması:** Hem `publish\win-x64\Lyrow.App.exe` hem `AppData\Local\Programs\Lyrow\Lyrow.App.exe` `--smoke-test` (`ExitCode: 0`) ve canlı pencere açılışıyla doğrulandı.
-- **Dağıtım Paketleri (Yerel):** `Lyrow-4.4-Setup-x64.exe`, `Lyrow-v4.4-win-x64-portable.zip` ve `Lyrow-v4.4-x64.msix` (imzasız) yerel olarak üretildi ve SHA-256 doğrulamasından geçti.
+- **Dağıtım Paketleri:** `Lyrow-4.4-Setup-x64.exe`, `Lyrow-v4.4-win-x64-portable.zip` ve `Lyrow-v4.4-x64.msix` (imzasız) üretildi ve SHA-256 doğrulamasından geçti.
 
 ---
 
