@@ -21,7 +21,6 @@ public sealed partial class LyricsWindow
     private GlowPalette _lastArtworkGlowPalette = GlowPalette.Default;
     private DispatcherTimer? _edgeThicknessSaveDebounceTimer;
     private bool _isUpdatingEdgeThicknessSlider = false;
-    private bool _isUpdatingEdgeBrightnessSlider = false;
     private int _recordedSinglePanelWidthPx = 0;
     private long _widthAnimationGeneration = 0;
     private DispatcherTimer? _windowWidthAnimTimer;
@@ -39,9 +38,8 @@ public sealed partial class LyricsWindow
             BtnToggleLyricsGlow.Click += (_, _) => ToggleLyricsGlow();
         }
 
-        // 2. Wire Edge Light (Kenar Işığı) thickness & brightness controls (Normal, Fullscreen, and Compact modes)
+        // 2. Wire Edge Light (Kenar Işığı) buttons (both Normal and Compact modes open shared 0-64 px thickness slider on click)
         InitializeEdgeGlowThicknessClickFlyout();
-        InitializeEdgeGlowBrightnessClickFlyout();
         UpdateEdgeGlowVisualState();
 
         // 3. Wire Ghost Settings Button & Modal Close Controls
@@ -321,6 +319,16 @@ public sealed partial class LyricsWindow
             };
         }
 
+        if (SliderEdgeGlowBrightness != null)
+        {
+            SliderEdgeGlowBrightness.ValueChanged += (_, e) =>
+            {
+                if (_isUpdatingEdgeThicknessSlider) return;
+                int brightness = Math.Clamp((int)Math.Round(e.NewValue), 10, 100);
+                ApplyEdgeGlowBrightnessChange(brightness, source: "normal");
+            };
+        }
+
         if (SliderEdgeGlowThickness != null)
         {
             SliderEdgeGlowThickness.ValueChanged += (_, e) =>
@@ -391,12 +399,49 @@ public sealed partial class LyricsWindow
         _edgeThicknessSaveDebounceTimer?.Start();
     }
 
-    private void SyncEdgeThicknessSliderFromSettings()
+    private void ApplyEdgeGlowBrightnessChange(int brightnessPct, string source)
     {
-        int thickness = Math.Clamp(_settingsManager.Current.GlowThickness, 0, 64);
+        brightnessPct = Math.Clamp(brightnessPct, 10, 100);
+        _settingsManager.Current.GlowIntensity = brightnessPct;
+
         _isUpdatingEdgeThicknessSlider = true;
         try
         {
+            if (source != "normal" && SliderEdgeGlowBrightness != null) SliderEdgeGlowBrightness.Value = brightnessPct;
+            if (TxtEdgeGlowBrightnessPopupValue != null) TxtEdgeGlowBrightnessPopupValue.Text = $"{brightnessPct}%";
+        }
+        finally
+        {
+            _isUpdatingEdgeThicknessSlider = false;
+        }
+
+        if (source != "modal" && !_isUpdatingModalSettingsUi && SliderModalGlowIntensity != null)
+        {
+            _isUpdatingModalSettingsUi = true;
+            try
+            {
+                SliderModalGlowIntensity.Value = brightnessPct;
+                if (TxtModalGlowIntensityPercent != null) TxtModalGlowIntensityPercent.Text = $"{brightnessPct}%";
+            }
+            finally
+            {
+                _isUpdatingModalSettingsUi = false;
+            }
+        }
+
+        _edgeThicknessSaveDebounceTimer?.Stop();
+        _edgeThicknessSaveDebounceTimer?.Start();
+    }
+
+    private void SyncEdgeThicknessSliderFromSettings()
+    {
+        int thickness = Math.Clamp(_settingsManager.Current.GlowThickness, 0, 64);
+        int brightness = Math.Clamp(_settingsManager.Current.GlowIntensity, 10, 100);
+        _isUpdatingEdgeThicknessSlider = true;
+        try
+        {
+            if (SliderEdgeGlowBrightness != null) SliderEdgeGlowBrightness.Value = brightness;
+            if (TxtEdgeGlowBrightnessPopupValue != null) TxtEdgeGlowBrightnessPopupValue.Text = $"{brightness}%";
             if (SliderEdgeGlowThickness != null) SliderEdgeGlowThickness.Value = thickness;
             if (TxtEdgeGlowThicknessHoverValue != null) TxtEdgeGlowThicknessHoverValue.Text = $"{thickness} px";
             if (SliderEdgeGlowThicknessCompact != null) SliderEdgeGlowThicknessCompact.Value = thickness;
@@ -465,116 +510,6 @@ public sealed partial class LyricsWindow
             if (!FlyoutEdgeGlowThicknessCompact.IsOpen)
             {
                 FlyoutEdgeGlowThicknessCompact.ShowAt(BtnToggleEdgeGlowCompact);
-            }
-        }
-        catch { }
-    }
-
-    private void InitializeEdgeGlowBrightnessClickFlyout()
-    {
-        SyncEdgeBrightnessSliderFromSettings();
-
-        if (BtnEdgeGlowBrightness != null)
-        {
-            BtnEdgeGlowBrightness.Click += (_, _) => ToggleEdgeBrightnessFlyout();
-            BtnEdgeGlowBrightness.KeyDown += (_, e) =>
-            {
-                if (e.Key == Windows.System.VirtualKey.Up || e.Key == Windows.System.VirtualKey.Down)
-                {
-                    ShowEdgeBrightnessFlyout();
-                    SliderEdgeGlowBrightness?.Focus(FocusState.Keyboard);
-                    e.Handled = true;
-                }
-            };
-        }
-
-        if (SliderEdgeGlowBrightness != null)
-        {
-            SliderEdgeGlowBrightness.ValueChanged += (_, e) =>
-            {
-                if (_isUpdatingEdgeBrightnessSlider) return;
-                int brightness = Math.Clamp((int)Math.Round(e.NewValue), 0, 100);
-                ApplyEdgeGlowBrightnessChange(brightness, source: "toolbar");
-            };
-        }
-    }
-
-    private void ApplyEdgeGlowBrightnessChange(int brightness, string source)
-    {
-        brightness = Math.Clamp(brightness, 0, 100);
-        _settingsManager.Current.GlowIntensity = brightness;
-
-        _isUpdatingEdgeBrightnessSlider = true;
-        try
-        {
-            if (source != "toolbar" && SliderEdgeGlowBrightness != null) SliderEdgeGlowBrightness.Value = brightness;
-            if (TxtEdgeGlowBrightnessValue != null) TxtEdgeGlowBrightnessValue.Text = $"{brightness}%";
-        }
-        finally
-        {
-            _isUpdatingEdgeBrightnessSlider = false;
-        }
-
-        if (source != "modal" && !_isUpdatingModalSettingsUi && SliderModalGlowIntensity != null)
-        {
-            _isUpdatingModalSettingsUi = true;
-            try
-            {
-                SliderModalGlowIntensity.Value = brightness;
-                if (TxtModalGlowIntensityPercent != null) TxtModalGlowIntensityPercent.Text = $"{brightness}%";
-            }
-            finally
-            {
-                _isUpdatingModalSettingsUi = false;
-            }
-        }
-
-        // Persist independently of GlowThickness
-        _edgeThicknessSaveDebounceTimer?.Stop();
-        _edgeThicknessSaveDebounceTimer?.Start();
-    }
-
-    private void SyncEdgeBrightnessSliderFromSettings()
-    {
-        int brightness = Math.Clamp(_settingsManager.Current.GlowIntensity, 0, 100);
-        _isUpdatingEdgeBrightnessSlider = true;
-        try
-        {
-            if (SliderEdgeGlowBrightness != null) SliderEdgeGlowBrightness.Value = brightness;
-            if (TxtEdgeGlowBrightnessValue != null) TxtEdgeGlowBrightnessValue.Text = $"{brightness}%";
-        }
-        finally
-        {
-            _isUpdatingEdgeBrightnessSlider = false;
-        }
-    }
-
-    private void ToggleEdgeBrightnessFlyout()
-    {
-        if (BtnEdgeGlowBrightness == null || FlyoutEdgeGlowBrightness == null || _currentMode != LyricsWindowMode.Horizontal) return;
-        try
-        {
-            if (FlyoutEdgeGlowBrightness.IsOpen)
-            {
-                FlyoutEdgeGlowBrightness.Hide();
-            }
-            else
-            {
-                ShowEdgeBrightnessFlyout();
-            }
-        }
-        catch { }
-    }
-
-    private void ShowEdgeBrightnessFlyout()
-    {
-        if (BtnEdgeGlowBrightness == null || FlyoutEdgeGlowBrightness == null || _currentMode != LyricsWindowMode.Horizontal) return;
-        SyncEdgeBrightnessSliderFromSettings();
-        try
-        {
-            if (!FlyoutEdgeGlowBrightness.IsOpen)
-            {
-                FlyoutEdgeGlowBrightness.ShowAt(BtnEdgeGlowBrightness);
             }
         }
         catch { }
@@ -1123,9 +1058,8 @@ public sealed partial class LyricsWindow
             if (TxtModalArtworkRadiusValue != null) TxtModalArtworkRadiusValue.Text = $"{radius} px";
 
             if (SwitchModalAmbientEdgeGlow != null) SwitchModalAmbientEdgeGlow.IsOn = _isEdgeGlowActive;
-            if (SliderModalGlowIntensity != null) SliderModalGlowIntensity.Value = Math.Clamp(s.GlowIntensity, 0, 100);
-            if (TxtModalGlowIntensityPercent != null) TxtModalGlowIntensityPercent.Text = $"{Math.Clamp(s.GlowIntensity, 0, 100)}%";
-            SyncEdgeBrightnessSliderFromSettings();
+            if (SliderModalGlowIntensity != null) SliderModalGlowIntensity.Value = Math.Clamp(s.GlowIntensity, 10, 100);
+            if (TxtModalGlowIntensityPercent != null) TxtModalGlowIntensityPercent.Text = $"{Math.Clamp(s.GlowIntensity, 10, 100)}%";
             if (SliderModalGlowThickness != null) SliderModalGlowThickness.Value = Math.Clamp(s.GlowThickness, 0, 64);
             if (TxtModalGlowThicknessValue != null) TxtModalGlowThicknessValue.Text = $"{Math.Clamp(s.GlowThickness, 0, 64)} px";
             if (SwitchModalSyncWithAlbumArt != null) SwitchModalSyncWithAlbumArt.IsOn = s.SyncWithAlbumArt;
@@ -1382,7 +1316,7 @@ public sealed partial class LyricsWindow
             SliderModalGlowIntensity.ValueChanged += (_, e) =>
             {
                 if (_isUpdatingModalSettingsUi) return;
-                int val = Math.Clamp((int)Math.Round(e.NewValue), 0, 100);
+                int val = Math.Clamp((int)Math.Round(e.NewValue), 10, 100);
                 if (TxtModalGlowIntensityPercent != null) TxtModalGlowIntensityPercent.Text = $"{val}%";
                 ApplyEdgeGlowBrightnessChange(val, source: "modal");
             };
@@ -1623,6 +1557,8 @@ public sealed partial class LyricsWindow
         if (TxtModalAmbientGlowDesc != null) TxtModalAmbientGlowDesc.Text = loc["Settings_AmbientGlowDesc"];
         if (TxtModalGlowIntensityLabel != null) TxtModalGlowIntensityLabel.Text = loc["Settings_GlowIntensity"];
         if (TxtModalGlowThicknessLabel != null) TxtModalGlowThicknessLabel.Text = loc["Settings_GlowThickness"];
+        if (TxtEdgeGlowBrightnessPopupLabel != null) TxtEdgeGlowBrightnessPopupLabel.Text = loc["Settings_GlowIntensity"];
+        if (TxtEdgeGlowThicknessPopupLabel != null) TxtEdgeGlowThicknessPopupLabel.Text = loc["Settings_GlowThickness"];
         if (TxtModalSyncAlbumArtLabel != null) TxtModalSyncAlbumArtLabel.Text = loc["Settings_SyncWithAlbumArt"];
         if (TxtModalFftSizeLabel != null) TxtModalFftSizeLabel.Text = loc["Settings_FftSize"];
         if (TxtModalFftSizeDesc != null) TxtModalFftSizeDesc.Text = loc["Settings_FftSizeDesc"];
@@ -1643,13 +1579,6 @@ public sealed partial class LyricsWindow
         if (BtnModalOpenLogs != null) BtnModalOpenLogs.Content = loc["Settings_OpenLog"];
 
         if (TxtModalAboutSubtitle != null) TxtModalAboutSubtitle.Text = loc["About_Subtitle"];
-
-        if (BtnEdgeGlowBrightness != null)
-        {
-            string brightnessTip = isTr ? "Kenar Işığı Parlaklığı" : "Edge Light Brightness";
-            ToolTipService.SetToolTip(BtnEdgeGlowBrightness, brightnessTip);
-            AutomationProperties.SetName(BtnEdgeGlowBrightness, brightnessTip);
-        }
 
         UpdateLyricsGlowVisualState();
         UpdateEdgeGlowVisualState();

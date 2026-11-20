@@ -1060,11 +1060,17 @@ public sealed partial class LyricsWindow : Window
         IconDevice.Glyph = glyph;
         TxtDevice.Text = deviceName;
         IconDeviceCompact.Glyph = glyph;
+        if (IconDeviceToolbar != null) IconDeviceToolbar.Glyph = glyph;
+        string audioTip = $"{LocalizationService.Instance["Tab_Audio"]}: {deviceName}";
         if (BtnDeviceSelectorCompact != null)
         {
-            string audioTip = $"{LocalizationService.Instance["Tab_Audio"]}: {deviceName}";
             ToolTipService.SetToolTip(BtnDeviceSelectorCompact, audioTip);
             AutomationProperties.SetName(BtnDeviceSelectorCompact, audioTip);
+        }
+        if (BtnDeviceSelectorToolbar != null)
+        {
+            ToolTipService.SetToolTip(BtnDeviceSelectorToolbar, audioTip);
+            AutomationProperties.SetName(BtnDeviceSelectorToolbar, audioTip);
         }
     }
 
@@ -1875,6 +1881,10 @@ public sealed partial class LyricsWindow : Window
 
         FlyoutAudioDevices.Opening += (_, _) => PopulateAudioDeviceFlyout(FlyoutAudioDevices);
         FlyoutAudioDevicesCompact.Opening += (_, _) => PopulateAudioDeviceFlyout(FlyoutAudioDevicesCompact);
+        if (FlyoutAudioDevicesToolbar != null)
+        {
+            FlyoutAudioDevicesToolbar.Opening += (_, _) => PopulateAudioDeviceFlyout(FlyoutAudioDevicesToolbar);
+        }
 
         if (_audioCaptureService != null)
         {
@@ -1946,17 +1956,23 @@ public sealed partial class LyricsWindow : Window
                     {
                         // 1. Immediately update UI labels & glyph for immediate tactile feedback
                         TxtDevice.Text = dev.Name;
+                        string audioTip = $"{LocalizationService.Instance["Tab_Audio"]}: {dev.Name}";
                         if (BtnDeviceSelectorCompact != null)
                         {
-                            string audioTip = $"{LocalizationService.Instance["Tab_Audio"]}: {dev.Name}";
                             ToolTipService.SetToolTip(BtnDeviceSelectorCompact, audioTip);
                             AutomationProperties.SetName(BtnDeviceSelectorCompact, audioTip);
+                        }
+                        if (BtnDeviceSelectorToolbar != null)
+                        {
+                            ToolTipService.SetToolTip(BtnDeviceSelectorToolbar, audioTip);
+                            AutomationProperties.SetName(BtnDeviceSelectorToolbar, audioTip);
                         }
                         string immediateGlyph = dev.Name.ToLowerInvariant().Contains("headphone") || dev.Name.ToLowerInvariant().Contains("headset")
                             ? "\uE7F6"
                             : (dev.Name.ToLowerInvariant().Contains("bluetooth") ? "\uE702" : "\uE767");
                         IconDevice.Glyph = immediateGlyph;
                         IconDeviceCompact.Glyph = immediateGlyph;
+                        if (IconDeviceToolbar != null) IconDeviceToolbar.Glyph = immediateGlyph;
 
                         // 2. Set default Windows audio playback device endpoint
                         bool switchedSystemOutput = _audioRoutingService?.SetDefaultPlaybackDevice(dev.Id) ?? false;

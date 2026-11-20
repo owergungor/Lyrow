@@ -206,39 +206,55 @@ public sealed class LyrowV43FeatureVerificationTests
     }
 
     [Fact]
-    public void EdgeLightBrightnessButton_IsImmediatelyRightOfThicknessButton_SameSize_0To100Percent_SyncedAndPersisted()
+    public void NormalAndFullscreenModes_HaveIconOnlyAudioOutputButton_RightOfEdgeLight_SyncedWithCompactMode()
+    {
+        string root = FindRepoRoot();
+        string xaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.xaml"));
+        string lyricsCs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.xaml.cs"));
+
+        int edgeIdx = xaml.IndexOf("x:Name=\"BtnToggleEdgeGlow\"", StringComparison.Ordinal);
+        int audioIdx = xaml.IndexOf("x:Name=\"BtnDeviceSelectorToolbar\"", StringComparison.Ordinal);
+        edgeIdx.Should().BeGreaterThan(0);
+        audioIdx.Should().BeGreaterThan(edgeIdx, "Audio Output toolbar button must be immediately to the right of Edge Light button");
+
+        string edgeTag = ExtractOpeningTag(xaml, "BtnToggleEdgeGlow");
+        string audioTag = ExtractOpeningTag(xaml, "BtnDeviceSelectorToolbar");
+
+        // Same 28x28 size, CornerRadius=6, Ghost style, icon-only (no text)
+        edgeTag.Should().Contain("Width=\"28\" Height=\"28\" Padding=\"0\" CornerRadius=\"6\"");
+        audioTag.Should().Contain("Width=\"28\" Height=\"28\" Padding=\"0\" CornerRadius=\"6\"");
+        audioTag.Should().Contain("Style=\"{StaticResource LyrowGhostButtonStyle}\"");
+        xaml.Should().Contain("x:Name=\"IconDeviceToolbar\"");
+        xaml.Should().Contain("x:Name=\"FlyoutAudioDevicesToolbar\"");
+
+        // Reuses existing PopulateAudioDeviceFlyout & syncs glyph + tooltip across Normal, Fullscreen, and Compact modes
+        lyricsCs.Should().Contain("PopulateAudioDeviceFlyout(FlyoutAudioDevicesToolbar)");
+        lyricsCs.Should().Contain("if (IconDeviceToolbar != null) IconDeviceToolbar.Glyph = glyph;");
+        lyricsCs.Should().Contain("if (IconDeviceToolbar != null) IconDeviceToolbar.Glyph = immediateGlyph;");
+        lyricsCs.Should().Contain("ToolTipService.SetToolTip(BtnDeviceSelectorToolbar, audioTip);");
+    }
+
+    [Fact]
+    public void EdgeLightFlyout_HasBrightnessAboveThickness_LiveSyncedWithSettings_AndIndependentFromThickness()
     {
         string root = FindRepoRoot();
         string xaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.xaml"));
         string v4Cs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.V4Features.cs"));
 
-        // Placement: immediately to the right of BtnToggleEdgeGlow inside EdgeLightLeftControlsPanel (shared by Normal & Fullscreen modes)
-        int thickIdx = xaml.IndexOf("x:Name=\"BtnToggleEdgeGlow\"", StringComparison.Ordinal);
-        int brightIdx = xaml.IndexOf("x:Name=\"BtnEdgeGlowBrightness\"", StringComparison.Ordinal);
-        int centerIdx = xaml.IndexOf("x:Name=\"GridOffsetCenterGroup\"", StringComparison.Ordinal);
-        thickIdx.Should().BeGreaterThan(0);
-        brightIdx.Should().BeGreaterThan(thickIdx, "Brightness button must sit immediately right of Thickness button");
-        centerIdx.Should().BeGreaterThan(brightIdx, "Brightness button must remain in the left group before offset controls");
+        // Brightness slider appears strictly above Thickness slider in Normal/Fullscreen Edge Light flyout
+        int brightIdx = xaml.IndexOf("x:Name=\"SliderEdgeGlowBrightness\"", StringComparison.Ordinal);
+        int thickIdx = xaml.IndexOf("x:Name=\"SliderEdgeGlowThickness\"", StringComparison.Ordinal);
+        brightIdx.Should().BeGreaterThan(0);
+        thickIdx.Should().BeGreaterThan(brightIdx, "Edge Light Brightness slider must appear above Edge Light Thickness slider");
 
-        // Identical 28x28 size, corner radius 6, Ghost Button style
-        string thickTag = ExtractOpeningTag(xaml, "BtnToggleEdgeGlow");
-        string brightTag = ExtractOpeningTag(xaml, "BtnEdgeGlowBrightness");
-        thickTag.Should().Contain("Width=\"28\" Height=\"28\" Padding=\"0\" CornerRadius=\"6\"");
-        brightTag.Should().Contain("Width=\"28\" Height=\"28\" Padding=\"0\" CornerRadius=\"6\"");
-        brightTag.Should().Contain("Style=\"{StaticResource LyrowGhostButtonStyle}\"");
-        brightTag.Should().Contain("ToolTipService.ToolTip=\"Edge Light Brightness\"");
+        ExtractOpeningTag(xaml, "SliderEdgeGlowBrightness").Should().Contain("Minimum=\"10\" Maximum=\"100\"");
+        ExtractOpeningTag(xaml, "SliderEdgeGlowThickness").Should().Contain("Minimum=\"0\" Maximum=\"64\"");
 
-        // Slider 0-100% in both toolbar flyout and Settings > Lighting tab
-        ExtractOpeningTag(xaml, "SliderEdgeGlowBrightness").Should().Contain("Minimum=\"0\" Maximum=\"100\"");
-        ExtractOpeningTag(xaml, "SliderModalGlowIntensity").Should().Contain("Minimum=\"0\" Maximum=\"100\"");
-        xaml.Should().Contain("x:Name=\"TxtEdgeGlowBrightnessValue\"");
-
-        // Click-to-toggle flyout, 2-way sync, independent persistence, TR/EN tooltips
-        v4Cs.Should().Contain("InitializeEdgeGlowBrightnessClickFlyout();");
-        v4Cs.Should().Contain("BtnEdgeGlowBrightness.Click += (_, _) => ToggleEdgeBrightnessFlyout();");
-        v4Cs.Should().Contain("ApplyEdgeGlowBrightnessChange(brightness, source: \"toolbar\");");
+        // Uses existing GlowIntensity setting, live-syncs with Settings Modal, and persists via debounce
+        v4Cs.Should().Contain("private void ApplyEdgeGlowBrightnessChange(int brightnessPct, string source)");
+        v4Cs.Should().Contain("_settingsManager.Current.GlowIntensity = brightnessPct;");
         v4Cs.Should().Contain("ApplyEdgeGlowBrightnessChange(val, source: \"modal\");");
-        v4Cs.Should().Contain("_settingsManager.Current.GlowIntensity = brightness;");
-        v4Cs.Should().Contain("string brightnessTip = isTr ? \"Kenar Işığı Parlaklığı\" : \"Edge Light Brightness\";");
+        v4Cs.Should().Contain("TxtEdgeGlowBrightnessPopupLabel.Text = loc[\"Settings_GlowIntensity\"];");
+        v4Cs.Should().Contain("TxtEdgeGlowThicknessPopupLabel.Text = loc[\"Settings_GlowThickness\"];");
     }
 }
