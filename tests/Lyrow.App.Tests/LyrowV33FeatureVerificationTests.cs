@@ -33,9 +33,10 @@ public class LyrowV33FeatureVerificationTests
         xaml.Should().Contain("x:Name=\"TxtElapsed\"");
         xaml.Should().Contain("x:Name=\"TxtRemaining\"");
 
-        // Centered playback device with dynamic icon
-        xaml.Should().Contain("x:Name=\"IconDevice\"");
-        xaml.Should().Contain("x:Name=\"TxtDevice\"");
+        // Icon-only Audio Output button in toolbar (legacy dropdown above Play/Pause removed in v4.3)
+        xaml.Should().NotContain("x:Name=\"BtnDeviceSelector\"");
+        xaml.Should().Contain("x:Name=\"IconDeviceToolbar\"");
+        xaml.Should().Contain("x:Name=\"BtnDeviceSelectorToolbar\"");
 
         // Transport controls flanked by Dar Mod (Left) and Fullscreen (Right)
         xaml.Should().Contain("x:Name=\"BtnDarMod\" HorizontalAlignment=\"Left\"");

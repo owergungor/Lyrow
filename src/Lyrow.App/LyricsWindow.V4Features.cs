@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
@@ -305,7 +306,7 @@ public sealed partial class LyricsWindow
 
         if (BtnToggleEdgeGlowCompact != null)
         {
-            // v4.3: Compact Mode click-to-toggle 0-64 px thickness slider flyout sharing exact same state
+            // v4.3: Compact Mode opens the exact same Brightness + Thickness Edge Light panel as Normal Mode
             BtnToggleEdgeGlowCompact.Click += (_, _) => ToggleEdgeThicknessCompactFlyout();
 
             BtnToggleEdgeGlowCompact.KeyDown += (_, e) =>
@@ -313,7 +314,7 @@ public sealed partial class LyricsWindow
                 if (e.Key == Windows.System.VirtualKey.Up || e.Key == Windows.System.VirtualKey.Down)
                 {
                     ShowEdgeThicknessCompactFlyout();
-                    SliderEdgeGlowThicknessCompact?.Focus(FocusState.Keyboard);
+                    SliderEdgeGlowThickness?.Focus(FocusState.Keyboard);
                     e.Handled = true;
                 }
             };
@@ -338,16 +339,6 @@ public sealed partial class LyricsWindow
                 ApplyEdgeGlowThicknessChange(thickness, source: "normal");
             };
         }
-
-        if (SliderEdgeGlowThicknessCompact != null)
-        {
-            SliderEdgeGlowThicknessCompact.ValueChanged += (_, e) =>
-            {
-                if (_isUpdatingEdgeThicknessSlider) return;
-                int thickness = Math.Clamp((int)Math.Round(e.NewValue), 0, 64);
-                ApplyEdgeGlowThicknessChange(thickness, source: "compact");
-            };
-        }
     }
 
     private void ApplyEdgeGlowThicknessChange(int thickness, string source)
@@ -355,15 +346,12 @@ public sealed partial class LyricsWindow
         thickness = Math.Clamp(thickness, 0, 64);
         _settingsManager.Current.GlowThickness = thickness;
 
-        // 3-way sync across Normal Mode flyout, Compact Mode flyout, and Settings Modal slider
+        // Shared sync across Normal/Fullscreen/Compact Edge Light flyout and Settings Modal slider
         _isUpdatingEdgeThicknessSlider = true;
         try
         {
             if (source != "normal" && SliderEdgeGlowThickness != null) SliderEdgeGlowThickness.Value = thickness;
             if (TxtEdgeGlowThicknessHoverValue != null) TxtEdgeGlowThicknessHoverValue.Text = $"{thickness} px";
-
-            if (source != "compact" && SliderEdgeGlowThicknessCompact != null) SliderEdgeGlowThicknessCompact.Value = thickness;
-            if (TxtEdgeGlowThicknessCompactValue != null) TxtEdgeGlowThicknessCompactValue.Text = $"{thickness} px";
         }
         finally
         {
@@ -444,8 +432,6 @@ public sealed partial class LyricsWindow
             if (TxtEdgeGlowBrightnessPopupValue != null) TxtEdgeGlowBrightnessPopupValue.Text = $"{brightness}%";
             if (SliderEdgeGlowThickness != null) SliderEdgeGlowThickness.Value = thickness;
             if (TxtEdgeGlowThicknessHoverValue != null) TxtEdgeGlowThicknessHoverValue.Text = $"{thickness} px";
-            if (SliderEdgeGlowThicknessCompact != null) SliderEdgeGlowThicknessCompact.Value = thickness;
-            if (TxtEdgeGlowThicknessCompactValue != null) TxtEdgeGlowThicknessCompactValue.Text = $"{thickness} px";
         }
         finally
         {
@@ -478,7 +464,10 @@ public sealed partial class LyricsWindow
         {
             if (!FlyoutEdgeGlowThickness.IsOpen)
             {
-                FlyoutEdgeGlowThickness.ShowAt(BtnToggleEdgeGlow);
+                FlyoutEdgeGlowThickness.ShowAt(BtnToggleEdgeGlow, new FlyoutShowOptions
+                {
+                    Placement = FlyoutPlacementMode.Top
+                });
             }
         }
         catch { }
@@ -486,12 +475,12 @@ public sealed partial class LyricsWindow
 
     private void ToggleEdgeThicknessCompactFlyout()
     {
-        if (BtnToggleEdgeGlowCompact == null || FlyoutEdgeGlowThicknessCompact == null || _currentMode != LyricsWindowMode.Compact) return;
+        if (BtnToggleEdgeGlowCompact == null || FlyoutEdgeGlowThickness == null || _currentMode != LyricsWindowMode.Compact) return;
         try
         {
-            if (FlyoutEdgeGlowThicknessCompact.IsOpen)
+            if (FlyoutEdgeGlowThickness.IsOpen)
             {
-                FlyoutEdgeGlowThicknessCompact.Hide();
+                FlyoutEdgeGlowThickness.Hide();
             }
             else
             {
@@ -503,13 +492,16 @@ public sealed partial class LyricsWindow
 
     private void ShowEdgeThicknessCompactFlyout()
     {
-        if (BtnToggleEdgeGlowCompact == null || FlyoutEdgeGlowThicknessCompact == null || _currentMode != LyricsWindowMode.Compact) return;
+        if (BtnToggleEdgeGlowCompact == null || FlyoutEdgeGlowThickness == null || _currentMode != LyricsWindowMode.Compact) return;
         SyncEdgeThicknessSliderFromSettings();
         try
         {
-            if (!FlyoutEdgeGlowThicknessCompact.IsOpen)
+            if (!FlyoutEdgeGlowThickness.IsOpen)
             {
-                FlyoutEdgeGlowThicknessCompact.ShowAt(BtnToggleEdgeGlowCompact);
+                FlyoutEdgeGlowThickness.ShowAt(BtnToggleEdgeGlowCompact, new FlyoutShowOptions
+                {
+                    Placement = FlyoutPlacementMode.TopEdgeAlignedRight
+                });
             }
         }
         catch { }

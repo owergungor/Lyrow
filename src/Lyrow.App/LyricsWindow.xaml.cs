@@ -486,6 +486,10 @@ public sealed partial class LyricsWindow : Window
     /// </summary>
     public void SetWindowMode(LyricsWindowMode mode, bool resizeWindow = true)
     {
+        if (FlyoutEdgeGlowThickness?.IsOpen == true)
+        {
+            FlyoutEdgeGlowThickness.Hide();
+        }
         _currentMode = mode;
         if (mode == LyricsWindowMode.Compact)
         {
@@ -1057,8 +1061,6 @@ public sealed partial class LyricsWindow : Window
             _ => "\uE767"
         };
 
-        IconDevice.Glyph = glyph;
-        TxtDevice.Text = deviceName;
         IconDeviceCompact.Glyph = glyph;
         if (IconDeviceToolbar != null) IconDeviceToolbar.Glyph = glyph;
         string audioTip = $"{LocalizationService.Instance["Tab_Audio"]}: {deviceName}";
@@ -1645,9 +1647,6 @@ public sealed partial class LyricsWindow : Window
             TxtElapsed.FontSize = metrics.TimestampFontSize;
             TxtRemaining.FontSize = metrics.TimestampFontSize;
 
-            TxtDevice.FontSize = metrics.DeviceFontSize;
-            TxtDevice.MaxWidth = Math.Max(160.0, metrics.PlayerColumnWidth - 36.0);
-
             GridControlsRow.Width = metrics.PlayerColumnWidth;
             BtnPlayPause.Width = metrics.PlayPauseButtonSize;
             BtnPlayPause.Height = metrics.PlayPauseButtonSize;
@@ -1876,10 +1875,6 @@ public sealed partial class LyricsWindow : Window
 
     private void SetupDeviceSelectors()
     {
-        BtnDeviceSelector.PointerEntered += (_, _) => BtnDeviceSelector.Opacity = 1.0;
-        BtnDeviceSelector.PointerExited += (_, _) => BtnDeviceSelector.Opacity = 0.75;
-
-        FlyoutAudioDevices.Opening += (_, _) => PopulateAudioDeviceFlyout(FlyoutAudioDevices);
         FlyoutAudioDevicesCompact.Opening += (_, _) => PopulateAudioDeviceFlyout(FlyoutAudioDevicesCompact);
         if (FlyoutAudioDevicesToolbar != null)
         {
@@ -1954,8 +1949,7 @@ public sealed partial class LyricsWindow : Window
                 {
                     try
                     {
-                        // 1. Immediately update UI labels & glyph for immediate tactile feedback
-                        TxtDevice.Text = dev.Name;
+                        // 1. Immediately update UI tooltips & glyphs for immediate tactile feedback
                         string audioTip = $"{LocalizationService.Instance["Tab_Audio"]}: {dev.Name}";
                         if (BtnDeviceSelectorCompact != null)
                         {
@@ -1970,7 +1964,6 @@ public sealed partial class LyricsWindow : Window
                         string immediateGlyph = dev.Name.ToLowerInvariant().Contains("headphone") || dev.Name.ToLowerInvariant().Contains("headset")
                             ? "\uE7F6"
                             : (dev.Name.ToLowerInvariant().Contains("bluetooth") ? "\uE702" : "\uE767");
-                        IconDevice.Glyph = immediateGlyph;
                         IconDeviceCompact.Glyph = immediateGlyph;
                         if (IconDeviceToolbar != null) IconDeviceToolbar.Glyph = immediateGlyph;
 

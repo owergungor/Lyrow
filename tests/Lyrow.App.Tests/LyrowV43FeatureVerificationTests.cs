@@ -93,15 +93,15 @@ public sealed class LyrowV43FeatureVerificationTests
         edgeTag.Should().Contain("Width=\"26\" Height=\"26\"");
         edgeTag.Should().Contain("Style=\"{StaticResource LyrowGhostButtonStyle}\"");
 
-        // Compact Edge Light opens 0-64 px thickness slider flyout cleanly outside compact bounds
-        xaml.Should().Contain("x:Name=\"FlyoutEdgeGlowThicknessCompact\"");
-        xaml.Should().Contain("Placement=\"TopEdgeAlignedRight\"");
+        // Compact Edge Light opens the exact same shared Brightness + Thickness flyout as Normal Mode
+        xaml.Should().NotContain("x:Name=\"FlyoutEdgeGlowThicknessCompact\"");
+        xaml.Should().NotContain("x:Name=\"SliderEdgeGlowThicknessCompact\"");
+        xaml.Should().Contain("x:Name=\"FlyoutEdgeGlowThickness\"");
         xaml.Should().Contain("ShouldConstrainToRootBounds=\"False\"");
-        string compactSliderTag = ExtractOpeningTag(xaml, "SliderEdgeGlowThicknessCompact");
-        compactSliderTag.Should().Contain("Minimum=\"0\" Maximum=\"64\"");
 
         v4Cs.Should().Contain("BtnToggleEdgeGlowCompact.Click += (_, _) => ToggleEdgeThicknessCompactFlyout();");
-        v4Cs.Should().Contain("ApplyEdgeGlowThicknessChange(thickness, source: \"compact\");");
+        v4Cs.Should().Contain("FlyoutEdgeGlowThickness.ShowAt(BtnToggleEdgeGlowCompact, new FlyoutShowOptions");
+        v4Cs.Should().Contain("Placement = FlyoutPlacementMode.TopEdgeAlignedRight");
         v4Cs.Should().Contain("BtnToggleEdgeGlowCompact.Style = _isEdgeGlowActive ? accentStyle : ghostStyle;");
     }
 
@@ -227,28 +227,46 @@ public sealed class LyrowV43FeatureVerificationTests
         xaml.Should().Contain("x:Name=\"IconDeviceToolbar\"");
         xaml.Should().Contain("x:Name=\"FlyoutAudioDevicesToolbar\"");
 
+        // Legacy Audio Output dropdown above Play/Pause is removed in v4.3
+        xaml.Should().NotContain("x:Name=\"BtnDeviceSelector\"");
+        xaml.Should().NotContain("x:Name=\"TxtDevice\"");
+        xaml.Should().NotContain("x:Name=\"FlyoutAudioDevices\"");
+
         // Reuses existing PopulateAudioDeviceFlyout & syncs glyph + tooltip across Normal, Fullscreen, and Compact modes
         lyricsCs.Should().Contain("PopulateAudioDeviceFlyout(FlyoutAudioDevicesToolbar)");
         lyricsCs.Should().Contain("if (IconDeviceToolbar != null) IconDeviceToolbar.Glyph = glyph;");
         lyricsCs.Should().Contain("if (IconDeviceToolbar != null) IconDeviceToolbar.Glyph = immediateGlyph;");
         lyricsCs.Should().Contain("ToolTipService.SetToolTip(BtnDeviceSelectorToolbar, audioTip);");
+        lyricsCs.Should().Contain("if (FlyoutEdgeGlowThickness?.IsOpen == true)");
     }
 
     [Fact]
-    public void EdgeLightFlyout_HasBrightnessAboveThickness_LiveSyncedWithSettings_AndIndependentFromThickness()
+    public void EdgeLightFlyout_HasBrightnessAboveThickness_NoMinMaxLabels_LiveSyncedWithSettings_AndSharedAcrossModes()
     {
         string root = FindRepoRoot();
         string xaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.xaml"));
         string v4Cs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.V4Features.cs"));
 
-        // Brightness slider appears strictly above Thickness slider in Normal/Fullscreen Edge Light flyout
-        int brightIdx = xaml.IndexOf("x:Name=\"SliderEdgeGlowBrightness\"", StringComparison.Ordinal);
-        int thickIdx = xaml.IndexOf("x:Name=\"SliderEdgeGlowThickness\"", StringComparison.Ordinal);
+        // Brightness slider appears strictly above Thickness slider in shared Edge Light flyout
+        int flyoutStart = xaml.IndexOf("x:Name=\"FlyoutEdgeGlowThickness\"", StringComparison.Ordinal);
+        int flyoutEnd = xaml.IndexOf("</Flyout>", flyoutStart, StringComparison.Ordinal);
+        flyoutStart.Should().BeGreaterThan(0);
+        flyoutEnd.Should().BeGreaterThan(flyoutStart);
+        string flyoutBlock = xaml[flyoutStart..flyoutEnd];
+
+        int brightIdx = flyoutBlock.IndexOf("x:Name=\"SliderEdgeGlowBrightness\"", StringComparison.Ordinal);
+        int thickIdx = flyoutBlock.IndexOf("x:Name=\"SliderEdgeGlowThickness\"", StringComparison.Ordinal);
         brightIdx.Should().BeGreaterThan(0);
         thickIdx.Should().BeGreaterThan(brightIdx, "Edge Light Brightness slider must appear above Edge Light Thickness slider");
 
         ExtractOpeningTag(xaml, "SliderEdgeGlowBrightness").Should().Contain("Minimum=\"10\" Maximum=\"100\"");
         ExtractOpeningTag(xaml, "SliderEdgeGlowThickness").Should().Contain("Minimum=\"0\" Maximum=\"64\"");
+
+        // Min-max endpoint numeric labels must NOT appear inside the Edge Light flyout
+        flyoutBlock.Should().NotContain("Text=\"10%\"");
+        flyoutBlock.Should().NotContain("Text=\"100%\"");
+        flyoutBlock.Should().NotContain("Text=\"0 px\"");
+        flyoutBlock.Should().NotContain("Text=\"64 px\"");
 
         // Uses existing GlowIntensity setting, live-syncs with Settings Modal, and persists via debounce
         v4Cs.Should().Contain("private void ApplyEdgeGlowBrightnessChange(int brightnessPct, string source)");

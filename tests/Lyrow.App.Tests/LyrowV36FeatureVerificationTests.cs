@@ -114,9 +114,10 @@ public sealed class LyrowV36FeatureVerificationTests
         string lyricsWindowXaml = File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "LyricsWindow.xaml"));
         string lyricsWindowCode = File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "LyricsWindow.xaml.cs"));
 
-        // Horizontal view ghost dropdown
-        lyricsWindowXaml.Should().Contain("x:Name=\"BtnDeviceSelector\"");
-        lyricsWindowXaml.Should().Contain("x:Name=\"FlyoutAudioDevices\"");
+        // Horizontal & Fullscreen toolbar icon-only audio output selector (legacy dropdown above Play/Pause removed in v4.3)
+        lyricsWindowXaml.Should().NotContain("x:Name=\"BtnDeviceSelector\"");
+        lyricsWindowXaml.Should().Contain("x:Name=\"BtnDeviceSelectorToolbar\"");
+        lyricsWindowXaml.Should().Contain("x:Name=\"FlyoutAudioDevicesToolbar\"");
 
         // Compact view ghost dropdown
         lyricsWindowXaml.Should().Contain("x:Name=\"BtnDeviceSelectorCompact\"");
