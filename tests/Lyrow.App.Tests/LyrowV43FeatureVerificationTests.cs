@@ -132,7 +132,7 @@ public sealed class LyrowV43FeatureVerificationTests
     }
 
     [Fact]
-    public void SettingsModal_HasThreeCanonicalTabs_LeftAlignedSidebar_AndFixedDimensions()
+    public void SettingsModal_HasSevenCanonicalTabs_InExactOrder_WithCorrectSettingDistribution_AndLeftAlignedSidebar()
     {
         string root = FindRepoRoot();
         string appXaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "App.xaml"));
@@ -142,15 +142,47 @@ public sealed class LyrowV43FeatureVerificationTests
         // Ghost button template honors HorizontalContentAlignment so sidebar items stay flush-left
         appXaml.Should().Contain("HorizontalAlignment=\"{TemplateBinding HorizontalContentAlignment}\"");
 
-        // Exactly 3 tabs: General, Lyrics, System & Notifications
-        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Equal("General", "Lyrics", "System");
-        ExtractOpeningTag(xaml, "BtnModalTabGeneral").Should().Contain("HorizontalContentAlignment=\"Left\"");
-        ExtractOpeningTag(xaml, "BtnModalTabLyrics").Should().Contain("HorizontalContentAlignment=\"Left\"");
-        ExtractOpeningTag(xaml, "BtnModalTabSystem").Should().Contain("HorizontalContentAlignment=\"Left\"");
-        xaml.Should().Contain("x:Name=\"ModalSectionGeneral\"");
-        xaml.Should().Contain("x:Name=\"ModalSectionLyrics\"");
-        xaml.Should().Contain("x:Name=\"ModalSectionSystem\"");
+        // Exactly 7 tabs in exact required order: General, Appearance, Lighting, Lyrics, System, Updates, About
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Equal(
+            "General", "Appearance", "Lighting", "Lyrics", "System", "Updates", "About");
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("Shortcuts");
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("All");
+
+        string[] tabButtons =
+        {
+            "BtnModalTabGeneral", "BtnModalTabAppearance", "BtnModalTabLighting",
+            "BtnModalTabLyrics", "BtnModalTabSystem", "BtnModalTabUpdates", "BtnModalTabAbout"
+        };
+
+        int prevPos = -1;
+        foreach (string tabBtn in tabButtons)
+        {
+            int pos = xaml.IndexOf($"x:Name=\"{tabBtn}\"", StringComparison.Ordinal);
+            pos.Should().BeGreaterThan(prevPos, $"{tabBtn} must appear in exact sidebar order");
+            ExtractOpeningTag(xaml, tabBtn).Should().Contain("HorizontalContentAlignment=\"Left\"");
+            prevPos = pos;
+        }
+
+        xaml.Should().NotContain("BtnModalTabShortcuts");
         xaml.Should().NotContain("BtnModalTabAll");
+
+        // Verify each of the 7 sections contains its designated settings
+        string SliceSection(string startName, string? nextName)
+        {
+            int s = xaml.IndexOf($"x:Name=\"{startName}\"", StringComparison.Ordinal);
+            s.Should().BeGreaterThan(0);
+            int e = nextName != null ? xaml.IndexOf($"x:Name=\"{nextName}\"", s, StringComparison.Ordinal) : xaml.Length;
+            e.Should().BeGreaterThan(s);
+            return xaml.Substring(s, e - s);
+        }
+
+        SliceSection("ModalSectionGeneral", "ModalSectionAppearance").Should().Contain("ComboModalLanguage").And.Contain("ComboModalTheme");
+        SliceSection("ModalSectionAppearance", "ModalSectionLighting").Should().Contain("SliderModalMasterOpacity").And.Contain("SwitchModalArtworkDynamicBg").And.Contain("SliderModalArtworkCornerRadius");
+        SliceSection("ModalSectionLighting", "ModalSectionLyrics").Should().Contain("SwitchModalAmbientEdgeGlow").And.Contain("SliderModalGlowThickness").And.Contain("ComboModalFftSize");
+        SliceSection("ModalSectionLyrics", "ModalSectionSystem").Should().Contain("SwitchModalLyricsGlow").And.Contain("SliderModalBackdropOpacity").And.Contain("SliderModalFocusedFontSize");
+        SliceSection("ModalSectionSystem", "ModalSectionUpdates").Should().Contain("SwitchModalStartWithWindows").And.Contain("SwitchModalSystemTray").And.Contain("SwitchModalNotifications");
+        SliceSection("ModalSectionUpdates", "ModalSectionAbout").Should().Contain("SwitchModalAutoUpdate").And.Contain("ComboModalUpdateFrequency").And.Contain("BtnModalCheckUpdates");
+        SliceSection("ModalSectionAbout", null).Should().Contain("TxtModalHotkeyGlow").And.Contain("TxtModalHotkeyLyrics").And.Contain("BtnModalResetSettings").And.Contain("TxtModalAboutLicense");
 
         // Fixed modal dimensions (Width + Height) prevent size jumping on tab switch
         string cardTag = ExtractOpeningTag(xaml, "SettingsModalCard");
@@ -159,10 +191,14 @@ public sealed class LyrowV43FeatureVerificationTests
         v4Cs.Should().Contain("SettingsModalCard.Width = Math.Min(740, availableW);");
         v4Cs.Should().Contain("SettingsModalCard.Height = Math.Min(520, availableH);");
 
-        // Turkish and English tab labels
+        // Turkish and English tab labels match exact naming rules
         v4Cs.Should().Contain("string tabGeneral = isTr ? \"Genel\" : \"General\";");
+        v4Cs.Should().Contain("string tabAppearance = isTr ? \"Görünüm\" : \"Appearance\";");
+        v4Cs.Should().Contain("string tabLighting = isTr ? \"Işık\" : \"Lighting\";");
         v4Cs.Should().Contain("string tabLyrics = isTr ? \"Şarkı Sözleri\" : \"Lyrics\";");
-        v4Cs.Should().Contain("string tabSystem = isTr ? \"Sistem ve Bildirimler\" : \"System & Notifications\";");
+        v4Cs.Should().Contain("string tabSystem = isTr ? \"Sistem\" : \"System\";");
+        v4Cs.Should().Contain("string tabUpdates = isTr ? \"Güncellemeler\" : \"Updates\";");
+        v4Cs.Should().Contain("string tabAbout = isTr ? \"Hakkında\" : \"About\";");
 
         // Legacy settings compatibility with 0..64 px range
         var settings = LyrowSettings.CreateDefault();

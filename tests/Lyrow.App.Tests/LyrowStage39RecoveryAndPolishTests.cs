@@ -157,24 +157,27 @@ public sealed class LyrowStage39RecoveryAndPolishTests
     [Fact]
     public void Settings_SystemTab_IsNotInVisibleTabsList()
     {
-        // v4.3 consolidated settings into exactly 3 canonical tabs: General, Lyrics, System (no All tab)
+        // v4.3 defines exactly 7 canonical tabs in order: General, Appearance, Lighting, Lyrics, System, Updates, About (no All or standalone Shortcuts tab)
         SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("All",
             "The All/Tümü tab must be strictly removed from visible settings tabs");
-        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Equal("General", "Lyrics", "System");
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("Shortcuts",
+            "Shortcuts must live inside About, not as a separate tab");
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Equal(
+            "General", "Appearance", "Lighting", "Lyrics", "System", "Updates", "About");
     }
 
     [Fact]
     public void Settings_UpdatesTab_IsInVisibleTabsList()
     {
-        // v4.3 hosts Updates inside the consolidated System & Notifications tab
-        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Contain("System");
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Contain("Updates");
     }
 
     [Fact]
     public void Settings_ShortcutsTab_IsInVisibleTabsList()
     {
-        // v4.3 hosts Shortcuts inside the consolidated System & Notifications tab
-        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Contain("System");
+        // v4.3 hosts Shortcuts inside the About tab (no separate Shortcuts tab)
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Contain("About");
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("Shortcuts");
     }
 
     [Fact]

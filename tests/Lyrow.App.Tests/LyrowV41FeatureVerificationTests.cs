@@ -143,7 +143,7 @@ public sealed class LyrowV41FeatureVerificationTests
         xaml.Should().NotContain("BtnModalTabAll");
         xaml.Should().NotContain("BtnModalOpenDashboard");
         SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("All");
-        SettingsNavigationModel.VisibleSettingsTabKeys.Should().HaveCount(3);
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().HaveCount(7);
 
         var loc = LocalizationService.Instance;
         string prev = loc.CurrentLanguage;

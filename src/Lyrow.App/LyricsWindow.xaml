@@ -583,14 +583,14 @@
                         </Button>
                     </Grid>
 
-                    <!-- Windows 11 Two-Pane Body: Left-Aligned 3-Tab Sidebar + Right Fixed-Height Scrollable Content -->
+                    <!-- Windows 11 Two-Pane Body: Left-Aligned 7-Tab Sidebar + Right Fixed-Height Scrollable Content -->
                     <Grid x:Name="SettingsModalBodyGrid" Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition x:Name="ColSettingsSidebar" Width="212" />
+                            <ColumnDefinition x:Name="ColSettingsSidebar" Width="204" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- Left Sidebar Category Navigation (Strictly 3 Tabs: General, Lyrics, System & Notifications) -->
+                        <!-- Left Sidebar Category Navigation (Strictly 7 Tabs: General, Appearance, Lighting, Lyrics, System, Updates, About) -->
                         <Border x:Name="SettingsModalSidebar" Grid.Column="0"
                                 HorizontalAlignment="Stretch"
                                 Padding="10,12,10,12"
@@ -609,6 +609,28 @@
                                     </Grid>
                                 </Button>
 
+                                <Button x:Name="BtnModalTabAppearance" Tag="Appearance" Style="{StaticResource LyrowGhostButtonStyle}"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
+                                        Height="38" Padding="8,0,12,0" CornerRadius="6"
+                                        AutomationProperties.Name="Appearance">
+                                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <Border x:Name="NavIndicatorAppearance" Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
+                                        <FontIcon Grid.Column="1" Glyph="&#xE790;" FontSize="15" />
+                                        <TextBlock x:Name="TxtModalNavAppearance" Grid.Column="2" Text="Appearance" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </Button>
+
+                                <Button x:Name="BtnModalTabLighting" Tag="Lighting" Style="{StaticResource LyrowGhostButtonStyle}"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
+                                        Height="38" Padding="8,0,12,0" CornerRadius="6"
+                                        AutomationProperties.Name="Lighting">
+                                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <Border x:Name="NavIndicatorLighting" Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
+                                        <FontIcon Grid.Column="1" Glyph="&#xE793;" FontSize="15" />
+                                        <TextBlock x:Name="TxtModalNavLighting" Grid.Column="2" Text="Lighting" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </Button>
+
                                 <Button x:Name="BtnModalTabLyrics" Tag="Lyrics" Style="{StaticResource LyrowGhostButtonStyle}"
                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
                                         Height="38" Padding="8,0,12,0" CornerRadius="6"
@@ -623,11 +645,33 @@
                                 <Button x:Name="BtnModalTabSystem" Tag="System" Style="{StaticResource LyrowGhostButtonStyle}"
                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
                                         Height="38" Padding="8,0,12,0" CornerRadius="6"
-                                        AutomationProperties.Name="System &amp; Notifications">
+                                        AutomationProperties.Name="System">
                                     <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10" HorizontalAlignment="Left" VerticalAlignment="Center">
                                         <Border x:Name="NavIndicatorSystem" Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
                                         <FontIcon Grid.Column="1" Glyph="&#xE7F4;" FontSize="15" />
-                                        <TextBlock x:Name="TxtModalNavSystem" Grid.Column="2" Text="System &amp; Notifications" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock x:Name="TxtModalNavSystem" Grid.Column="2" Text="System" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </Button>
+
+                                <Button x:Name="BtnModalTabUpdates" Tag="Updates" Style="{StaticResource LyrowGhostButtonStyle}"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
+                                        Height="38" Padding="8,0,12,0" CornerRadius="6"
+                                        AutomationProperties.Name="Updates">
+                                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <Border x:Name="NavIndicatorUpdates" Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
+                                        <FontIcon Grid.Column="1" Glyph="&#xE895;" FontSize="15" />
+                                        <TextBlock x:Name="TxtModalNavUpdates" Grid.Column="2" Text="Updates" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </Button>
+
+                                <Button x:Name="BtnModalTabAbout" Tag="About" Style="{StaticResource LyrowGhostButtonStyle}"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
+                                        Height="38" Padding="8,0,12,0" CornerRadius="6"
+                                        AutomationProperties.Name="About">
+                                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <Border x:Name="NavIndicatorAbout" Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
+                                        <FontIcon Grid.Column="1" Glyph="&#xE946;" FontSize="15" />
+                                        <TextBlock x:Name="TxtModalNavAbout" Grid.Column="2" Text="About" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                     </Grid>
                                 </Button>
                             </StackPanel>
@@ -643,11 +687,9 @@
                                       Padding="24,18,24,24">
                             <StackPanel x:Name="SettingsModalContentPanel" Spacing="16">
 
-                                <!-- TAB 1: GENERAL (Appearance, Artwork, Audio & Edge Light) -->
+                                <!-- TAB 1: GENERAL (Dil, Tema ve Genel Uygulama Tercihleri) -->
                                 <StackPanel x:Name="ModalSectionGeneral" Spacing="4">
                                     <TextBlock x:Name="TxtModalSectionGeneral" Text="General" FontWeight="SemiBold" FontSize="20" Margin="0,0,0,10" />
-
-                                    <TextBlock x:Name="TxtModalSectionAppearance" Text="Appearance &amp; Personalization" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Margin="2,4,0,4" />
 
                                     <Border Padding="16,12" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                         <Grid ColumnDefinitions="Auto,*,164" ColumnSpacing="14" VerticalAlignment="Center">
@@ -691,6 +733,11 @@
                                             <ToggleSwitch x:Name="SwitchModalEnableAnimations" Grid.Column="2" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Animations Toggle" />
                                         </Grid>
                                     </Border>
+                                </StackPanel>
+
+                                <!-- TAB 2: APPEARANCE (Görünüm: Albüm Kapağı, Renk Çıkarımı, Dinamik Arka Plan, Pencere Saydamlığı) -->
+                                <StackPanel x:Name="ModalSectionAppearance" Spacing="4" Visibility="Collapsed">
+                                    <TextBlock x:Name="TxtModalSectionAppearance" Text="Appearance" FontWeight="SemiBold" FontSize="20" Margin="0,0,0,10" />
 
                                     <Border Padding="16,12" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                         <StackPanel Spacing="6">
@@ -702,9 +749,6 @@
                                             <Slider x:Name="SliderModalMasterOpacity" Minimum="50" Maximum="100" Value="95" StepFrequency="1" AutomationProperties.Name="Modal Master Opacity Slider" />
                                         </StackPanel>
                                     </Border>
-
-                                    <!-- Artwork & Dynamic Background -->
-                                    <TextBlock x:Name="TxtModalSectionArtwork" Text="Artwork &amp; Dynamic Background" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Margin="2,14,0,4" />
 
                                     <Border Padding="16,12" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" VerticalAlignment="Center">
@@ -736,9 +780,11 @@
                                             <Slider x:Name="SliderModalArtworkCornerRadius" Minimum="4" Maximum="24" Value="12" StepFrequency="1" AutomationProperties.Name="Modal Artwork Corner Radius Slider" />
                                         </StackPanel>
                                     </Border>
+                                </StackPanel>
 
-                                    <!-- Audio Engine & Edge Light -->
-                                    <TextBlock x:Name="TxtModalSectionAudio" Text="Audio Engine &amp; Edge Light" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Margin="2,14,0,4" />
+                                <!-- TAB 3: LIGHTING (Işık: Ses Motoru, Ses Efektleri, Ses Çıkışı ve Kenar Işığı) -->
+                                <StackPanel x:Name="ModalSectionLighting" Spacing="4" Visibility="Collapsed">
+                                    <TextBlock x:Name="TxtModalSectionLighting" Text="Lighting" FontWeight="SemiBold" FontSize="20" Margin="0,0,0,10" />
 
                                     <Border Padding="16,12" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" VerticalAlignment="Center">
@@ -793,7 +839,7 @@
                                     </Border>
                                 </StackPanel>
 
-                                <!-- TAB 2: LYRICS (Şarkı Sözleri) -->
+                                <!-- TAB 4: LYRICS (Şarkı Sözleri: Parlama, Yazı Tipi Boyutları, Arka Plan Saydamlığı) -->
                                 <StackPanel x:Name="ModalSectionLyrics" Spacing="4" Visibility="Collapsed">
                                     <TextBlock x:Name="TxtModalSectionLyrics" Text="Lyrics" FontWeight="SemiBold" FontSize="20" Margin="0,0,0,10" />
 
@@ -838,9 +884,9 @@
                                     </Border>
                                 </StackPanel>
 
-                                <!-- TAB 3: SYSTEM & NOTIFICATIONS (Sistem ve Bildirimler, Güncellemeler, Kısayollar, Hakkında) -->
+                                <!-- TAB 5: SYSTEM (Sistem: Windows Başlangıcı, Sistem Tepsisi, Tepsiye Küçültme, Bildirimler) -->
                                 <StackPanel x:Name="ModalSectionSystem" Spacing="4" Visibility="Collapsed">
-                                    <TextBlock x:Name="TxtModalSectionSystem" Text="System &amp; Notifications" FontWeight="SemiBold" FontSize="20" Margin="0,0,0,10" />
+                                    <TextBlock x:Name="TxtModalSectionSystem" Text="System" FontWeight="SemiBold" FontSize="20" Margin="0,0,0,10" />
 
                                     <Border Padding="16,12" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" VerticalAlignment="Center">
@@ -896,9 +942,11 @@
                                             <ToggleSwitch x:Name="SwitchModalNotifyOnTrackChange" Grid.Column="2" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Notify on Track Change Toggle" />
                                         </Grid>
                                     </Border>
+                                </StackPanel>
 
-                                    <!-- Updates -->
-                                    <TextBlock x:Name="TxtModalSectionUpdates" Text="Updates" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Margin="2,14,0,4" />
+                                <!-- TAB 6: UPDATES (Güncellemeler: Güncelleme Kontrolü, Tercihler, Sürüm Bilgisi) -->
+                                <StackPanel x:Name="ModalSectionUpdates" Spacing="4" Visibility="Collapsed">
+                                    <TextBlock x:Name="TxtModalSectionUpdates" Text="Updates" FontWeight="SemiBold" FontSize="20" Margin="0,0,0,10" />
 
                                     <Border Padding="16,12" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
@@ -928,37 +976,41 @@
                                             <Button x:Name="BtnModalCheckUpdates" Grid.Column="1" Content="Check for Updates" AutomationProperties.Name="Modal Check for Updates" />
                                         </Grid>
                                     </Border>
+                                </StackPanel>
 
-                                    <!-- Shortcuts -->
-                                    <TextBlock x:Name="TxtModalSectionShortcuts" Text="Shortcuts" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Margin="2,14,0,4" />
+                                <!-- TAB 7: ABOUT (Hakkında: Kısayollar, Uygulama Bilgisi, Sürüm, Tanılama ve Lisans) -->
+                                <StackPanel x:Name="ModalSectionAbout" Spacing="4" Visibility="Collapsed">
+                                    <TextBlock x:Name="TxtModalSectionAbout" Text="About" FontWeight="SemiBold" FontSize="20" Margin="0,0,0,10" />
+
+                                    <TextBlock x:Name="TxtModalSectionShortcuts" Text="Shortcuts" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Margin="2,4,0,4" />
 
                                     <Border Padding="16,12" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                                            <TextBlock x:Name="TxtModalShortcutGlowLabel" Text="Toggle Edge Light" FontWeight="Normal" VerticalAlignment="Center" FontSize="14" />
-                                            <TextBox x:Name="TxtModalHotkeyGlow" Grid.Column="1" Width="160" PlaceholderText="e.g. Ctrl+Alt+G" AutomationProperties.Name="Modal Hotkey Glow" />
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" VerticalAlignment="Center">
+                                            <FontIcon Grid.Column="0" Glyph="&#xE765;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="TxtModalShortcutGlowLabel" Grid.Column="1" Text="Toggle Edge Light" FontWeight="Normal" VerticalAlignment="Center" FontSize="14" />
+                                            <TextBox x:Name="TxtModalHotkeyGlow" Grid.Column="2" Width="160" PlaceholderText="e.g. Ctrl+Alt+G" AutomationProperties.Name="Modal Hotkey Glow" />
                                         </Grid>
                                     </Border>
 
                                     <Border Padding="16,12" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                                            <TextBlock x:Name="TxtModalShortcutLyricsLabel" Text="Toggle Lyrics" FontWeight="Normal" VerticalAlignment="Center" FontSize="14" />
-                                            <TextBox x:Name="TxtModalHotkeyLyrics" Grid.Column="1" Width="160" PlaceholderText="e.g. Ctrl+Alt+L" AutomationProperties.Name="Modal Hotkey Lyrics" />
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" VerticalAlignment="Center">
+                                            <FontIcon Grid.Column="0" Glyph="&#xE765;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="TxtModalShortcutLyricsLabel" Grid.Column="1" Text="Toggle Lyrics" FontWeight="Normal" VerticalAlignment="Center" FontSize="14" />
+                                            <TextBox x:Name="TxtModalHotkeyLyrics" Grid.Column="2" Width="160" PlaceholderText="e.g. Ctrl+Alt+L" AutomationProperties.Name="Modal Hotkey Lyrics" />
                                         </Grid>
                                     </Border>
 
-                                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,6,0,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,6,0,10">
                                         <Button x:Name="BtnModalClearHotkeys" Content="Clear" AutomationProperties.Name="Modal Clear Shortcuts" />
                                         <Button x:Name="BtnModalSaveHotkeys" Content="Apply Shortcuts" Style="{ThemeResource AccentButtonStyle}" AutomationProperties.Name="Modal Apply Shortcuts" />
                                     </StackPanel>
-
-                                    <!-- About & Diagnostics -->
-                                    <TextBlock x:Name="TxtModalSectionAbout" Text="About" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Margin="2,14,0,4" />
 
                                     <Border Padding="16,14" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                         <StackPanel Spacing="10">
                                             <StackPanel Spacing="2">
                                                 <TextBlock Text="Lyrow v4.3" FontWeight="SemiBold" FontSize="15" />
                                                 <TextBlock x:Name="TxtModalAboutSubtitle" Text="Native Windows Ambient Edge Lighting &amp; Synchronized Lyrics" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="TxtModalAboutLicense" Text="MIT License — Open Source" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2,0,0" />
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
                                                 <Button x:Name="BtnModalResetSettings" Content="Reset to Defaults" AutomationProperties.Name="Modal Reset Settings" />

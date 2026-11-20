@@ -69,10 +69,14 @@ public sealed partial class LyricsWindow
                 handledEventsToo: true);
         }
 
-        // Exactly 3 Fluent Settings Tabs: General, Lyrics, System & Notifications
+        // Exactly 7 Fluent Settings Tabs: General, Appearance, Lighting, Lyrics, System, Updates, About
         WireModalTabButton(BtnModalTabGeneral, "General");
+        WireModalTabButton(BtnModalTabAppearance, "Appearance");
+        WireModalTabButton(BtnModalTabLighting, "Lighting");
         WireModalTabButton(BtnModalTabLyrics, "Lyrics");
         WireModalTabButton(BtnModalTabSystem, "System");
+        WireModalTabButton(BtnModalTabUpdates, "Updates");
+        WireModalTabButton(BtnModalTabAbout, "About");
 
         WireModalSettingsControls();
         _ = InitializePrimaryAppServicesAsync();
@@ -862,17 +866,33 @@ public sealed partial class LyricsWindow
 
     private void ShowModalSettingsCategory(string category)
     {
-        // Map any legacy category names cleanly into the 3 canonical v4.3 tabs
-        if (string.Equals(category, "Lyrics", StringComparison.OrdinalIgnoreCase))
+        // Map any legacy category names cleanly into the 7 canonical v4.3 tabs
+        if (string.Equals(category, "Appearance", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(category, "Artwork", StringComparison.OrdinalIgnoreCase))
+        {
+            category = "Appearance";
+        }
+        else if (string.Equals(category, "Lighting", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(category, "Audio", StringComparison.OrdinalIgnoreCase))
+        {
+            category = "Lighting";
+        }
+        else if (string.Equals(category, "Lyrics", StringComparison.OrdinalIgnoreCase))
         {
             category = "Lyrics";
         }
-        else if (string.Equals(category, "System", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(category, "Updates", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(category, "Shortcuts", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(category, "About", StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(category, "System", StringComparison.OrdinalIgnoreCase))
         {
             category = "System";
+        }
+        else if (string.Equals(category, "Updates", StringComparison.OrdinalIgnoreCase))
+        {
+            category = "Updates";
+        }
+        else if (string.Equals(category, "About", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(category, "Shortcuts", StringComparison.OrdinalIgnoreCase))
+        {
+            category = "About";
         }
         else
         {
@@ -881,8 +901,12 @@ public sealed partial class LyricsWindow
         _activeModalSettingsCategory = category;
 
         if (ModalSectionGeneral != null) ModalSectionGeneral.Visibility = category == "General" ? Visibility.Visible : Visibility.Collapsed;
+        if (ModalSectionAppearance != null) ModalSectionAppearance.Visibility = category == "Appearance" ? Visibility.Visible : Visibility.Collapsed;
+        if (ModalSectionLighting != null) ModalSectionLighting.Visibility = category == "Lighting" ? Visibility.Visible : Visibility.Collapsed;
         if (ModalSectionLyrics != null) ModalSectionLyrics.Visibility = category == "Lyrics" ? Visibility.Visible : Visibility.Collapsed;
         if (ModalSectionSystem != null) ModalSectionSystem.Visibility = category == "System" ? Visibility.Visible : Visibility.Collapsed;
+        if (ModalSectionUpdates != null) ModalSectionUpdates.Visibility = category == "Updates" ? Visibility.Visible : Visibility.Collapsed;
+        if (ModalSectionAbout != null) ModalSectionAbout.Visibility = category == "About" ? Visibility.Visible : Visibility.Collapsed;
 
         var selectedBg = Application.Current.Resources.TryGetValue("SubtleFillColorSecondaryBrush", out var sb) ? sb as Brush : null;
         var primaryFg = Application.Current.Resources.TryGetValue("TextFillColorPrimaryBrush", out var pf) ? pf as Brush : null;
@@ -904,8 +928,12 @@ public sealed partial class LyricsWindow
         }
 
         SetNavState(BtnModalTabGeneral, NavIndicatorGeneral, "General");
+        SetNavState(BtnModalTabAppearance, NavIndicatorAppearance, "Appearance");
+        SetNavState(BtnModalTabLighting, NavIndicatorLighting, "Lighting");
         SetNavState(BtnModalTabLyrics, NavIndicatorLyrics, "Lyrics");
         SetNavState(BtnModalTabSystem, NavIndicatorSystem, "System");
+        SetNavState(BtnModalTabUpdates, NavIndicatorUpdates, "Updates");
+        SetNavState(BtnModalTabAbout, NavIndicatorAbout, "About");
 
         UpdateSettingsModalResponsiveLayout(
             RootLayout?.ActualWidth ?? 960,
@@ -919,17 +947,21 @@ public sealed partial class LyricsWindow
         double availableW = Math.Max(320, windowWidth - 40);
         double availableH = Math.Max(320, windowHeight - 64);
 
-        // Fixed deterministic modal dimensions across all 3 tabs (no jumping on tab switch)
+        // Fixed deterministic modal dimensions across all 7 tabs (no jumping on tab switch)
         SettingsModalCard.Width = Math.Min(740, availableW);
         SettingsModalCard.Height = Math.Min(520, availableH);
 
         bool compactSidebar = availableW < 620;
-        ColSettingsSidebar.Width = new GridLength(compactSidebar ? 54 : 212);
+        ColSettingsSidebar.Width = new GridLength(compactSidebar ? 54 : 204);
         var labelVis = compactSidebar ? Visibility.Collapsed : Visibility.Visible;
 
         if (TxtModalNavGeneral != null) TxtModalNavGeneral.Visibility = labelVis;
+        if (TxtModalNavAppearance != null) TxtModalNavAppearance.Visibility = labelVis;
+        if (TxtModalNavLighting != null) TxtModalNavLighting.Visibility = labelVis;
         if (TxtModalNavLyrics != null) TxtModalNavLyrics.Visibility = labelVis;
         if (TxtModalNavSystem != null) TxtModalNavSystem.Visibility = labelVis;
+        if (TxtModalNavUpdates != null) TxtModalNavUpdates.Visibility = labelVis;
+        if (TxtModalNavAbout != null) TxtModalNavAbout.Visibility = labelVis;
     }
 
     private void SyncModalSettingsFromModel()
@@ -1416,23 +1448,37 @@ public sealed partial class LyricsWindow
 
         bool isTr = string.Equals(loc.CurrentLanguage, "tr", StringComparison.OrdinalIgnoreCase);
         string tabGeneral = isTr ? "Genel" : "General";
+        string tabAppearance = isTr ? "Görünüm" : "Appearance";
+        string tabLighting = isTr ? "Işık" : "Lighting";
         string tabLyrics = isTr ? "Şarkı Sözleri" : "Lyrics";
-        string tabSystem = isTr ? "Sistem ve Bildirimler" : "System & Notifications";
+        string tabSystem = isTr ? "Sistem" : "System";
+        string tabUpdates = isTr ? "Güncellemeler" : "Updates";
+        string tabAbout = isTr ? "Hakkında" : "About";
 
         if (TxtModalNavGeneral != null) TxtModalNavGeneral.Text = tabGeneral;
+        if (TxtModalNavAppearance != null) TxtModalNavAppearance.Text = tabAppearance;
+        if (TxtModalNavLighting != null) TxtModalNavLighting.Text = tabLighting;
         if (TxtModalNavLyrics != null) TxtModalNavLyrics.Text = tabLyrics;
         if (TxtModalNavSystem != null) TxtModalNavSystem.Text = tabSystem;
+        if (TxtModalNavUpdates != null) TxtModalNavUpdates.Text = tabUpdates;
+        if (TxtModalNavAbout != null) TxtModalNavAbout.Text = tabAbout;
 
         if (TxtModalSectionGeneral != null) TxtModalSectionGeneral.Text = tabGeneral;
+        if (TxtModalSectionAppearance != null) TxtModalSectionAppearance.Text = tabAppearance;
+        if (TxtModalSectionLighting != null) TxtModalSectionLighting.Text = tabLighting;
         if (TxtModalSectionLyrics != null) TxtModalSectionLyrics.Text = tabLyrics;
         if (TxtModalSectionSystem != null) TxtModalSectionSystem.Text = tabSystem;
-        if (TxtModalSectionAbout != null) TxtModalSectionAbout.Text = loc["Tab_About"];
+        if (TxtModalSectionUpdates != null) TxtModalSectionUpdates.Text = tabUpdates;
+        if (TxtModalSectionAbout != null) TxtModalSectionAbout.Text = tabAbout;
+        if (TxtModalAboutLicense != null) TxtModalAboutLicense.Text = isTr ? "MIT Lisansı — Açık Kaynak" : "MIT License — Open Source";
 
         if (BtnModalTabGeneral != null) { ToolTipService.SetToolTip(BtnModalTabGeneral, tabGeneral); AutomationProperties.SetName(BtnModalTabGeneral, tabGeneral); }
+        if (BtnModalTabAppearance != null) { ToolTipService.SetToolTip(BtnModalTabAppearance, tabAppearance); AutomationProperties.SetName(BtnModalTabAppearance, tabAppearance); }
+        if (BtnModalTabLighting != null) { ToolTipService.SetToolTip(BtnModalTabLighting, tabLighting); AutomationProperties.SetName(BtnModalTabLighting, tabLighting); }
         if (BtnModalTabLyrics != null) { ToolTipService.SetToolTip(BtnModalTabLyrics, tabLyrics); AutomationProperties.SetName(BtnModalTabLyrics, tabLyrics); }
         if (BtnModalTabSystem != null) { ToolTipService.SetToolTip(BtnModalTabSystem, tabSystem); AutomationProperties.SetName(BtnModalTabSystem, tabSystem); }
-
-        if (TxtModalSectionAppearance != null) TxtModalSectionAppearance.Text = loc["Section_Appearance"];
+        if (BtnModalTabUpdates != null) { ToolTipService.SetToolTip(BtnModalTabUpdates, tabUpdates); AutomationProperties.SetName(BtnModalTabUpdates, tabUpdates); }
+        if (BtnModalTabAbout != null) { ToolTipService.SetToolTip(BtnModalTabAbout, tabAbout); AutomationProperties.SetName(BtnModalTabAbout, tabAbout); }
         if (TxtModalLanguageLabel != null) TxtModalLanguageLabel.Text = loc["Settings_Language"];
         if (TxtModalLanguageDesc != null) TxtModalLanguageDesc.Text = loc["Settings_LanguageDesc"];
         if (TxtModalThemeLabel != null) TxtModalThemeLabel.Text = loc["Settings_Theme"];
@@ -1456,13 +1502,11 @@ public sealed partial class LyricsWindow
         if (TxtModalNotifyOnTrackChangeLabel != null) TxtModalNotifyOnTrackChangeLabel.Text = loc["Settings_NotifyTrackChange"];
         if (TxtModalNotifyOnTrackChangeDesc != null) TxtModalNotifyOnTrackChangeDesc.Text = loc["Settings_NotifyTrackChangeDesc"];
 
-        if (TxtModalSectionArtwork != null) TxtModalSectionArtwork.Text = loc["Section_Artwork"];
         if (TxtModalArtworkDynamicBgLabel != null) TxtModalArtworkDynamicBgLabel.Text = loc["Settings_ArtworkDynamicBg"];
         if (TxtModalArtworkDynamicBgDesc != null) TxtModalArtworkDynamicBgDesc.Text = loc["Settings_ArtworkDynamicBgDesc"];
         if (TxtModalArtworkSaturationLabel != null) TxtModalArtworkSaturationLabel.Text = loc["Settings_ArtworkSaturation"];
         if (TxtModalArtworkRadiusLabel != null) TxtModalArtworkRadiusLabel.Text = loc["Settings_ArtworkRadius"];
 
-        if (TxtModalSectionAudio != null) TxtModalSectionAudio.Text = loc["Section_Audio"];
         if (TxtModalAmbientGlowLabel != null) TxtModalAmbientGlowLabel.Text = loc["Settings_AmbientGlowLabel"];
         if (TxtModalAmbientGlowDesc != null) TxtModalAmbientGlowDesc.Text = loc["Settings_AmbientGlowDesc"];
         if (TxtModalGlowIntensityLabel != null) TxtModalGlowIntensityLabel.Text = loc["Settings_GlowIntensity"];
