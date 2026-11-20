@@ -117,7 +117,9 @@ public sealed class LyrowV41FeatureVerificationTests
 
         rowBlock.Should().Contain("<ColumnDefinition Width=\"*\" />");
         rowBlock.Should().Contain("<ColumnDefinition Width=\"Auto\" />");
-        rowBlock.Should().Contain("x:Name=\"BtnToggleEdgeGlow\" Grid.Column=\"0\" HorizontalAlignment=\"Left\"");
+        rowBlock.Should().Contain("x:Name=\"EdgeLightLeftControlsPanel\" Grid.Column=\"0\" Orientation=\"Horizontal\" HorizontalAlignment=\"Left\"");
+        rowBlock.Should().Contain("x:Name=\"BtnToggleEdgeGlow\"");
+        rowBlock.Should().Contain("x:Name=\"BtnEdgeGlowBrightness\"");
         rowBlock.Should().Contain("x:Name=\"GridOffsetCenterGroup\" Grid.Column=\"1\" HorizontalAlignment=\"Center\"");
         rowBlock.Should().Contain("x:Name=\"BtnOffsetMinus\"");
         rowBlock.Should().Contain("x:Name=\"BtnOffsetPlus\"");

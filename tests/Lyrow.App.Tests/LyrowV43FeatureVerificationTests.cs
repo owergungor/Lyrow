@@ -204,4 +204,41 @@ public sealed class LyrowV43FeatureVerificationTests
         var settings = LyrowSettings.CreateDefault();
         settings.GlowThickness.Should().BeInRange(0, 64);
     }
+
+    [Fact]
+    public void EdgeLightBrightnessButton_IsImmediatelyRightOfThicknessButton_SameSize_0To100Percent_SyncedAndPersisted()
+    {
+        string root = FindRepoRoot();
+        string xaml = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.xaml"));
+        string v4Cs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.V4Features.cs"));
+
+        // Placement: immediately to the right of BtnToggleEdgeGlow inside EdgeLightLeftControlsPanel (shared by Normal & Fullscreen modes)
+        int thickIdx = xaml.IndexOf("x:Name=\"BtnToggleEdgeGlow\"", StringComparison.Ordinal);
+        int brightIdx = xaml.IndexOf("x:Name=\"BtnEdgeGlowBrightness\"", StringComparison.Ordinal);
+        int centerIdx = xaml.IndexOf("x:Name=\"GridOffsetCenterGroup\"", StringComparison.Ordinal);
+        thickIdx.Should().BeGreaterThan(0);
+        brightIdx.Should().BeGreaterThan(thickIdx, "Brightness button must sit immediately right of Thickness button");
+        centerIdx.Should().BeGreaterThan(brightIdx, "Brightness button must remain in the left group before offset controls");
+
+        // Identical 28x28 size, corner radius 6, Ghost Button style
+        string thickTag = ExtractOpeningTag(xaml, "BtnToggleEdgeGlow");
+        string brightTag = ExtractOpeningTag(xaml, "BtnEdgeGlowBrightness");
+        thickTag.Should().Contain("Width=\"28\" Height=\"28\" Padding=\"0\" CornerRadius=\"6\"");
+        brightTag.Should().Contain("Width=\"28\" Height=\"28\" Padding=\"0\" CornerRadius=\"6\"");
+        brightTag.Should().Contain("Style=\"{StaticResource LyrowGhostButtonStyle}\"");
+        brightTag.Should().Contain("ToolTipService.ToolTip=\"Edge Light Brightness\"");
+
+        // Slider 0-100% in both toolbar flyout and Settings > Lighting tab
+        ExtractOpeningTag(xaml, "SliderEdgeGlowBrightness").Should().Contain("Minimum=\"0\" Maximum=\"100\"");
+        ExtractOpeningTag(xaml, "SliderModalGlowIntensity").Should().Contain("Minimum=\"0\" Maximum=\"100\"");
+        xaml.Should().Contain("x:Name=\"TxtEdgeGlowBrightnessValue\"");
+
+        // Click-to-toggle flyout, 2-way sync, independent persistence, TR/EN tooltips
+        v4Cs.Should().Contain("InitializeEdgeGlowBrightnessClickFlyout();");
+        v4Cs.Should().Contain("BtnEdgeGlowBrightness.Click += (_, _) => ToggleEdgeBrightnessFlyout();");
+        v4Cs.Should().Contain("ApplyEdgeGlowBrightnessChange(brightness, source: \"toolbar\");");
+        v4Cs.Should().Contain("ApplyEdgeGlowBrightnessChange(val, source: \"modal\");");
+        v4Cs.Should().Contain("_settingsManager.Current.GlowIntensity = brightness;");
+        v4Cs.Should().Contain("string brightnessTip = isTr ? \"Kenar Işığı Parlaklığı\" : \"Edge Light Brightness\";");
+    }
 }

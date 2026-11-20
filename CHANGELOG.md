@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.3.0] - 2026-11-19
 
 ### Added
+- **Normal Mod & Tam Ekran Mod — Kenar Işığı Parlaklığı Kontrolü (`BtnEdgeGlowBrightness`):** Kenar Işığı Kalınlığı butonunun hemen sağına birebir aynı `28×28` Ghost Button ölçüsünde parlaklık butonu eklendi; tıklandığında `0–100%` parlaklık sürgüsünü açar (`0%` tamamen kapalı, `100%` maksimum), kalınlık ayarından bağımsız çalışır, Normal Mod, Tam Ekran Mod ve Ayarlar > Işık sekmesiyle anlık senkronize olur ve kalıcı kaydedilir.
 - **Dar Mod — Kenar Işığı `0–64 px` Kalınlık Ayar Butonu (`BtnToggleEdgeGlowCompact`):** Compact Lyrics Show/Hide butonunun hemen soluna `26×26` ikon-odaklı Kenar Işığı butonu eklendi; tıklandığında Normal Modla aynı `0–64 px` kalınlık sürgüsünü (`FlyoutEdgeGlowThicknessCompact`) dar pencereden taşmadan açar, `0 px`'te Kenar Işığını tamamen kapatır, `1–64 px` değerlerini anlık uygular ve Normal Mod + Ayarlar sayfasıyla 3 yönlü senkronize çalışır.
 - **v4.3 Doğrulama Test Paketi:** Dar Mod 6 Ghost Button, ikon-odaklı Audio Output (`26×26`), Dar Mod ve Normal Mod ortak tıklamayla açılan `0–64 px` kalınlık sürgüsü, sola hizalı 3 sekmeli sabit boyutlu Windows 11 Fluent ayarlar tasarımını doğrulayan testler (`LyrowV43FeatureVerificationTests.cs`) eklendi.
 
@@ -20,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Ayarlar Sayfası — Sola Hizalı Sidebar, Sabit Boyut ve 7 Sekmeli Windows 11 Fluent Design:** `LyrowGhostButtonStyle` içerik hizalaması düzeltilerek sidebar öğeleri tutarlı şekilde sola hizalandı; modal genişlik/yüksekliği (`740×520`) sabitlenerek sekme geçişlerinde boyut sıçraması önlendi; ayarlar **Genel**, **Görünüm**, **Işık**, **Şarkı Sözleri**, **Sistem**, **Güncellemeler** ve **Hakkında** (Kısayollar dahil) olmak üzere tam 7 ayrı sekmede düzenlendi (tüm mevcut ayarlar, Açık/Koyu/Sistem teması, Türkçe/İngilizce yerelleştirme ve ESC davranışı korunarak).
 
 ### Validation
-- **Birim ve Entegrasyon Testleri:** 711 / 711 PASS (%100 başarı).
+- **Birim ve Entegrasyon Testleri:** 712 / 712 PASS (%100 başarı).
 - **Gerçek Çalıştırma Doğrulaması:** Hem `publish\win-x64\Lyrow.App.exe` hem `AppData\Local\Programs\Lyrow\Lyrow.App.exe` `--smoke-test` (`ExitCode: 0`) ve canlı pencere açılışıyla doğrulandı.
 - **Dağıtım Paketleri (Yerel):** `Lyrow-4.3-Setup-x64.exe`, `Lyrow-v4.3-win-x64-portable.zip` ve `Lyrow-v4.3-x64.msix` (imzasız) yerel olarak üretildi ve SHA-256 doğrulamasından geçti.
 

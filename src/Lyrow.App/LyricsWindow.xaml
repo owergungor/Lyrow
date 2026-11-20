@@ -202,43 +202,82 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- 1. Edge Light (Kenar Işığı) Button + Click-to-Toggle Thickness Slider Flyout (0-64 px) -->
-                                    <Button x:Name="BtnToggleEdgeGlow" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                            Width="28" Height="28" Padding="0" CornerRadius="6"
-                                            Style="{StaticResource LyrowGhostButtonStyle}"
-                                            ToolTipService.ToolTip="Edge Light"
-                                            AutomationProperties.Name="Edge Light Thickness">
-                                        <FontIcon x:Name="IconToggleEdgeGlow" Glyph="&#xE793;" FontSize="13" />
-                                        <FlyoutBase.AttachedFlyout>
-                                            <Flyout x:Name="FlyoutEdgeGlowThickness" Placement="Top" LightDismissOverlayMode="Off" ShouldConstrainToRootBounds="True">
-                                                <Flyout.FlyoutPresenterStyle>
-                                                    <Style TargetType="FlyoutPresenter">
-                                                        <Setter Property="Padding" Value="12,8" />
-                                                        <Setter Property="MinWidth" Value="220" />
-                                                        <Setter Property="MinHeight" Value="40" />
-                                                        <Setter Property="CornerRadius" Value="10" />
-                                                        <Setter Property="Background" Value="{ThemeResource LyrowModalSurfaceBrush}" />
-                                                        <Setter Property="BorderBrush" Value="{ThemeResource LyrowModalBorderBrush}" />
-                                                        <Setter Property="BorderThickness" Value="1" />
-                                                    </Style>
-                                                </Flyout.FlyoutPresenterStyle>
-                                                <Grid x:Name="GridEdgeThicknessPopup" Width="204" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
-                                                    <FontIcon Grid.Column="0" Glyph="&#xE793;" FontSize="12"
-                                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                              VerticalAlignment="Center" />
-                                                    <Slider x:Name="SliderEdgeGlowThickness" Grid.Column="1"
-                                                            Minimum="0" Maximum="64" Value="24" StepFrequency="1"
-                                                            IsThumbToolTipEnabled="False"
-                                                            VerticalAlignment="Center" HorizontalAlignment="Stretch"
-                                                            AutomationProperties.Name="Edge Light Thickness Slider" />
-                                                    <TextBlock x:Name="TxtEdgeGlowThicknessHoverValue" Grid.Column="2"
-                                                               Text="24 px" FontSize="11" MinWidth="36" TextAlignment="Right"
-                                                               VerticalAlignment="Center"
-                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                </Grid>
-                                            </Flyout>
-                                        </FlyoutBase.AttachedFlyout>
-                                    </Button>
+                                    <!-- 1. Left Actions: Edge Light Thickness (0-64 px) + Edge Light Brightness (0-100%), identical 28x28 -->
+                                    <StackPanel x:Name="EdgeLightLeftControlsPanel" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="6">
+                                        <Button x:Name="BtnToggleEdgeGlow" VerticalAlignment="Center"
+                                                Width="28" Height="28" Padding="0" CornerRadius="6"
+                                                Style="{StaticResource LyrowGhostButtonStyle}"
+                                                ToolTipService.ToolTip="Edge Light"
+                                                AutomationProperties.Name="Edge Light Thickness">
+                                            <FontIcon x:Name="IconToggleEdgeGlow" Glyph="&#xE793;" FontSize="13" />
+                                            <FlyoutBase.AttachedFlyout>
+                                                <Flyout x:Name="FlyoutEdgeGlowThickness" Placement="Top" LightDismissOverlayMode="Off" ShouldConstrainToRootBounds="True">
+                                                    <Flyout.FlyoutPresenterStyle>
+                                                        <Style TargetType="FlyoutPresenter">
+                                                            <Setter Property="Padding" Value="12,8" />
+                                                            <Setter Property="MinWidth" Value="220" />
+                                                            <Setter Property="MinHeight" Value="40" />
+                                                            <Setter Property="CornerRadius" Value="10" />
+                                                            <Setter Property="Background" Value="{ThemeResource LyrowModalSurfaceBrush}" />
+                                                            <Setter Property="BorderBrush" Value="{ThemeResource LyrowModalBorderBrush}" />
+                                                            <Setter Property="BorderThickness" Value="1" />
+                                                        </Style>
+                                                    </Flyout.FlyoutPresenterStyle>
+                                                    <Grid x:Name="GridEdgeThicknessPopup" Width="204" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                                                        <FontIcon Grid.Column="0" Glyph="&#xE793;" FontSize="12"
+                                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                  VerticalAlignment="Center" />
+                                                        <Slider x:Name="SliderEdgeGlowThickness" Grid.Column="1"
+                                                                Minimum="0" Maximum="64" Value="24" StepFrequency="1"
+                                                                IsThumbToolTipEnabled="False"
+                                                                VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                                                                AutomationProperties.Name="Edge Light Thickness Slider" />
+                                                        <TextBlock x:Name="TxtEdgeGlowThicknessHoverValue" Grid.Column="2"
+                                                                   Text="24 px" FontSize="11" MinWidth="36" TextAlignment="Right"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    </Grid>
+                                                </Flyout>
+                                            </FlyoutBase.AttachedFlyout>
+                                        </Button>
+
+                                        <Button x:Name="BtnEdgeGlowBrightness" VerticalAlignment="Center"
+                                                Width="28" Height="28" Padding="0" CornerRadius="6"
+                                                Style="{StaticResource LyrowGhostButtonStyle}"
+                                                ToolTipService.ToolTip="Edge Light Brightness"
+                                                AutomationProperties.Name="Edge Light Brightness">
+                                            <FontIcon x:Name="IconEdgeGlowBrightness" Glyph="&#xE706;" FontSize="13" />
+                                            <FlyoutBase.AttachedFlyout>
+                                                <Flyout x:Name="FlyoutEdgeGlowBrightness" Placement="Top" LightDismissOverlayMode="Off" ShouldConstrainToRootBounds="True">
+                                                    <Flyout.FlyoutPresenterStyle>
+                                                        <Style TargetType="FlyoutPresenter">
+                                                            <Setter Property="Padding" Value="12,8" />
+                                                            <Setter Property="MinWidth" Value="220" />
+                                                            <Setter Property="MinHeight" Value="40" />
+                                                            <Setter Property="CornerRadius" Value="10" />
+                                                            <Setter Property="Background" Value="{ThemeResource LyrowModalSurfaceBrush}" />
+                                                            <Setter Property="BorderBrush" Value="{ThemeResource LyrowModalBorderBrush}" />
+                                                            <Setter Property="BorderThickness" Value="1" />
+                                                        </Style>
+                                                    </Flyout.FlyoutPresenterStyle>
+                                                    <Grid x:Name="GridEdgeBrightnessPopup" Width="204" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                                                        <FontIcon Grid.Column="0" Glyph="&#xE706;" FontSize="12"
+                                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                  VerticalAlignment="Center" />
+                                                        <Slider x:Name="SliderEdgeGlowBrightness" Grid.Column="1"
+                                                                Minimum="0" Maximum="100" Value="80" StepFrequency="1"
+                                                                IsThumbToolTipEnabled="False"
+                                                                VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                                                                AutomationProperties.Name="Edge Light Brightness Slider" />
+                                                        <TextBlock x:Name="TxtEdgeGlowBrightnessValue" Grid.Column="2"
+                                                                   Text="80%" FontSize="11" MinWidth="36" TextAlignment="Right"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    </Grid>
+                                                </Flyout>
+                                            </FlyoutBase.AttachedFlyout>
+                                        </Button>
+                                    </StackPanel>
 
                                     <!-- 2. Offset Group (- ms / value / + ms): True geometric center aligned with Play/Pause -->
                                     <Grid x:Name="GridOffsetCenterGroup" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -803,7 +842,7 @@
                                                 <TextBlock x:Name="TxtModalGlowIntensityLabel" Text="Edge Light Brightness" FontWeight="Normal" FontSize="14" VerticalAlignment="Center" />
                                                 <TextBlock x:Name="TxtModalGlowIntensityPercent" Grid.Column="1" Text="80%" FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
                                             </Grid>
-                                            <Slider x:Name="SliderModalGlowIntensity" Minimum="10" Maximum="100" Value="80" StepFrequency="5" AutomationProperties.Name="Modal Glow Intensity Slider" />
+                                            <Slider x:Name="SliderModalGlowIntensity" Minimum="0" Maximum="100" Value="80" StepFrequency="1" AutomationProperties.Name="Modal Glow Intensity Slider" />
                                         </StackPanel>
                                     </Border>
 
