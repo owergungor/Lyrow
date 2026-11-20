@@ -1,4 +1,4 @@
-# Lyrow v4.3 — Sürüm Notları (Yerel Hazırlık)
+# Lyrow v4.3 — Sürüm Notları
 
 **Tarih:** 2026-11-20  
 **Temel Sürüm:** v4.2 (`7f9ab66`)  
@@ -34,10 +34,12 @@
 
 ---
 
-## Yerel Dağıtım Paketleri ve SHA-256 Doğrulama Özetleri
+## Dağıtım Paketleri ve SHA-256 Doğrulama Özetleri
 
 | Paket | Dosya Adı | Boyut | İmza Durumu | SHA-256 |
 |---|---|---|---|---|
 | **Windows Setup EXE** | `Lyrow-4.3-Setup-x64.exe` | 64.76 MB | İmzasız | `0BF9DE457792F95422D6F81FBE0A979ABBFDCFA7C37E1A5F9B386CF079E37E54` |
 | **Portable ZIP** | `Lyrow-v4.3-win-x64-portable.zip` | 93.43 MB | — | `946D07F6F95700271DB9776FFC8FE0D3FB7C61127445CE4B3717E42891C091A1` |
 | **MSIX x64** | `Lyrow-v4.3-x64.msix` | 95.69 MB | **İmzasız (`NotSigned`)** | `9229BA202441D5AF3AF90BA796027ABA56F2454F98CD84EF5CBEA765D7385BE2` |
+
+> **Not:** `Lyrow-v4.3-x64.msix` paketi imzasız (`NotSigned`) olarak sunulmaktadır; Windows üzerinde doğrudan yüklemek için güvenilen bir kod imzalama sertifikasıyla imzalanması gerekir. Kurulum Sihirbazı (`Setup EXE`) veya Taşınabilir Paket (`Portable ZIP`) ek bir runtime gerektirmeden doğrudan çalıştırılabilir.

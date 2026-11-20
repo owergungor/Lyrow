@@ -10,32 +10,31 @@
 [![Tests](https://img.shields.io/badge/Tests-713%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
 [![License](https://img.shields.io/badge/License-MIT-750014.svg)](LICENSE)
 
-**Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; doğrudan birincil pencere olarak açılan senkronize şarkı sözleri arayüzü, albüm kapağına göre otomatik renk değiştiren 4 kenarlı Kenar Işığı (Edge Light), tıklamayla açılan `0–64 px` kalınlık ayarı, Microsoft Windows 11 Fluent Design ayarlar modalı, hem Normal hem Dar Modda tutarlı Ghost Button kontrolleri, 2×/0.5× akıcı pencere genişliği geçişi ve kompakt Dar Mod (Mini Player) sunar.
+**Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; doğrudan birincil pencere olarak açılan senkronize şarkı sözleri arayüzü, albüm kapağına göre otomatik renk değiştiren 4 kenarlı Kenar Işığı (Edge Light), tüm modlarda tıklamayla açılan ortak **Parlaklık (`10–100%`) ve Kalınlık (`0–64 px`)** kontrol paneli, 7 sekmeli sabit boyutlu Microsoft Windows 11 Fluent Design ayarlar modalı, hem Normal/Tam Ekran hem Dar Modda ikon-odaklı ses çıkışı ve Ghost Button kontrolleri, 2×/0.5× akıcı pencere genişliği geçişi ve kompakt Dar Mod (Mini Player) sunar.
 
 ---
 
 ## 📥 İndirme ve Kurulum
 
-### Güncel Sürüm: Lyrow v4.3 (Yerel Paketler Hazır — Setup EXE, Portable ZIP & MSIX)
+### Güncel Sürüm: [Lyrow v4.3](https://github.com/owergungor/Lyrow/releases/tag/v4.3) (Setup EXE, Portable ZIP & MSIX)
 
 | Kaynak | Dosya | Boyut | SHA-256 Doğrulama Özeti |
 |---|---|---|---|
-| **Kurulum Sihirbazı (Installer)** | `Lyrow-4.3-Setup-x64.exe` | ~64.77 MB | `BA33C4E55338D6DF182D4605058C0C7173B4E7254AEF364B3F255CEC171E6341` |
-| **Taşınabilir Paket (Portable ZIP)** | `Lyrow-v4.3-win-x64-portable.zip` | ~93.44 MB | `E9D95B3559A711567E8AFFC37A6C3DA24BEAAD8F7981D757F3B51CFBBC4F0A32` |
-| **MSIX Paketi (Windows x64)** | `Lyrow-v4.3-x64.msix` *(imzasız)* | ~95.69 MB | `7555ADA050269D2F2578BB6CE48152DF9F0D40CE75B8D166D6BEF9F2456D0EC0` |
+| **Kurulum Sihirbazı (Installer)** | [Lyrow-4.3-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/download/v4.3/Lyrow-4.3-Setup-x64.exe) | 64.76 MB | `0BF9DE457792F95422D6F81FBE0A979ABBFDCFA7C37E1A5F9B386CF079E37E54` |
+| **Taşınabilir Paket (Portable ZIP)** | [Lyrow-v4.3-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/download/v4.3/Lyrow-v4.3-win-x64-portable.zip) | 93.43 MB | `946D07F6F95700271DB9776FFC8FE0D3FB7C61127445CE4B3717E42891C091A1` |
+| **MSIX Paketi (Windows x64)** | [Lyrow-v4.3-x64.msix](https://github.com/owergungor/Lyrow/releases/download/v4.3/Lyrow-v4.3-x64.msix) *(imzasız)* | 95.69 MB | `9229BA202441D5AF3AF90BA796027ABA56F2454F98CD84EF5CBEA765D7385BE2` |
 
 > [!NOTE]
-> Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz. MSIX paketi (`Lyrow-v4.1-x64.msix`) standart x64 Windows paket yapısında üretilir; kurulum için güvenilen bir kod imzalama sertifikası ile imzalanması (`signtool.exe` veya `LYROW_PFX_PATH`) gerekir.
+> Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz. MSIX paketi (`Lyrow-v4.3-x64.msix`) **imzasız** olarak standart x64 Windows paket yapısında üretilir; Windows üzerinde doğrudan yüklemek için güvenilen bir kod imzalama sertifikasıyla imzalanması (`signtool.exe` veya `LYROW_PFX_PATH`) gerekir.
 
-### Önceki Kararlı Sürümler (Lyrow v4.0, v3.8, v3.7 & Lyrow v3.5)
+### Önceki Kararlı Sürümler (v4.2, v4.1, v4.0, v3.8, v3.7 & v3.5)
 Önceki yayınlanmış sürümleri tercih eden kullanıcılar için:
-- **v4.0 Kurulum Sihirbazı:** [Lyrow-4.0-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/tag/v4.0)
-- **v4.0 Taşınabilir Paket:** [Lyrow-v4.0-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/tag/v4.0)
-- **v3.8 Kurulum Sihirbazı:** [Lyrow-3.8-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/tag/v3.8)
-- **v3.8 Taşınabilir Paket:** [Lyrow-v3.8-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/tag/v3.8)
-- **v3.7 Taşınabilir Paket:** [Lyrow-v3.7-win-x64.zip](https://github.com/owergungor/Lyrow/releases/tag/v3.7)
-- **v3.5 Kurulum Sihirbazı:** [Lyrow-3.5-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/tag/v3.5)
-- **v3.5 Taşınabilir Arşiv:** [Lyrow-v3.5-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/tag/v3.5)
+- **v4.2 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.2](https://github.com/owergungor/Lyrow/releases/tag/v4.2)
+- **v4.1 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.1](https://github.com/owergungor/Lyrow/releases/tag/v4.1)
+- **v4.0 Kurulum Sihirbazı & Taşınabilir Paket:** [Lyrow v4.0](https://github.com/owergungor/Lyrow/releases/tag/v4.0)
+- **v3.8 Kurulum Sihirbazı & Taşınabilir Paket:** [Lyrow v3.8](https://github.com/owergungor/Lyrow/releases/tag/v3.8)
+- **v3.7 Taşınabilir Paket:** [Lyrow v3.7](https://github.com/owergungor/Lyrow/releases/tag/v3.7)
+- **v3.5 Kurulum Sihirbazı & Taşınabilir Arşiv (Lyrow v3.5):** [Lyrow-3.5-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/tag/v3.5) · [Lyrow-v3.5-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/tag/v3.5)
 
 ---
 
@@ -77,14 +76,15 @@ Lyrow, iki bağımsız ancak birbiriyle tam senkron çalışan ana modülden olu
 - **Deterministik İlerleme (Seek):** İlerleme çubuğunda tıklanan veya sürüklenen noktaya ya da şarkı sözü satırına tıklandığında anında deterministik atlama yapılır.
 
 ### 2. Arayüz ve Görünüm Modları
-- **Normal Mod:** Tam boyutta, dikey merkezlenen akıcı şarkı sözleri, yüksek çözünürlüklü kapak ve Neumorphic kontroller. Şarkı sözleri pencere sınırlarına göre otomatik sarılır (`TextWrapping`).
-- **Dar Mod (Compact Player — 352×148 px):** Masaüstünde minimum alan kaplayan yatay düzen: 90×90 px albüm kapağı, parça bilgisi, ilerleme çubuğu, açılır şarkı sözü çekmecesi ve kayan ses kontrolü.
-- **Açık ve Koyu Neumorphism Teması:** Yumuşak içbükey ve kabartmalı gölge katmanları, dokunsal buton basma efektleri ve Windows 11 Fluent tasarım uyumu.
+- **Normal Mod & Tam Ekran Mod (`F11`):** 50/50 yatay düzen (solda yüksek çözünürlüklü albüm kapağı ve Ghost Button oynatma kontrolleri, sağda dikey merkezlenen akıcı şarkı sözleri). Şarkı sözleri gizlendiğinde pencere genişliği akıcı biçimde yarıya iner (`0.5×`), tekrar açıldığında iki katına çıkar (`2×`).
+- **Dar Mod (Compact Player):** Masaüstünde minimum alan kaplayan yatay düzen: albüm kapağı, parça bilgisi, ilerleme çubuğu, açılır 3 satırlık şarkı sözü çekmecesi, tüm kontroller için tutarlı Ghost Button tasarımı, kayan ses kontrolü, ikon-odaklı ses çıkışı seçicisi ve Normal Modla birebir aynı Kenar Işığı paneli.
+- **Kenar Işığı (Edge Light) — Parlaklık & Kalınlık Paneli:** Hem Normal/Tam Ekran Modda hem Dar Modda Kenar Işığı butonuna tıklandığında açılan ortak panelde üstte **Parlaklık (`10–100%`)**, altta **Kalınlık (`0–64 px`)** sürgüleri bulunur. `0 px` Kenar Işığını tamamen kapatır; değişiklikler anında uygulanır, tüm modlar ve Ayarlar sayfasıyla senkronize kalır.
+- **Windows 11 Fluent Design Ayarlar Modalı:** Sabit boyutlu (`740×520`), sola hizalı 7 sekmeli (**Genel**, **Görünüm**, **Işık**, **Şarkı Sözleri**, **Sistem**, **Güncellemeler**, **Hakkında**) modern ayarlar arayüzü; Açık/Koyu/Sistem teması ve Türkçe/İngilizce dil desteği.
 - **Yüksek Çözünürlüklü & Animasyonlu Kapaklar:** Kapak görselleri ham kalitesinde korunur; animasyonlu GIF ve WebP kapakları donanım hızlandırmalı oynatılır.
 
 ### 3. Sistem ve Ses Entegrasyonu
-- **Doğrudan Ses Çıkış Aygıtı Seçimi:** Lyrics arayüzündeki aygıt menüsünden Windows varsayılan ses yürütme cihazı (Kulaklık, Hoparlör, Bluetooth) anında değiştirilir ve ilgili glif simgesi canlı güncellenir.
-- **Kayan Ses Düzeyi Popup'ı:** Kompakt modda ses simgesine tıklandığında açılan, sessize alma (mute) butonlu yatay ses kaydırıcısı.
+- **İkon-Odaklı Ses Çıkış Aygıtı Seçimi:** Normal ve Tam Ekran Modda alt araç çubuğunda Kenar Işığı butonunun hemen sağında (`28×28`), Dar Modda ise Volume & Mute butonunun yanında (`26×26`) konumlanan ikon-odaklı ses çıkışı butonu ile Windows ses yürütme cihazı (Kulaklık, Hoparlör, Bluetooth) anında değiştirilir; aktif cihaz bilgisi Tooltip üzerinde gösterilir ve tüm modlarda senkronize çalışır.
+- **Kayan Ses Düzeyi Popup'ı:** Dar modda ses simgesine tıklandığında açılan, sessize alma (mute) butonlu yatay ses kaydırıcısı.
 
 ---
 
@@ -133,17 +133,17 @@ Lyrow v3.7 ile baştan yazılan **Playback Timeline Engine**, müzik çalarlarda
 ## 🚀 Kullanım Talimatları
 
 ### Hızlı Başlangıç
-1. [Releases](https://github.com/owergungor/Lyrow/releases/tag/v3.7) sayfasından `Lyrow-v3.7-win-x64.zip` dosyasını indirin.
-2. ZIP dosyasını dilediğiniz bir klasöre çıkartın.
+1. [Lyrow v4.3 Releases](https://github.com/owergungor/Lyrow/releases/tag/v4.3) sayfasından `Lyrow-4.3-Setup-x64.exe` kurulum dosyasını veya `Lyrow-v4.3-win-x64-portable.zip` taşınabilir paketini indirin.
+2. Kurulum sihirbazını çalıştırın veya taşınabilir ZIP arşivini bir klasöre çıkartın.
 3. `Lyrow.App.exe` dosyasını çalıştırın.
 
 ### Arayüz Kısayolları ve İpuçları
-- **Görünüm Değiştirme:** Pencere başlığındaki mod simgesine tıklayarak Normal Mod ile Dar Mod arasında geçiş yapabilirsiniz.
+- **Görünüm Modları:** Dar Mod butonuyla Normal Mod ve Dar Mod arasında geçiş yapabilir, `F11` veya Tam Ekran butonuyla Tam Ekran Modu açıp kapatabilirsiniz.
+- **Kenar Işığı (Edge Light):** Normal, Tam Ekran veya Dar Modda Kenar Işığı butonuna tıklayarak açılan ortak panelden **Parlaklık (`10–100%`)** ve **Kalınlık (`0–64 px`)** ayarını anında yapabilirsiniz (`0 px` Kenar Işığını tamamen kapatır).
+- **Ses Çıkışı (Audio Output):** Normal/Tam Ekran Modda Kenar Işığı butonunun hemen sağındaki, Dar Modda ise Ses butonunun yanındaki cihaz simgesine tıklayarak aktif ses çıkışını (Hoparlör, Kulaklık, Bluetooth) değiştirebilirsiniz.
 - **Şarkı Sözünde Satıra Atlama:** Senkronize şarkı sözlerinde dilediğiniz bir satıra tıklayarak parçayı doğrudan o konuma sarabilirsiniz.
 - **İlerleme Çubuğu (Seek):** İlerleme çubuğuna tıklayarak veya sürükleyerek parçada dilediğiniz konuma atlayabilirsiniz.
-- **Ses Düzeyi:** Dar modda ses simgesine tıklayarak açılır kaydırıcı üzerinden sesi ayarlayabilir veya sessize alabilirsiniz.
-- **Aygıt Seçimi:** Cihaz simgesine tıklayarak sistem varsayılan ses çıkışını (Hoparlör, Kulaklık, Bluetooth) değiştirebilirsiniz.
-- **Ayarlar:** Sistem tepsisindeki Lyrow simgesine sağ tıklayarak ayarları açabilir, Glow kalınlığını, başlatma tercihlerini ve temayı yapılandırabilirsiniz.
+- **Ayarlar:** Normal Mod sol üst köşedeki `…` butonundan veya sistem tepsisindeki Lyrow simgesine sağ tıklayarak 7 sekmeli Windows 11 Fluent ayarlar penceresini açabilirsiniz (`Esc` ile kapanır).
 
 ---
 
@@ -151,11 +151,11 @@ Lyrow v3.7 ile baştan yazılan **Playback Timeline Engine**, müzik çalarlarda
 
 Lyrow her aşamada sıkı otomatik testler ve platform doğrulamalarıyla geliştirilmektedir:
 
-- **Birim ve Entegrasyon Testleri:** **635 / 635 Test PASS (%100 Başarı)**
-  - `Lyrow.Core.Tests`: 59 test (Modül yaşam döngüsü, olay veri yolu, ayarlar)
+- **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** **713 / 713 Test PASS (%100 Başarı)**
+  - `Lyrow.Core.Tests`: 63 test (Modül yaşam döngüsü, olay veri yolu, ayarlar, yerelleştirme)
   - `Lyrow.Audio.Tests`: 53 test (WASAPI yakalama, FFT matematik motoru, vuruş algılama)
   - `Lyrow.Music.Tests`: 120 test (GSMTC dinleme, metadata normalizasyonu, parça geçiş izolasyonu)
-  - `Lyrow.App.Tests`: 403 test (WinUI 3 ViewModel'leri, Dar Mod viewport hesaplamaları, timeline motoru testleri)
+  - `Lyrow.App.Tests`: 477 test (WinUI 3 arayüzü, Normal/Tam Ekran/Dar Mod, Kenar Işığı, Ayarlar ve timeline motoru testleri)
 - **Sürekli Entegrasyon (CI):** Her commit ve push işlemi [GitHub Actions](https://github.com/owergungor/Lyrow/actions) Windows derleme ortamında test edilir.
 - **Smoke Test:** Dağıtım öncesinde `Lyrow.App.exe --smoke-test` komutuyla yerel Windows x64 başlatma ve temiz kapanma test edilir.
 
@@ -163,22 +163,20 @@ Lyrow her aşamada sıkı otomatik testler ve platform doğrulamalarıyla geliş
 
 ## 📜 Sürüm Geçmişi
 
-### [v3.7] — 2026-11-10 (Güncel)
-- **Merkezi Playback Timeline Motoru:** `IPlaybackTimelineEngine` mimarisiyle geçen süre, kalan süre ve parça geçiş izolasyonu tamamen bağımsızlaştırıldı.
-- **Kümülatif Süre Hatası Giderildi:** Ardışık şarkı geçişlerinde sürelerin toplanması engellendi.
-- **Lyrics Başlık Temizliği:** Lyrics penceresi sol üst başlık metni kaldırılarak görsel alan sadeleştirildi.
-- Detaylar için [v3.7 Sürüm Notları](docs/RELEASE_NOTES_v3.7.md)'na göz atın.
+### [v4.3] — 2026-11-20 (Güncel)
+- **Normal, Tam Ekran ve Dar Mod İkon-Odaklı Audio Output:** Play/Pause üzerindeki eski metinli dropdown kaldırıldı; Normal/Tam Ekran araç çubuğunda (`28×28`) ve Dar Modda (`26×26`) tüm modlarda senkronize çalışan ikon-odaklı Ghost Button ses çıkışı seçicileri eklendi.
+- **Ortak Kenar Işığı Parlaklık & Kalınlık Paneli:** Hem Normal/Tam Ekran hem Dar Modda tıklandığında birebir aynı panel açılır; üstte Parlaklık (`10–100%`), altta Kalınlık (`0–64 px`, `0 px` kapalı) sürgüleri sade biçimde yer alır ve Ayarlar ile anında senkronize olur.
+- **Dar Mod Ghost Button Tasarımı:** Dar Moddaki tüm medya ve görünüm butonları Açık/Koyu tema uyumlu Ghost Button stiline geçirildi.
+- **7 Sekmeli Sabit Boyutlu Windows 11 Fluent Ayarlar:** Sola hizalı sidebar ve sabit `740×520` pencere içinde Genel, Görünüm, Işık, Şarkı Sözleri, Sistem, Güncellemeler ve Hakkında (Kısayollar dahil) sekmeleri.
+- Detaylar için [v4.3 Sürüm Notları](docs/RELEASE_NOTES_v4.3.md)'na göz atın.
 
-### [v3.6] — 2026-11-08
-- Tıklama ve sürükleme ile GSMTC seek desteği ve gecikme giderici zaman çizelgesi enterpolasyonu.
-- Compact Player genişletilebilir şarkı sözü çekmecesi.
-- Detaylar için [v3.6 Sürüm Notları](https://github.com/owergungor/Lyrow/releases/tag/v3.6)'na göz atın.
+### [v4.2] — 2026-11-19
+- Albüm kapağına göre otomatik Kenar Işığı renk senkronizasyonu, 2×/0.5× akıcı pencere genişliği geçişi ve başlangıç UI-thread kilitlenme düzeltmesi.
+- Detaylar için [v4.2 Sürüm Notları](https://github.com/owergungor/Lyrow/releases/tag/v4.2)'na göz atın.
 
-### [v3.5] — 2026-10-31
-- Yatay taşmayan akıcı şarkı sözü sarma (`TextWrapping`).
-- Yüksek çözünürlüklü ve animasyonlu kapak desteği (GIF/WebP).
-- 24px varsayılan Ambient Edge Bloom.
-- Detaylar için [docs/RELEASE_NOTES_v3.5.md](docs/RELEASE_NOTES_v3.5.md)'ye bakın.
+### [v4.1] — 2026-11-19
+- MSIX x64 paket desteği, tek birincil pencere (`LyricsWindow`) mimarisi ve alt kontrol satırı hizalaması.
+- Detaylar için [v4.1 Sürüm Notları](https://github.com/owergungor/Lyrow/releases/tag/v4.1)'na göz atın.
 
 *Tüm geçmiş sürümler ve değişiklik ayrıntıları için [CHANGELOG.md](CHANGELOG.md) dosyasına bakabilirsiniz.*
 
@@ -203,7 +201,7 @@ git clone https://github.com/owergungor/Lyrow.git
 cd Lyrow
 dotnet restore Lyrow.sln
 dotnet build Lyrow.sln -c Release
-dotnet test Lyrow.sln
+dotnet test Lyrow.sln -c Release -- xunit.parallelizeTestCollections=false
 ```
 
 ---
