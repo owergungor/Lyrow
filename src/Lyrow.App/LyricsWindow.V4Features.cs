@@ -24,6 +24,8 @@ public sealed partial class LyricsWindow
     private bool _isUpdatingEdgeThicknessSlider = false;
     private int _recordedSinglePanelWidthPx = 0;
     private long _widthAnimationGeneration = 0;
+    private UpdateCoordinator? _updateCoordinator;
+    private Controls.ProgressToastHandle? _activeUpdateToast;
     private DispatcherTimer? _windowWidthAnimTimer;
 
     private void InitializeV4LyricsGlowAndSettingsModal()
@@ -80,6 +82,7 @@ public sealed partial class LyricsWindow
         WireModalTabButton(BtnModalTabAbout, "About");
 
         WireModalSettingsControls();
+        InitializeUpdateWorkflow();
         _ = InitializePrimaryAppServicesAsync();
     }
 
@@ -1378,26 +1381,52 @@ public sealed partial class LyricsWindow
         {
             BtnModalCheckUpdates.Click += async (_, _) =>
             {
-                var loc = LocalizationService.Instance;
-                if (TxtModalUpdateStatus != null) TxtModalUpdateStatus.Text = loc["Updates_Checking"];
+                if (_updateCoordinator != null)
+                {
+                    await _updateCoordinator.CheckForUpdatesAsync(isManual: true);
+                }
+            };
+        }
+
+        if (BtnModalInstallUpdate != null)
+        {
+            BtnModalInstallUpdate.Click += async (_, _) =>
+            {
+                await StartSharedUpdateInstallAsync();
+            };
+        }
+
+        if (BtnModalRetryUpdate != null)
+        {
+            BtnModalRetryUpdate.Click += async (_, _) =>
+            {
+                if (_updateCoordinator == null) return;
+                if (_updateCoordinator.CurrentState.HasAvailableUpdate)
+                {
+                    await StartSharedUpdateInstallAsync();
+                }
+                else
+                {
+                    await _updateCoordinator.CheckForUpdatesAsync(isManual: true);
+                }
+            };
+        }
+
+        if (BtnModalViewRelease != null)
+        {
+            BtnModalViewRelease.Click += (_, _) =>
+            {
+                string url = _updateCoordinator?.CurrentState.LastResult?.ReleaseUrl
+                    ?? GitHubUpdateService.DefaultReleasesPageUrl;
                 try
                 {
-                    var updateService = App.Services?.GetService(typeof(IUpdateService)) as IUpdateService;
-                    if (updateService != null)
+                    Process.Start(new ProcessStartInfo
                     {
-                        var result = await updateService.CheckForUpdatesAsync();
-                        if (TxtModalUpdateStatus != null)
-                        {
-                            TxtModalUpdateStatus.Text = result.IsUpdateAvailable
-                                ? $"{loc["Updates_Available"]}: v{result.LatestVersion}"
-                                : loc["Updates_UpToDate"];
-                        }
-                    }
+                        FileName = url,
+                        UseShellExecute = true
+                    });
                 }
-                catch
-                {
-                    if (TxtModalUpdateStatus != null) TxtModalUpdateStatus.Text = loc["Updates_Failed"];
-                }
+                catch { }
             };
         }
 
@@ -1560,6 +1589,9 @@ public sealed partial class LyricsWindow
         if (TxtModalAutoUpdatesDesc != null) TxtModalAutoUpdatesDesc.Text = loc["Settings_AutoUpdatesDesc"];
         if (TxtModalUpdateFreqLabel != null) TxtModalUpdateFreqLabel.Text = loc["Settings_UpdateFreq"];
         if (BtnModalCheckUpdates != null) BtnModalCheckUpdates.Content = loc["Settings_CheckUpdates"];
+        if (BtnModalInstallUpdate != null) BtnModalInstallUpdate.Content = loc["Updates_InstallNewVersion"];
+        if (BtnModalRetryUpdate != null) BtnModalRetryUpdate.Content = loc["Updates_Retry"];
+        if (BtnModalViewRelease != null) BtnModalViewRelease.Content = loc["Updates_ViewRelease"];
 
         if (TxtModalSectionShortcuts != null) TxtModalSectionShortcuts.Text = loc["Section_Shortcuts"];
         if (TxtModalShortcutGlowLabel != null) TxtModalShortcutGlowLabel.Text = loc["Settings_ShortcutGlow"];
@@ -1574,5 +1606,262 @@ public sealed partial class LyricsWindow
 
         UpdateLyricsGlowVisualState();
         UpdateEdgeGlowVisualState();
+        if (_updateCoordinator != null)
+        {
+            ApplyUpdateStateToUi(_updateCoordinator.CurrentState);
+        }
+    }
+
+    /// <summary>
+    /// Connects the shared UpdateCoordinator to both the top-right Fluent update toast
+    /// and Settings > Updates, and triggers non-blocking startup update check when due.
+    /// </summary>
+    private void InitializeUpdateWorkflow()
+    {
+        _updateCoordinator = App.Services?.GetService(typeof(UpdateCoordinator)) as UpdateCoordinator;
+        if (_updateCoordinator == null) return;
+
+        _updateCoordinator.StateChanged += (_, snapshot) =>
+        {
+            DispatcherQueue?.TryEnqueue(() => ApplyUpdateStateToUi(snapshot));
+        };
+
+        _updateCoordinator.UpdateAvailableToastRequested += (_, result) =>
+        {
+            DispatcherQueue?.TryEnqueue(() => ShowTopRightUpdateToast(result));
+        };
+
+        ApplyUpdateStateToUi(_updateCoordinator.CurrentState);
+
+        if (!App.IsSmokeTestMode)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2.5)).ConfigureAwait(false);
+                    if (_updateCoordinator != null)
+                    {
+                        await _updateCoordinator.CheckForUpdatesAsync(isManual: false).ConfigureAwait(false);
+                    }
+                }
+                catch { }
+            });
+        }
+    }
+
+    private void ShowTopRightUpdateToast(UpdateCheckResult result)
+    {
+        if (_toastManager == null || _updateCoordinator == null || !result.IsUpdateAvailable) return;
+
+        var loc = LocalizationService.Instance;
+        string title = loc["Updates_NewVersionFound"];
+        string versionText = $"Lyrow v{result.LatestVersion}";
+        string summary = UpdateCoordinator.FormatReleaseSummary(result.ReleaseNotes, maxLength: 120);
+        string installNowLabel = loc["Updates_InstallNow"];
+
+        _activeUpdateToast = _toastManager.ShowUpdateAvailableToast(
+            title: title,
+            versionMessage: versionText,
+            actionLabel: installNowLabel,
+            onStartDownload: async _ => await StartSharedUpdateInstallAsync(),
+            releaseSummary: summary,
+            onDismiss: () =>
+            {
+                _activeUpdateToast = null;
+                _updateCoordinator?.DismissToastForSession();
+            });
+    }
+
+    private async Task StartSharedUpdateInstallAsync()
+    {
+        if (_updateCoordinator == null) return;
+        await _updateCoordinator.StartInstallAsync(onBeforeExit: () =>
+        {
+            DispatcherQueue?.TryEnqueue(() =>
+            {
+                try { Application.Current.Exit(); } catch { }
+            });
+        });
+    }
+
+    private void ApplyUpdateStateToUi(UpdateStateSnapshot snapshot)
+    {
+        var loc = LocalizationService.Instance;
+
+        if (RingModalUpdateChecking != null)
+        {
+            bool checking = snapshot.WorkflowState == UpdateWorkflowState.Checking;
+            RingModalUpdateChecking.IsActive = checking;
+            RingModalUpdateChecking.Visibility = checking ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        if (BtnModalCheckUpdates != null)
+        {
+            BtnModalCheckUpdates.IsEnabled = !snapshot.IsBusy;
+        }
+
+        if (TxtModalUpdateStatus != null)
+        {
+            TxtModalUpdateStatus.Text = snapshot.WorkflowState switch
+            {
+                UpdateWorkflowState.Checking => loc["Updates_Checking"],
+                UpdateWorkflowState.UpToDate => loc["Updates_UpToDate"],
+                UpdateWorkflowState.UpdateAvailable => $"{loc["Updates_Available"]}: v{snapshot.LastResult?.LatestVersion}",
+                UpdateWorkflowState.Downloading => snapshot.StatusMessage ?? loc["Updates_Downloading"],
+                UpdateWorkflowState.Verifying => loc["Updates_Verifying"],
+                UpdateWorkflowState.Installing => loc["Updates_StartingInstall"],
+                UpdateWorkflowState.Completed => loc["Updates_Completed"],
+                UpdateWorkflowState.UnsupportedDistribution => $"{loc["Updates_Available"]}: v{snapshot.LastResult?.LatestVersion}",
+                UpdateWorkflowState.Failed => loc["Updates_Failed"],
+                _ => $"Lyrow v{_updateCoordinator?.CurrentVersion ?? App.CurrentReleaseVersion} — {loc["Updates_Channel"]}"
+            };
+        }
+
+        bool showDetailsCard = snapshot.HasAvailableUpdate || snapshot.WorkflowState is
+            UpdateWorkflowState.Downloading or
+            UpdateWorkflowState.Verifying or
+            UpdateWorkflowState.Installing or
+            UpdateWorkflowState.Completed or
+            UpdateWorkflowState.UnsupportedDistribution or
+            UpdateWorkflowState.Failed;
+
+        if (BorderModalUpdateDetails != null)
+        {
+            BorderModalUpdateDetails.Visibility = showDetailsCard ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        if (showDetailsCard)
+        {
+            var res = snapshot.LastResult;
+            if (TxtModalUpdateVersionTitle != null)
+            {
+                TxtModalUpdateVersionTitle.Text = res?.IsUpdateAvailable == true
+                    ? (string.IsNullOrWhiteSpace(res.ReleaseTitle) ? $"Lyrow v{res.LatestVersion}" : res.ReleaseTitle)
+                    : loc["Updates_Failed"];
+            }
+
+            if (TxtModalUpdatePublishedDate != null)
+            {
+                if (res?.PublishedAtUtc is DateTimeOffset pub)
+                {
+                    string formattedDate = pub.ToLocalTime().ToString("d");
+                    TxtModalUpdatePublishedDate.Text = string.Format(loc["Updates_PublishedOn"], formattedDate);
+                    TxtModalUpdatePublishedDate.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    TxtModalUpdatePublishedDate.Text = string.Empty;
+                    TxtModalUpdatePublishedDate.Visibility = Visibility.Collapsed;
+                }
+            }
+
+            if (TxtModalUpdateReleaseNotes != null)
+            {
+                string summary = UpdateCoordinator.FormatReleaseSummary(res?.ReleaseNotes, maxLength: 260);
+                TxtModalUpdateReleaseNotes.Text = summary;
+                TxtModalUpdateReleaseNotes.Visibility = string.IsNullOrWhiteSpace(summary) ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            bool showProgress = snapshot.WorkflowState is UpdateWorkflowState.Downloading or UpdateWorkflowState.Verifying or UpdateWorkflowState.Installing;
+            if (ProgressModalUpdate != null)
+            {
+                ProgressModalUpdate.Visibility = showProgress ? Visibility.Visible : Visibility.Collapsed;
+                if (showProgress)
+                {
+                    if (snapshot.WorkflowState is UpdateWorkflowState.Verifying or UpdateWorkflowState.Installing)
+                    {
+                        ProgressModalUpdate.IsIndeterminate = true;
+                        ProgressModalUpdate.Value = 100;
+                    }
+                    else if (snapshot.Progress is UpdateDownloadProgress p)
+                    {
+                        ProgressModalUpdate.IsIndeterminate = p.IsIndeterminate;
+                        if (!p.IsIndeterminate) ProgressModalUpdate.Value = p.Percent;
+                    }
+                }
+            }
+
+            if (TxtModalUpdateProgressDetails != null)
+            {
+                if (snapshot.WorkflowState == UpdateWorkflowState.Downloading && snapshot.Progress is UpdateDownloadProgress p)
+                {
+                    TxtModalUpdateProgressDetails.Text = p.TotalBytes.HasValue && p.TotalBytes.Value > 0
+                        ? string.Format(loc["Updates_Bytes"], p.MegabytesRead, p.TotalMegabytes ?? 0)
+                        : $"{p.MegabytesRead:0.0} MB";
+                    TxtModalUpdateProgressDetails.Visibility = Visibility.Visible;
+                }
+                else if (snapshot.WorkflowState is UpdateWorkflowState.Verifying or UpdateWorkflowState.Installing or UpdateWorkflowState.Completed)
+                {
+                    TxtModalUpdateProgressDetails.Text = snapshot.StatusMessage ?? string.Empty;
+                    TxtModalUpdateProgressDetails.Visibility = string.IsNullOrWhiteSpace(snapshot.StatusMessage) ? Visibility.Collapsed : Visibility.Visible;
+                }
+                else
+                {
+                    TxtModalUpdateProgressDetails.Visibility = Visibility.Collapsed;
+                }
+            }
+
+            if (TxtModalUpdateError != null)
+            {
+                bool hasError = snapshot.WorkflowState is UpdateWorkflowState.Failed or UpdateWorkflowState.UnsupportedDistribution;
+                TxtModalUpdateError.Text = hasError ? (snapshot.ErrorMessage ?? loc["Updates_Failed"]) : string.Empty;
+                TxtModalUpdateError.Visibility = hasError ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            if (BtnModalInstallUpdate != null)
+            {
+                bool canShowInstall = snapshot.HasAvailableUpdate &&
+                    snapshot.DistributionKind == AppDistributionKind.InstalledSetup &&
+                    snapshot.WorkflowState is UpdateWorkflowState.UpdateAvailable or UpdateWorkflowState.Downloading or UpdateWorkflowState.Verifying or UpdateWorkflowState.Installing;
+                BtnModalInstallUpdate.Visibility = canShowInstall ? Visibility.Visible : Visibility.Collapsed;
+                BtnModalInstallUpdate.IsEnabled = snapshot.CanInstall;
+            }
+
+            if (BtnModalRetryUpdate != null)
+            {
+                BtnModalRetryUpdate.Visibility = snapshot.CanRetry ? Visibility.Visible : Visibility.Collapsed;
+                BtnModalRetryUpdate.IsEnabled = snapshot.CanRetry;
+            }
+
+            if (BtnModalViewRelease != null)
+            {
+                bool showReleaseLink = snapshot.HasAvailableUpdate && !string.IsNullOrWhiteSpace(res?.ReleaseUrl);
+                BtnModalViewRelease.Visibility = showReleaseLink ? Visibility.Visible : Visibility.Collapsed;
+                BtnModalViewRelease.IsEnabled = !snapshot.IsBusy;
+            }
+        }
+
+        // Mirror shared progress & state to active top-right update toast (if open)
+        if (_activeUpdateToast != null)
+        {
+            switch (snapshot.WorkflowState)
+            {
+                case UpdateWorkflowState.Downloading:
+                    if (snapshot.Progress is UpdateDownloadProgress p)
+                    {
+                        _activeUpdateToast.ReportProgress(p.Percent, p.BytesRead, p.TotalBytes, snapshot.StatusMessage);
+                    }
+                    else
+                    {
+                        _activeUpdateToast.SetState(Controls.UpdateToastState.Downloading, snapshot.StatusMessage);
+                    }
+                    break;
+                case UpdateWorkflowState.Verifying:
+                    _activeUpdateToast.SetState(Controls.UpdateToastState.Verifying, loc["Updates_Verifying"]);
+                    break;
+                case UpdateWorkflowState.Installing:
+                    _activeUpdateToast.SetState(Controls.UpdateToastState.Installing, loc["Updates_StartingInstall"]);
+                    break;
+                case UpdateWorkflowState.Completed:
+                    _activeUpdateToast.SetState(Controls.UpdateToastState.Completed, loc["Updates_Completed"]);
+                    _activeUpdateToast = null;
+                    break;
+                case UpdateWorkflowState.Failed:
+                case UpdateWorkflowState.UnsupportedDistribution:
+                    _activeUpdateToast.SetState(Controls.UpdateToastState.Failed, snapshot.ErrorMessage);
+                    break;
+            }
+        }
     }
 }

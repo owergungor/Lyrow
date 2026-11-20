@@ -6,8 +6,8 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011%20Native-08a1f7?logo=windows)](https://microsoft.com/windows)
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![UI](https://img.shields.io/badge/UI-WinUI%203%20%2F%20Windows%20App%20SDK%201.8-03c1f4?logo=windows)](https://learn.microsoft.com/windows/apps/winui/winui3/)
-[![Release](https://img.shields.io/badge/Release-v4.3-success)](https://github.com/owergungor/Lyrow/releases)
-[![Tests](https://img.shields.io/badge/Tests-713%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
+[![Release](https://img.shields.io/badge/Release-v4.4-success)](https://github.com/owergungor/Lyrow/releases)
+[![Tests](https://img.shields.io/badge/Tests-728%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
 [![License](https://img.shields.io/badge/License-MIT-750014.svg)](LICENSE)
 
 **Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; doğrudan birincil pencere olarak açılan senkronize şarkı sözleri arayüzü, albüm kapağına göre otomatik renk değiştiren 4 kenarlı Kenar Işığı (Edge Light), tüm modlarda tıklamayla açılan ortak **Parlaklık (`10–100%`) ve Kalınlık (`0–64 px`)** kontrol paneli, 7 sekmeli sabit boyutlu Microsoft Windows 11 Fluent Design ayarlar modalı, hem Normal/Tam Ekran hem Dar Modda ikon-odaklı ses çıkışı ve Ghost Button kontrolleri, 2×/0.5× akıcı pencere genişliği geçişi ve kompakt Dar Mod (Mini Player) sunar.
@@ -16,19 +16,20 @@
 
 ## 📥 İndirme ve Kurulum
 
-### Güncel Sürüm: [Lyrow v4.3](https://github.com/owergungor/Lyrow/releases/tag/v4.3) (Setup EXE, Portable ZIP & MSIX)
+### Güncel Sürüm: Lyrow v4.4 (Yerel Paketler Hazır — Setup EXE, Portable ZIP & MSIX)
 
 | Kaynak | Dosya | Boyut | SHA-256 Doğrulama Özeti |
 |---|---|---|---|
-| **Kurulum Sihirbazı (Installer)** | [Lyrow-4.3-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/download/v4.3/Lyrow-4.3-Setup-x64.exe) | 64.76 MB | `0BF9DE457792F95422D6F81FBE0A979ABBFDCFA7C37E1A5F9B386CF079E37E54` |
-| **Taşınabilir Paket (Portable ZIP)** | [Lyrow-v4.3-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/download/v4.3/Lyrow-v4.3-win-x64-portable.zip) | 93.43 MB | `946D07F6F95700271DB9776FFC8FE0D3FB7C61127445CE4B3717E42891C091A1` |
-| **MSIX Paketi (Windows x64)** | [Lyrow-v4.3-x64.msix](https://github.com/owergungor/Lyrow/releases/download/v4.3/Lyrow-v4.3-x64.msix) *(imzasız)* | 95.69 MB | `9229BA202441D5AF3AF90BA796027ABA56F2454F98CD84EF5CBEA765D7385BE2` |
+| **Kurulum Sihirbazı (Installer)** | `Lyrow-4.4-Setup-x64.exe` | 64.79 MB | `73BEE5BEA6E99646D27502CC13C9E7ADB40B65C966BB97809D8EA6F7C825E282` |
+| **Taşınabilir Paket (Portable ZIP)** | `Lyrow-v4.4-win-x64-portable.zip` | 93.45 MB | `A0F13BB98B42B3A5612043AA9E0962C7B192DCC2AB2159543D225EF1C8423AEF` |
+| **MSIX Paketi (Windows x64)** | `Lyrow-v4.4-x64.msix` *(imzasız)* | 95.70 MB | `FF6B43D9E9E16A12B36C81A94BD22E6E9C80CE5E3DD732510F517CCA64EBB0E7` |
 
 > [!NOTE]
-> Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz. MSIX paketi (`Lyrow-v4.3-x64.msix`) **imzasız** olarak standart x64 Windows paket yapısında üretilir; Windows üzerinde doğrudan yüklemek için güvenilen bir kod imzalama sertifikasıyla imzalanması (`signtool.exe` veya `LYROW_PFX_PATH`) gerekir.
+> Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz. MSIX paketi (`Lyrow-v4.4-x64.msix`) **imzasız** olarak standart x64 Windows paket yapısında üretilir; Windows üzerinde doğrudan yüklemek için güvenilen bir kod imzalama sertifikasıyla imzalanması (`signtool.exe` veya `LYROW_PFX_PATH`) gerekir.
 
-### Önceki Kararlı Sürümler (v4.2, v4.1, v4.0, v3.8, v3.7 & v3.5)
-Önceki yayınlanmış sürümleri tercih eden kullanıcılar için:
+### Yayınlanmış Kararlı Sürümler (v4.3, v4.2, v4.1, v4.0, v3.8, v3.7 & v3.5)
+GitHub Releases üzerinde yayında olan sürümler:
+- **v4.3 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.3](https://github.com/owergungor/Lyrow/releases/tag/v4.3)
 - **v4.2 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.2](https://github.com/owergungor/Lyrow/releases/tag/v4.2)
 - **v4.1 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.1](https://github.com/owergungor/Lyrow/releases/tag/v4.1)
 - **v4.0 Kurulum Sihirbazı & Taşınabilir Paket:** [Lyrow v4.0](https://github.com/owergungor/Lyrow/releases/tag/v4.0)
@@ -151,11 +152,11 @@ Lyrow v3.7 ile baştan yazılan **Playback Timeline Engine**, müzik çalarlarda
 
 Lyrow her aşamada sıkı otomatik testler ve platform doğrulamalarıyla geliştirilmektedir:
 
-- **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** **713 / 713 Test PASS (%100 Başarı)**
-  - `Lyrow.Core.Tests`: 63 test (Modül yaşam döngüsü, olay veri yolu, ayarlar, yerelleştirme)
+- **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** **728 / 728 Test PASS (%100 Başarı)**
+  - `Lyrow.Core.Tests`: 74 test (Modül yaşam döngüsü, olay veri yolu, ayarlar, yerelleştirme, ortak güncelleme koordinatörü)
   - `Lyrow.Audio.Tests`: 53 test (WASAPI yakalama, FFT matematik motoru, vuruş algılama)
   - `Lyrow.Music.Tests`: 120 test (GSMTC dinleme, metadata normalizasyonu, parça geçiş izolasyonu)
-  - `Lyrow.App.Tests`: 477 test (WinUI 3 arayüzü, Normal/Tam Ekran/Dar Mod, Kenar Işığı, Ayarlar ve timeline motoru testleri)
+  - `Lyrow.App.Tests`: 481 test (WinUI 3 arayüzü, Normal/Tam Ekran/Dar Mod, Kenar Işığı, Ayarlar, güncelleme toast/kurulum akışı ve timeline motoru testleri)
 - **Sürekli Entegrasyon (CI):** Her commit ve push işlemi [GitHub Actions](https://github.com/owergungor/Lyrow/actions) Windows derleme ortamında test edilir.
 - **Smoke Test:** Dağıtım öncesinde `Lyrow.App.exe --smoke-test` komutuyla yerel Windows x64 başlatma ve temiz kapanma test edilir.
 
@@ -163,7 +164,13 @@ Lyrow her aşamada sıkı otomatik testler ve platform doğrulamalarıyla geliş
 
 ## 📜 Sürüm Geçmişi
 
-### [v4.3] — 2026-11-20 (Güncel)
+### [v4.4] — 2026-11-20 (Yerel Hazırlık)
+- **Sağ Üst Windows 11 Fluent Güncelleme Toast Bildirimi:** Yeni sürüm bulunduğunda Normal, Tam Ekran ve Dar modların tamamında sağ üst köşede **Şimdi Kur** ve **Sonra** aksiyonlarıyla modern toast bildirimi gösterilir.
+- **Zenginleştirilmiş Ayarlar > Güncellemeler:** Sürüm numarası, yayın tarihi, kısa sürüm özeti, belirgin **Yeni Sürümü Kur** butonu, canlı indirme/doğrulama/kurulum ilerlemesi, hata durumunda yeniden deneme ve MSIX/Portable dağıtımları için bilgilendirme.
+- **Ortak Güncelleme Koordinatörü (`UpdateCoordinator`):** Toast ve Ayarlar tek servis üzerinden çalışır; çift indirme engellenir, PE + SHA-256 doğrulaması korunur ve çıkış öncesi ayarlar güvenle kaydedilir.
+- Detaylar için [v4.4 Sürüm Notları](docs/RELEASE_NOTES_v4.4.md)'na göz atın.
+
+### [v4.3] — 2026-11-20
 - **Normal, Tam Ekran ve Dar Mod İkon-Odaklı Audio Output:** Play/Pause üzerindeki eski metinli dropdown kaldırıldı; Normal/Tam Ekran araç çubuğunda (`28×28`) ve Dar Modda (`26×26`) tüm modlarda senkronize çalışan ikon-odaklı Ghost Button ses çıkışı seçicileri eklendi.
 - **Ortak Kenar Işığı Parlaklık & Kalınlık Paneli:** Hem Normal/Tam Ekran hem Dar Modda tıklandığında birebir aynı panel açılır; üstte Parlaklık (`10–100%`), altta Kalınlık (`0–64 px`, `0 px` kapalı) sürgüleri sade biçimde yer alır ve Ayarlar ile anında senkronize olur.
 - **Dar Mod Ghost Button Tasarımı:** Dar Moddaki tüm medya ve görünüm butonları Açık/Koyu tema uyumlu Ghost Button stiline geçirildi.

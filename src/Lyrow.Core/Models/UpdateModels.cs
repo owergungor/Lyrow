@@ -36,9 +36,65 @@ public sealed record UpdateCheckResult(
     string? InstallerDownloadUrl,
     DateTime CheckedAtUtc,
     string? ErrorMessage = null,
-    string? Sha256Checksum = null)
+    string? Sha256Checksum = null,
+    DateTimeOffset? PublishedAtUtc = null)
 {
     public bool IsUpdateAvailable => Status == UpdateCheckStatus.UpdateAvailable && !string.IsNullOrWhiteSpace(LatestVersion);
+}
+
+/// <summary>
+/// Detected Windows distribution format of the running Lyrow instance.
+/// </summary>
+public enum AppDistributionKind
+{
+    InstalledSetup = 0,
+    Portable = 1,
+    MsixPackaged = 2
+}
+
+/// <summary>
+/// Unified lifecycle state shared between the top-right update toast and Settings > Updates.
+/// </summary>
+public enum UpdateWorkflowState
+{
+    Idle = 0,
+    Checking = 1,
+    UpToDate = 2,
+    UpdateAvailable = 3,
+    Downloading = 4,
+    Verifying = 5,
+    Installing = 6,
+    Completed = 7,
+    UnsupportedDistribution = 8,
+    Failed = 9
+}
+
+/// <summary>
+/// Immutable UI-bindable snapshot of the shared update workflow.
+/// </summary>
+public sealed record UpdateStateSnapshot(
+    UpdateWorkflowState WorkflowState,
+    UpdateCheckResult? LastResult,
+    UpdateDownloadProgress? Progress,
+    string? StatusMessage,
+    string? ErrorMessage,
+    AppDistributionKind DistributionKind,
+    bool ToastDismissedForSession,
+    string? NotifiedVersion)
+{
+    public bool IsBusy => WorkflowState is UpdateWorkflowState.Checking
+        or UpdateWorkflowState.Downloading
+        or UpdateWorkflowState.Verifying
+        or UpdateWorkflowState.Installing;
+
+    public bool HasAvailableUpdate => LastResult?.IsUpdateAvailable == true;
+
+    public bool CanInstall => HasAvailableUpdate
+        && !IsBusy
+        && DistributionKind == AppDistributionKind.InstalledSetup
+        && !string.IsNullOrWhiteSpace(LastResult?.InstallerDownloadUrl);
+
+    public bool CanRetry => WorkflowState == UpdateWorkflowState.Failed && !IsBusy;
 }
 
 /// <summary>

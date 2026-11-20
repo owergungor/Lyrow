@@ -159,7 +159,16 @@ public sealed class GitHubUpdateService : IUpdateService
                 ? urlProp.GetString()!
                 : DefaultReleasesPageUrl;
 
+            DateTimeOffset? publishedAtUtc = null;
+            if (root.TryGetProperty("published_at", out var publishedProp) &&
+                publishedProp.ValueKind == JsonValueKind.String &&
+                DateTimeOffset.TryParse(publishedProp.GetString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out var parsedPublished))
+            {
+                publishedAtUtc = parsedPublished.ToUniversalTime();
+            }
+
             string? installerUrl = null;
+            string? assetSha256 = null;
             if (root.TryGetProperty("assets", out var assetsProp) && assetsProp.ValueKind == JsonValueKind.Array)
             {
                 foreach (var asset in assetsProp.EnumerateArray())
@@ -175,6 +184,18 @@ public sealed class GitHubUpdateService : IUpdateService
                             dlUrl.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase))
                         {
                             installerUrl = dlUrl;
+                            if (asset.TryGetProperty("digest", out var digestProp) && digestProp.ValueKind == JsonValueKind.String)
+                            {
+                                string rawDigest = digestProp.GetString() ?? string.Empty;
+                                if (rawDigest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    string hex = rawDigest["sha256:".Length..].Trim();
+                                    if (hex.Length == 64)
+                                    {
+                                        assetSha256 = hex;
+                                    }
+                                }
+                            }
                             break;
                         }
                     }
@@ -183,8 +204,8 @@ public sealed class GitHubUpdateService : IUpdateService
 
             bool isNewer = IsNewerVersion(CurrentVersion, normalizedRemote);
 
-            string? sha256Checksum = null;
-            if (!string.IsNullOrWhiteSpace(releaseNotes))
+            string? sha256Checksum = assetSha256;
+            if (string.IsNullOrWhiteSpace(sha256Checksum) && !string.IsNullOrWhiteSpace(releaseNotes))
             {
                 var shaMatch = System.Text.RegularExpressions.Regex.Match(
                     releaseNotes,
@@ -206,7 +227,8 @@ public sealed class GitHubUpdateService : IUpdateService
                 InstallerDownloadUrl: installerUrl,
                 CheckedAtUtc: now,
                 ErrorMessage: null,
-                Sha256Checksum: sha256Checksum);
+                Sha256Checksum: sha256Checksum,
+                PublishedAtUtc: publishedAtUtc);
 
             LastCheckResult = result;
             return result;

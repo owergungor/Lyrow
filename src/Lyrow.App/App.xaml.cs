@@ -15,6 +15,7 @@ namespace Lyrow.App;
 /// </summary>
 public partial class App : Application
 {
+    public const string CurrentReleaseVersion = "4.4";
     public static IServiceProvider Services { get; private set; } = null!;
     public static LyricsWindow? PrimaryWindowInstance { get; private set; }
     public static bool IsSmokeTestMode { get; set; }
@@ -250,7 +251,10 @@ public partial class App : Application
         services.AddSingleton<IEventBus, InMemoryEventBus>();
         services.AddSingleton<ISettingsManager, SettingsManager>();
         services.AddSingleton<IModuleManager, ModuleManager>();
-        services.AddSingleton<IUpdateService>(sp => new GitHubUpdateService());
+        services.AddSingleton<IUpdateService>(sp => new GitHubUpdateService(currentVersion: CurrentReleaseVersion));
+        services.AddSingleton<UpdateCoordinator>(sp => new UpdateCoordinator(
+            sp.GetRequiredService<IUpdateService>(),
+            sp.GetRequiredService<ISettingsManager>()));
 
         // Audio capture & real Windows volume control services
         services.AddSingleton<IAudioCaptureService>(sp =>

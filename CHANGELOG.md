@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.4.0] - 2026-11-20
+
+### Added
+- **Ortak Güncelleme Koordinatörü (`UpdateCoordinator`):** Sağ üst güncelleme toast bildirimi ve **Ayarlar > Güncellemeler** sekmesi aynı tekil, iş parçacığı güvenli güncelleme akışına bağlandı; eşzamanlı çift indirme/kurulum engellenir, kurulum öncesi kullanıcı ayarları güvenle diske yazılır, PE + SHA-256 doğrulaması başarısız olursa dosya silinip yeniden denemeye izin verilir.
+- **Sağ Üst Windows 11 Fluent Güncelleme Toast Bildirimi:** Yeni sürüm bulunduğunda Normal, Tam Ekran ve Dar modların tamamında sağ üst köşede `ThemeShadow` gölgeli, Açık/Koyu tema duyarlı, klavye (`Esc`) ve ekran okuyucu erişilebilir toast bildirimi gösterilir; **Şimdi Kur** indirme/kurulumu başlatır, **Sonra** aynı oturumda bildirimi kapatır ancak güncelleme bilgisini Ayarlar'da korur.
+- **Zenginleştirilmiş Ayarlar > Güncellemeler Sekmesi:** Denetim sırasında `ProgressRing` yükleniyor göstergesi; yeni sürüm bulunduğunda sürüm numarası, yayın tarihi (`published_at`), kısa sürüm özeti, belirgin **Yeni Sürümü Kur** butonu, canlı indirme/kurulum ilerleme çubuğu, hata durumunda anlaşılır mesaj + **Tekrar Dene** butonu ve MSIX/Portable dağıtımları için açıklayıcı yönlendirme eklendi.
+- **v4.4 Otomatik Güncelleme Test Paketi:** `UpdateCoordinatorTests.cs` (11 yeni davranışsal test) ve `LyrowV44UpdateExperienceTests.cs` (4 yeni arayüz/konum/tema/bağlantı doğrulama testi) eklendi.
+
+### Changed
+- **GitHub Releases Meta Veri & SHA-256 Çözümlemesi (`GitHubUpdateService`):** GitHub API'den `published_at` yayın tarihi ve asset `digest` (`sha256:...`) değeri doğrudan okunur (release notes regex geri dönüşü korunarak); `App.CurrentReleaseVersion` (`"4.4"`) çalışma zamanı sürüm karşılaştırmasına bağlandı.
+- **Yerelleştirme (`LocalizationService`):** `Updates_InstallNow` (`Şimdi Kur` / `Install Now`), `Updates_InstallNewVersion` (`Yeni Sürümü Kur` / `Install New Version`), `Updates_Later` (`Sonra` / `Later`), `Updates_PublishedOn`, `Updates_StartingInstall`, `Updates_VerifyFailed`, `Updates_UnsupportedMsix`, `Updates_UnsupportedPortable` ve `Updates_NoInstallerAsset` anahtarları tüm dillerde eklendi/güncellendi.
+
+### Validation
+- **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** 728 / 728 PASS (%100 başarı).
+- **Gerçek Çalıştırma Doğrulaması:** Hem `publish\win-x64\Lyrow.App.exe` hem `AppData\Local\Programs\Lyrow\Lyrow.App.exe` `--smoke-test` (`ExitCode: 0`) ve canlı pencere açılışıyla doğrulandı.
+- **Dağıtım Paketleri (Yerel):** `Lyrow-4.4-Setup-x64.exe`, `Lyrow-v4.4-win-x64-portable.zip` ve `Lyrow-v4.4-x64.msix` (imzasız) yerel olarak üretildi ve SHA-256 doğrulamasından geçti.
+
+---
+
 ## [4.3.0] - 2026-11-20
 
 ### Added
