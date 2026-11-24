@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Lyrow.Core.Lyrics;
 using Xunit;
 
@@ -137,9 +137,9 @@ public class LyrowV20OverhaulVerificationTests
         string root = GetSolutionRoot();
 
         string buildProps = File.ReadAllText(Path.Combine(root, "Directory.Build.props"));
-        buildProps.Should().Contain("<Version>3.5</Version>");
-        buildProps.Should().Contain("<PackageVersion>3.5</PackageVersion>");
-        buildProps.Should().Contain("<InformationalVersion>3.5</InformationalVersion>");
+        buildProps.Should().Contain("<Version>4.5</Version>");
+        buildProps.Should().Contain("<PackageVersion>4.5</PackageVersion>");
+        buildProps.Should().Contain("<InformationalVersion>4.5</InformationalVersion>");
         buildProps.Should().NotContain("3.5.0</Version>");
         buildProps.Should().NotContain("3.4.0</Version>");
         buildProps.Should().NotContain("3.3.0</Version>");
@@ -153,7 +153,7 @@ public class LyrowV20OverhaulVerificationTests
         buildProps.Should().NotContain("2.0.0</Version>");
 
         string setupIss = File.ReadAllText(Path.Combine(root, "installer", "setup.iss"));
-        setupIss.Should().Contain("#define MyAppVersion \"3.5\"");
+        setupIss.Should().Contain("#define MyAppVersion \"4.5\"");
         setupIss.Should().NotContain("3.5.0");
         setupIss.Should().NotContain("3.4.0");
         setupIss.Should().NotContain("3.3.0");

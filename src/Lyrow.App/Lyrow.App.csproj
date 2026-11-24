@@ -16,11 +16,11 @@
     <Nullable>enable</Nullable>
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>3.5</Version>
-    <PackageVersion>3.5</PackageVersion>
-    <InformationalVersion>3.5</InformationalVersion>
-    <AssemblyVersion>3.5.0.0</AssemblyVersion>
-    <FileVersion>3.5.0.0</FileVersion>
+    <Version>4.5</Version>
+    <PackageVersion>4.5</PackageVersion>
+    <InformationalVersion>4.5</InformationalVersion>
+    <AssemblyVersion>4.5.0.0</AssemblyVersion>
+    <FileVersion>4.5.0.0</FileVersion>
     <Authors>Lyrow Team</Authors>
     <Company>Lyrow</Company>
     <Product>Lyrow</Product>

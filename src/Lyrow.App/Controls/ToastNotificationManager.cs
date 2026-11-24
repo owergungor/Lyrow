@@ -184,19 +184,20 @@ public sealed class ToastNotificationManager
 
             var iconBorder = new Border
             {
-                Width = 28,
-                Height = 28,
-                CornerRadius = new CornerRadius(14),
-                Background = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"],
+                Width = 30,
+                Height = 30,
+                CornerRadius = new CornerRadius(8),
                 Margin = new Thickness(0, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Top,
-                Child = new FontIcon
+                Child = new Image
                 {
-                    Glyph = "\uE895",
-                    FontSize = 13,
-                    Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
+                    Width = 28,
+                    Height = 28,
+                    Stretch = Stretch.Uniform,
+                    Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri("ms-appx:///Assets/lyrow-logo-150.png"))
+                    {
+                        DecodePixelWidth = 56
+                    }
                 }
             };
             Grid.SetColumn(iconBorder, 0);

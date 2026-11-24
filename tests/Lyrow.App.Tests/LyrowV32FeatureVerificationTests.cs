@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -181,7 +181,7 @@ public class LyrowV32FeatureVerificationTests
     [Fact]
     public void TwoPartVersioning_v32_Enforced()
     {
-        GitHubUpdateService.AppVersion.Should().Be("3.5");
+        GitHubUpdateService.AppVersion.Should().Be("4.5");
         GitHubUpdateService.IsValidTwoPartVersionTag("v3.5").Should().BeTrue();
         GitHubUpdateService.IsValidTwoPartVersionTag("v3.5.0").Should().BeFalse();
         GitHubUpdateService.IsValidTwoPartVersionTag("3.5.0").Should().BeFalse();
@@ -190,8 +190,8 @@ public class LyrowV32FeatureVerificationTests
         GitHubUpdateService.IsNewerVersion("3.5", "3.5").Should().BeFalse();
 
         var repoRoot = FindRepoRoot();
-        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<Version>3.5</Version>");
-        File.ReadAllText(Path.Combine(repoRoot, "installer", "setup.iss")).Should().Contain("#define MyAppVersion \"3.5\"");
+        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<Version>4.5</Version>");
+        File.ReadAllText(Path.Combine(repoRoot, "installer", "setup.iss")).Should().Contain("#define MyAppVersion \"4.5\"");
         File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "app.manifest")).Should().Contain("version=\"3.5.0.0\"");
     }
 

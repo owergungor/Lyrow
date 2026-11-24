@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.5.0] - 2026-11-24
+
+### Added
+- **Tam Marka Kimliği Yenilemesi (Complete Branding Redesign):** Yeni Lyrow logosu (`Lyrow-2-logo-1080/300/150/71.png`) ve tanıtım görselleri (`Superheroart-1920-1080.png`, `Hero-720x1080.png`) proje içine kopyalanıp entegre edildi (`src/Lyrow.App/Assets`, `installer/assets`, `docs/assets`).
+- **7 Katmanlı Gerçek Çoklu Çözünürlüklü Windows `.ico` (`lyrow.ico` / `lyrow-logo.ico`):** 16, 24, 32, 48, 64, 128 ve 256 px 32-bit ARGB PNG-in-ICO katmanlarıyla üretildi; EXE Windows Explorer ikonu, görev çubuğu (`AppWindow.SetIcon`), Başlat menüsü, başlık çubuğu, sistem tepsisi ve Inno Setup simgelerinin tamamı yenilendi.
+- **Inno Setup Kurulum Sihirbazı Marka Görselleri:** `installer/assets/wizard-sidebar.bmp` (`164×314`) ve `wizard-small.bmp` (`55×55`) üretilip `installer/setup.iss` içine bağlandı.
+- **MSIX Tam Karo & Splash Screen Varlıkları:** `StoreLogo.png`, `Square44x44Logo.png`, `Square71x71Logo.png`, `Square150x150Logo.png`, `Square310x310Logo.png`, `Wide310x150Logo.png` ve `SplashScreen.png` yeni logodan şeffaflık ve en-boy oranı korunarak üretildi; Microsoft Partner Center kimliği (`crius.Lyrow`, `CN=2F9A5694-FADC-405A-AF51-BB9269D3FFF1`, `crius`, `runFullTrust`) korundu.
+- **Uygulama İçi & Web Marka Entegrasyonu:** Ayarlar > Hakkında kartına 44×44 Lyrow logosu (`ImgModalAboutLogo`), sağ üst güncelleme toast bildirimine 28×28 Lyrow logosu, `README.md` üstüne hero banner (`docs/assets/lyrow-hero-banner.png`) ve `docs/privacy-policy.html` başlığına Lyrow logosu eklendi.
+- **v4.5 Marka Doğrulama Testleri:** `LyrowV45BrandingVerificationTests.cs` (4 yeni test) ile çoklu çözünürlüklü ICO başlığı, tüm PNG/BMP varlıkları, Partner Center MSIX kimliği ve WinUI 3 marka bağlantıları doğrulandı.
+
+### Changed
+- **Birleşik `4.5` / `4.5.0.0` Sürüm Numaralandırması:** `Directory.Build.props`, `Lyrow.App.csproj`, `GitHubUpdateService.AppVersion`, `App.CurrentReleaseVersion`, `installer/setup.iss`, `installer/build_packages.ps1`, `LyricsWindow.xaml` ve MSIX manifest sürümü `4.5` (`4.5.0.0`) olarak hizalandı.
+
+### Validation
+- **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** 732 / 732 PASS (%100 başarı).
+- **Gerçek Çalıştırma & İkon Doğrulaması:** Hem `publish\win-x64\Lyrow.App.exe` hem `AppData\Local\Programs\Lyrow\Lyrow.App.exe` `FileVersion=4.5.0.0`, `HasExplorerIcon=True`, `--smoke-test` (`ExitCode: 0`) ve canlı pencere açılışıyla doğrulandı.
+- **Dağıtım Paketleri:** `Lyrow-4.5-Setup-x64.exe`, `Lyrow-v4.5-win-x64-portable.zip` ve `Lyrow-v4.5-x64.msix` (Microsoft Partner Center kimlikli, imzasız) üretildi ve 58/58 SHA-256 doğrulamasından geçti.
+
+---
+
 ## [4.4.0] - 2026-11-20
 
 ### Added

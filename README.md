@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/lyrow-hero-banner.png" alt="Lyrow — Native Windows Music Companion" width="100%" />
+</p>
+
 # Lyrow
 
 > A native Windows music companion with synchronized lyrics, playback controls, and a compact desktop experience.
@@ -6,8 +10,8 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011%20Native-08a1f7?logo=windows)](https://microsoft.com/windows)
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![UI](https://img.shields.io/badge/UI-WinUI%203%20%2F%20Windows%20App%20SDK%201.8-03c1f4?logo=windows)](https://learn.microsoft.com/windows/apps/winui/winui3/)
-[![Release](https://img.shields.io/badge/Release-v4.4-success)](https://github.com/owergungor/Lyrow/releases)
-[![Tests](https://img.shields.io/badge/Tests-728%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
+[![Release](https://img.shields.io/badge/Release-v4.5-success)](https://github.com/owergungor/Lyrow/releases)
+[![Tests](https://img.shields.io/badge/Tests-732%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
 [![License](https://img.shields.io/badge/License-MIT-750014.svg)](LICENSE)
 
 **Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; doğrudan birincil pencere olarak açılan senkronize şarkı sözleri arayüzü, albüm kapağına göre otomatik renk değiştiren 4 kenarlı Kenar Işığı (Edge Light), tüm modlarda tıklamayla açılan ortak **Parlaklık (`10–100%`) ve Kalınlık (`0–64 px`)** kontrol paneli, 7 sekmeli sabit boyutlu Microsoft Windows 11 Fluent Design ayarlar modalı, hem Normal/Tam Ekran hem Dar Modda ikon-odaklı ses çıkışı ve Ghost Button kontrolleri, 2×/0.5× akıcı pencere genişliği geçişi ve kompakt Dar Mod (Mini Player) sunar.
@@ -16,19 +20,20 @@
 
 ## 📥 İndirme ve Kurulum
 
-### Güncel Sürüm: [Lyrow v4.4](https://github.com/owergungor/Lyrow/releases/tag/v4.4) (Setup EXE, Portable ZIP & MSIX)
+### Güncel Sürüm: [Lyrow v4.5](https://github.com/owergungor/Lyrow/releases/tag/v4.5) (Setup EXE, Portable ZIP & MSIX)
 
 | Kaynak | Dosya | Boyut | SHA-256 Doğrulama Özeti |
 |---|---|---|---|
-| **Kurulum Sihirbazı (Installer)** | [Lyrow-4.4-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/download/v4.4/Lyrow-4.4-Setup-x64.exe) | 64.79 MB | `73BEE5BEA6E99646D27502CC13C9E7ADB40B65C966BB97809D8EA6F7C825E282` |
-| **Taşınabilir Paket (Portable ZIP)** | [Lyrow-v4.4-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/download/v4.4/Lyrow-v4.4-win-x64-portable.zip) | 93.45 MB | `A0F13BB98B42B3A5612043AA9E0962C7B192DCC2AB2159543D225EF1C8423AEF` |
-| **MSIX Paketi (Windows x64)** | [Lyrow-v4.4-x64.msix](https://github.com/owergungor/Lyrow/releases/download/v4.4/Lyrow-v4.4-x64.msix) *(imzasız)* | 95.70 MB | `FF6B43D9E9E16A12B36C81A94BD22E6E9C80CE5E3DD732510F517CCA64EBB0E7` |
+| **Kurulum Sihirbazı (Installer)** | [Lyrow-4.5-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/download/v4.5/Lyrow-4.5-Setup-x64.exe) | 63.81 MB | `7899D339B3A01BA533EF7C92D115A8142959340043EED00124E963BB5DC710C1` |
+| **Taşınabilir Paket (Portable ZIP)** | [Lyrow-v4.5-win-x64-portable.zip](https://github.com/owergungor/Lyrow/releases/download/v4.5/Lyrow-v4.5-win-x64-portable.zip) | 92.01 MB | `3D9EBFB1D659950C7D96C1BDFE4342F1B638C7DE1C8A49F719DE7BA4B725D92A` |
+| **MSIX Paketi (Windows x64 — Store Kimlikli)** | [Lyrow-v4.5-x64.msix](https://github.com/owergungor/Lyrow/releases/download/v4.5/Lyrow-v4.5-x64.msix) *(imzasız)* | 94.07 MB | `480045FD50C5E4E1B927460CBE47AA43CBE8BDDDCFC446C7D7F7D213E10AC2EE` |
 
 > [!NOTE]
-> Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz. MSIX paketi (`Lyrow-v4.4-x64.msix`) **imzasız** olarak standart x64 Windows paket yapısında üretilir; Windows üzerinde doğrudan yüklemek için güvenilen bir kod imzalama sertifikasıyla imzalanması (`signtool.exe` veya `LYROW_PFX_PATH`) gerekir.
+> Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz. MSIX paketi (`Lyrow-v4.5-x64.msix`) Microsoft Partner Center kimliğiyle (`crius.Lyrow` / `crius`) **imzasız** olarak üretilir; Microsoft Store yüklemesinde Store imzası uygulanır, yerel yan yükleme için güvenilen bir kod imzalama sertifikasıyla imzalanması gerekir.
 
-### Önceki Kararlı Sürümler (v4.3, v4.2, v4.1, v4.0, v3.8, v3.7 & v3.5)
+### Önceki Kararlı Sürümler (v4.4, v4.3, v4.2, v4.1, v4.0, v3.8, v3.7 & v3.5)
 Önceki yayınlanmış sürümleri tercih eden kullanıcılar için:
+- **v4.4 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.4](https://github.com/owergungor/Lyrow/releases/tag/v4.4)
 - **v4.3 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.3](https://github.com/owergungor/Lyrow/releases/tag/v4.3)
 - **v4.2 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.2](https://github.com/owergungor/Lyrow/releases/tag/v4.2)
 - **v4.1 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.1](https://github.com/owergungor/Lyrow/releases/tag/v4.1)
@@ -136,7 +141,7 @@ Lyrow v3.7 ile baştan yazılan **Playback Timeline Engine**, müzik çalarlarda
 ## 🚀 Kullanım Talimatları
 
 ### Hızlı Başlangıç
-1. [Lyrow v4.4 Releases](https://github.com/owergungor/Lyrow/releases/tag/v4.4) sayfasından `Lyrow-4.4-Setup-x64.exe` kurulum dosyasını veya `Lyrow-v4.4-win-x64-portable.zip` taşınabilir paketini indirin.
+1. [Lyrow v4.5 Releases](https://github.com/owergungor/Lyrow/releases/tag/v4.5) sayfasından `Lyrow-4.5-Setup-x64.exe` kurulum dosyasını veya `Lyrow-v4.5-win-x64-portable.zip` taşınabilir paketini indirin.
 2. Kurulum sihirbazını çalıştırın veya taşınabilir ZIP arşivini bir klasöre çıkartın.
 3. `Lyrow.App.exe` dosyasını çalıştırın.
 
@@ -154,11 +159,11 @@ Lyrow v3.7 ile baştan yazılan **Playback Timeline Engine**, müzik çalarlarda
 
 Lyrow her aşamada sıkı otomatik testler ve platform doğrulamalarıyla geliştirilmektedir:
 
-- **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** **728 / 728 Test PASS (%100 Başarı)**
+- **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** **732 / 732 Test PASS (%100 Başarı)**
   - `Lyrow.Core.Tests`: 74 test (Modül yaşam döngüsü, olay veri yolu, ayarlar, yerelleştirme, ortak güncelleme koordinatörü)
   - `Lyrow.Audio.Tests`: 53 test (WASAPI yakalama, FFT matematik motoru, vuruş algılama)
   - `Lyrow.Music.Tests`: 120 test (GSMTC dinleme, metadata normalizasyonu, parça geçiş izolasyonu)
-  - `Lyrow.App.Tests`: 481 test (WinUI 3 arayüzü, Normal/Tam Ekran/Dar Mod, Kenar Işığı, Ayarlar, güncelleme toast/kurulum akışı ve timeline motoru testleri)
+  - `Lyrow.App.Tests`: 485 test (WinUI 3 arayüzü, yeni marka/ikon varlıkları, Normal/Tam Ekran/Dar Mod, Kenar Işığı, Ayarlar, güncelleme toast/kurulum akışı ve timeline motoru testleri)
 - **Sürekli Entegrasyon (CI):** Her commit ve push işlemi [GitHub Actions](https://github.com/owergungor/Lyrow/actions) Windows derleme ortamında test edilir.
 - **Smoke Test:** Dağıtım öncesinde `Lyrow.App.exe --smoke-test` komutuyla yerel Windows x64 başlatma ve temiz kapanma test edilir.
 
@@ -166,7 +171,13 @@ Lyrow her aşamada sıkı otomatik testler ve platform doğrulamalarıyla geliş
 
 ## 📜 Sürüm Geçmişi
 
-### [v4.4] — 2026-11-20 (Güncel)
+### [v4.5] — 2026-11-24 (Güncel)
+- **Tam Marka Kimliği Yenilemesi (Complete Branding Redesign):** Yeni camgöbeği-mavi 3B şerit yıldız logosu tüm Windows uygulamasına, 7 katmanlı çoklu çözünürlüklü `.ico` simgesine (16–256 px), görev çubuğuna (`AppWindow.SetIcon`), sistem tepsisine, Hakkında ekranına, güncelleme toast bildirimlerine, Inno Setup kurulum sihirbazı görsellerine (`wizard-sidebar.bmp` / `wizard-small.bmp`), README hero banner'ına ve GitHub Pages Gizlilik Politikası sayfasına entegre edildi.
+- **Microsoft Store & MSIX Görsel ve Kimlik Tam Uyumu:** Partner Center kimliği (`crius.Lyrow` / `CN=2F9A5694-FADC-405A-AF51-BB9269D3FFF1` / `crius`) ve `runFullTrust` korunarak tüm MSIX karo/splash görselleri (`StoreLogo`, `Square44x44`, `Square71x71`, `Square150x150`, `Square310x310`, `Wide310x150`, `SplashScreen`) yeni marka ile üretildi.
+- **Birleşik `4.5` / `4.5.0.0` Sürüm Hizalaması:** Proje, AssemblyVersion, FileVersion, güncelleme servisi, installer ve MSIX sürüm numaraları `4.5` olarak birleştirildi.
+- Detaylar için [v4.5 Sürüm Notları](docs/RELEASE_NOTES_v4.5.md)'na göz atın.
+
+### [v4.4] — 2026-11-20
 - **Sağ Üst Windows 11 Fluent Güncelleme Toast Bildirimi:** Yeni sürüm bulunduğunda Normal, Tam Ekran ve Dar modların tamamında sağ üst köşede **Şimdi Kur** ve **Sonra** aksiyonlarıyla modern toast bildirimi gösterilir.
 - **Zenginleştirilmiş Ayarlar > Güncellemeler:** Sürüm numarası, yayın tarihi, kısa sürüm özeti, belirgin **Yeni Sürümü Kur** butonu, canlı indirme/doğrulama/kurulum ilerlemesi, hata durumunda yeniden deneme ve MSIX/Portable dağıtımları için bilgilendirme.
 - **Ortak Güncelleme Koordinatörü (`UpdateCoordinator`):** Toast ve Ayarlar tek servis üzerinden çalışır; çift indirme engellenir, PE + SHA-256 doğrulaması korunur ve çıkış öncesi ayarlar güvenle kaydedilir.

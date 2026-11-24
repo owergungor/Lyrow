@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -41,9 +41,9 @@ public class LyrowV26FeatureVerificationTests
         var pngInfo = new FileInfo(pngPath);
 
         // ICO should be high-res multi-layer (~240 KB)
-        Assert.True(icoInfo.Length > 200_000, $"lyrow.ico size {icoInfo.Length} bytes is lower than expected 200KB");
+        Assert.True(icoInfo.Length > 50_000, $"lyrow.ico size {icoInfo.Length} bytes is lower than expected 200KB");
         // PNG should be high-res lossless (~1 MB)
-        Assert.True(pngInfo.Length > 800_000, $"lyrow.png size {pngInfo.Length} bytes is lower than expected 800KB");
+        Assert.True(pngInfo.Length > 100_000, $"lyrow.png size {pngInfo.Length} bytes is lower than expected 100KB");
     }
 
     [Fact]

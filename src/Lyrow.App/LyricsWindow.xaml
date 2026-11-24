@@ -962,7 +962,7 @@
                                     <Border Padding="16,12" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
                                             <ProgressRing x:Name="RingModalUpdateChecking" Grid.Column="0" Width="16" Height="16" IsActive="False" Visibility="Collapsed" VerticalAlignment="Center" />
-                                            <TextBlock x:Name="TxtModalUpdateStatus" Grid.Column="1" Text="Lyrow v4.4 — Release channel: GitHub Releases" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="TxtModalUpdateStatus" Grid.Column="1" Text="Lyrow v4.5 — Release channel: GitHub Releases" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
                                             <Button x:Name="BtnModalCheckUpdates" Grid.Column="2" Content="Check for Updates" AutomationProperties.Name="Modal Check for Updates" />
                                         </Grid>
                                     </Border>
@@ -1039,11 +1039,18 @@
 
                                     <Border Padding="16,14" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                         <StackPanel Spacing="10">
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Text="Lyrow v4.4" FontWeight="SemiBold" FontSize="15" />
-                                                <TextBlock x:Name="TxtModalAboutSubtitle" Text="Native Windows Ambient Edge Lighting &amp; Synchronized Lyrics" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                                <TextBlock x:Name="TxtModalAboutLicense" Text="MIT License — Open Source" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2,0,0" />
-                                            </StackPanel>
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" VerticalAlignment="Center">
+                                                <Image x:Name="ImgModalAboutLogo" Grid.Column="0" Width="44" Height="44" Stretch="Uniform" VerticalAlignment="Center" AutomationProperties.Name="Lyrow Logo">
+                                                    <Image.Source>
+                                                        <BitmapImage UriSource="ms-appx:///Assets/lyrow-logo-300.png" DecodePixelWidth="88" />
+                                                    </Image.Source>
+                                                </Image>
+                                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                    <TextBlock Text="Lyrow v4.5" FontWeight="SemiBold" FontSize="15" />
+                                                    <TextBlock x:Name="TxtModalAboutSubtitle" Text="Native Windows Ambient Edge Lighting &amp; Synchronized Lyrics" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                                    <TextBlock x:Name="TxtModalAboutLicense" Text="MIT License — Open Source" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2,0,0" />
+                                                </StackPanel>
+                                            </Grid>
                                             <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
                                                 <Button x:Name="BtnModalResetSettings" Content="Reset to Defaults" AutomationProperties.Name="Modal Reset Settings" />
                                                 <Button x:Name="BtnModalOpenLogs" Content="Open Diagnostic Log" AutomationProperties.Name="Modal Open Logs" />

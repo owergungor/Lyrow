@@ -41,8 +41,8 @@ public class LyrowV24FeatureVerificationTests
         File.Exists(appIco).Should().BeTrue();
         File.Exists(installerIco).Should().BeTrue();
 
-        new FileInfo(logoPng).Length.Should().BeGreaterThan(500_000); // 1.09 MB
-        new FileInfo(logoIco).Length.Should().BeGreaterThan(100_000); // 240 KB
+        new FileInfo(logoPng).Length.Should().BeGreaterThan(100_000); // 1080x1080 transparent PNG
+        new FileInfo(logoIco).Length.Should().BeGreaterThan(50_000); // 7-frame multi-res ICO
     }
 
     [Fact]

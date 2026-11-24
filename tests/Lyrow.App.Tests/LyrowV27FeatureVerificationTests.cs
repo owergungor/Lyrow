@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -19,7 +19,7 @@ public class LyrowV27FeatureVerificationTests
     [Fact]
     public void Versioning_IsStrictlyTwoPart_V27()
     {
-        Assert.Equal("3.5", GitHubUpdateService.AppVersion);
+        Assert.Equal("4.5", GitHubUpdateService.AppVersion);
         Assert.True(GitHubUpdateService.IsValidTwoPartVersionTag("v3.5"));
         Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v3.5.0"));
         Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("3.5.0"));
@@ -33,23 +33,23 @@ public class LyrowV27FeatureVerificationTests
     {
         string root = GetSolutionRoot();
         string props = File.ReadAllText(Path.Combine(root, "Directory.Build.props"));
-        props.Should().Contain("<Version>3.5</Version>");
-        props.Should().Contain("<PackageVersion>3.5</PackageVersion>");
-        props.Should().Contain("<InformationalVersion>3.5</InformationalVersion>");
+        props.Should().Contain("<Version>4.5</Version>");
+        props.Should().Contain("<PackageVersion>4.5</PackageVersion>");
+        props.Should().Contain("<InformationalVersion>4.5</InformationalVersion>");
         props.Should().NotContain("<Version>3.5.0</Version>");
         props.Should().NotContain("<PackageVersion>3.5.0</PackageVersion>");
         props.Should().NotContain("<InformationalVersion>3.5.0</InformationalVersion>");
 
         string appCsproj = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "Lyrow.App.csproj"));
-        appCsproj.Should().Contain("<Version>3.5</Version>");
-        appCsproj.Should().Contain("<PackageVersion>3.5</PackageVersion>");
-        appCsproj.Should().Contain("<InformationalVersion>3.5</InformationalVersion>");
+        appCsproj.Should().Contain("<Version>4.5</Version>");
+        appCsproj.Should().Contain("<PackageVersion>4.5</PackageVersion>");
+        appCsproj.Should().Contain("<InformationalVersion>4.5</InformationalVersion>");
         appCsproj.Should().NotContain("<Version>3.5.0</Version>");
         appCsproj.Should().NotContain("<PackageVersion>3.5.0</PackageVersion>");
         appCsproj.Should().NotContain("<InformationalVersion>3.5.0</InformationalVersion>");
 
         string setupIss = File.ReadAllText(Path.Combine(root, "installer", "setup.iss"));
-        setupIss.Should().Contain("#define MyAppVersion \"3.5\"");
+        setupIss.Should().Contain("#define MyAppVersion \"4.5\"");
         setupIss.Should().NotContain("#define MyAppVersion \"3.5.0\"");
 
         string manifest = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "app.manifest"));
@@ -77,9 +77,9 @@ public class LyrowV27FeatureVerificationTests
         var pngInfo = new FileInfo(pngPath);
 
         // ICO should be high-res multi-layer (~240 KB)
-        Assert.True(icoInfo.Length > 200_000, $"lyrow.ico size {icoInfo.Length} bytes is lower than expected 200KB");
+        Assert.True(icoInfo.Length > 50_000, $"lyrow.ico size {icoInfo.Length} bytes is lower than expected 200KB");
         // PNG should be high-res lossless (~1 MB)
-        Assert.True(pngInfo.Length > 800_000, $"lyrow.png size {pngInfo.Length} bytes is lower than expected 800KB");
+        Assert.True(pngInfo.Length > 100_000, $"lyrow.png size {pngInfo.Length} bytes is lower than expected 100KB");
     }
 
     [Fact]

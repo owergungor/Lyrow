@@ -3,7 +3,7 @@
 
 #define MyAppName "Lyrow"
 #ifndef MyAppVersion
-#define MyAppVersion "3.5"
+#define MyAppVersion "4.5"
 #endif
 #define MyAppPublisher "Lyrow Team"
 #define MyAppURL "https://github.com/owergungor/Lyrow"
@@ -26,6 +26,8 @@ OutputDir=..\dist
 OutputBaseFilename=Lyrow-Setup-x64
 SetupIconFile=..\src\Lyrow.App\Assets\lyrow.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
+WizardImageFile=assets\wizard-sidebar.bmp
+WizardSmallImageFile=assets\wizard-small.bmp
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern

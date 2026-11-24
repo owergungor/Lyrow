@@ -3,7 +3,7 @@
 
 [CmdletBinding()]
 param (
-    [string]$Version = "4.3",
+    [string]$Version = "4.5",
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
     [string]$PublishDir = "",
@@ -179,7 +179,8 @@ if (-not $SkipInstaller) {
         "C:\Users\omer\AppData\Local\Programs\Inno Setup 6\ISCC.exe",
         "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
         "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
-        "C:\Program Files\Inno Setup 6\ISCC.exe"
+        "C:\Program Files\Inno Setup 6\ISCC.exe",
+        "$env:LOCALAPPDATA\Programs\Antigravity IDE\resources\app\node_modules\innosetup\bin\ISCC.exe"
     )
     $isccPath = $null
     foreach ($cand in $isccCandidates) {
@@ -287,23 +288,40 @@ if (-not $SkipMsix) {
             New-Item -ItemType Directory -Path $msixAssetsDir -Force | Out-Null
         }
         $sourceLogo = Join-Path $scriptDir "..\src\Lyrow.App\Assets\lyrow-logo.png"
+        $sourceLogo71 = Join-Path $scriptDir "..\src\Lyrow.App\Assets\lyrow-logo-71.png"
+        $sourceLogo150 = Join-Path $scriptDir "..\src\Lyrow.App\Assets\lyrow-logo-150.png"
         if (Test-Path -LiteralPath $sourceLogo) {
             Add-Type -AssemblyName System.Drawing
             $srcImg = [System.Drawing.Image]::FromFile((Resolve-Path $sourceLogo).Path)
             try {
+                if (Test-Path -LiteralPath $sourceLogo71) {
+                    Copy-Item -LiteralPath $sourceLogo71 -Destination (Join-Path $msixAssetsDir "Square71x71Logo.png") -Force
+                }
+                if (Test-Path -LiteralPath $sourceLogo150) {
+                    Copy-Item -LiteralPath $sourceLogo150 -Destination (Join-Path $msixAssetsDir "Square150x150Logo.png") -Force
+                }
                 $targets = @(
-                    @{ Name = "StoreLogo.png"; W = 50; H = 50 },
-                    @{ Name = "Square44x44Logo.png"; W = 44; H = 44 },
-                    @{ Name = "Square150x150Logo.png"; W = 150; H = 150 },
-                    @{ Name = "Wide310x150Logo.png"; W = 310; H = 150 }
+                    @{ Name = "StoreLogo.png"; W = 50; H = 50; Pad = 0 },
+                    @{ Name = "Square44x44Logo.png"; W = 44; H = 44; Pad = 0 },
+                    @{ Name = "Square310x310Logo.png"; W = 310; H = 310; Pad = 18 },
+                    @{ Name = "Wide310x150Logo.png"; W = 310; H = 150; Pad = 12 },
+                    @{ Name = "SplashScreen.png"; W = 620; H = 300; Pad = 40 }
                 )
+                if (-not (Test-Path -LiteralPath $sourceLogo71)) {
+                    $targets += @{ Name = "Square71x71Logo.png"; W = 71; H = 71; Pad = 0 }
+                }
+                if (-not (Test-Path -LiteralPath $sourceLogo150)) {
+                    $targets += @{ Name = "Square150x150Logo.png"; W = 150; H = 150; Pad = 0 }
+                }
                 foreach ($t in $targets) {
                     $bmp = New-Object System.Drawing.Bitmap($t.W, $t.H)
                     $g = [System.Drawing.Graphics]::FromImage($bmp)
                     try {
+                        $g.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
                         $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                        $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
                         $g.Clear([System.Drawing.Color]::Transparent)
-                        $side = [Math]::Min($t.W, $t.H)
+                        $side = [Math]::Min($t.W, $t.H) - (2 * $t.Pad)
                         $x = [int](($t.W - $side) / 2)
                         $y = [int](($t.H - $side) / 2)
                         $g.DrawImage($srcImg, $x, $y, $side, $side)

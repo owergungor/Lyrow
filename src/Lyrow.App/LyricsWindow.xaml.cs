@@ -149,6 +149,15 @@ public sealed partial class LyricsWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(LyricsTitleBar);
         LyricsTitleBar.Title = string.Empty;
+        try
+        {
+            string appIconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "lyrow.ico");
+            if (File.Exists(appIconPath))
+            {
+                AppWindow.SetIcon(appIconPath);
+            }
+        }
+        catch { }
         if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter overlapped)
         {
             overlapped.IsMinimizable = true;

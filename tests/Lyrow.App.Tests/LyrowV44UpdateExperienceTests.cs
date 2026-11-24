@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Xunit;
 
 namespace Lyrow.App.Tests;
@@ -79,7 +79,7 @@ public sealed class LyrowV44UpdateExperienceTests
         string appCs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "App.xaml.cs"));
         string v4Cs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.V4Features.cs"));
 
-        appCs.Should().Contain("public const string CurrentReleaseVersion = \"4.4\";");
+        appCs.Should().Contain("public const string CurrentReleaseVersion = \"4.5\";");
         appCs.Should().Contain("new GitHubUpdateService(currentVersion: CurrentReleaseVersion)");
         appCs.Should().Contain("services.AddSingleton<UpdateCoordinator>");
 
