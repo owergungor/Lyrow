@@ -215,6 +215,15 @@ dotnet test Lyrow.sln -c Release -- xunit.parallelizeTestCollections=false
 
 ---
 
+## 🔒 Gizlilik Politikası (Privacy Policy)
+
+Lyrow kişisel veri toplamaz, kullanıcı hesabı gerektirmez ve sıfır telemetri ile çalışır. Ayrıntılar için:
+
+- **Çevrimiçi Gizlilik Politikası (GitHub Pages):** [https://owergungor.github.io/Lyrow/privacy-policy.html](https://owergungor.github.io/Lyrow/privacy-policy.html)
+- **Depo Belgesi:** [PRIVACY.md](PRIVACY.md)
+
+---
+
 ## 📄 Lisans
 
 Lyrow, [MIT Lisansı](LICENSE) kapsamında lisanslanmıştır. Detaylar için `LICENSE` dosyasına göz atabilirsiniz.
