@@ -50,9 +50,9 @@
                 </Grid.RenderTransform>
 
                 <!-- ==================== STEP 1: WELCOME ==================== -->
-                <Grid x:Name="StepPanelWelcome" Visibility="Visible" RowDefinitions="*,Auto" RowSpacing="16">
+                <Grid x:Name="StepPanelWelcome" Visibility="Visible" RowDefinitions="Auto,Auto" RowSpacing="14">
                     <!-- Hero Banner Card with v4.5 Artwork & Brand Logo -->
-                    <Border Grid.Row="0" CornerRadius="14" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" MinHeight="240">
+                    <Border Grid.Row="0" CornerRadius="14" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Height="238">
                         <Grid>
                             <!-- Decorative Hero Artwork (aspect-preserved UniformToFill, soft opacity) -->
                             <Border CornerRadius="13">
