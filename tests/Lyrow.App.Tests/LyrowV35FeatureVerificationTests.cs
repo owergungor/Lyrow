@@ -79,16 +79,16 @@ public class LyrowV35FeatureVerificationTests
     [Fact]
     public void StrictV35VersioningTests_AllArtifactsMatch35()
     {
-        GitHubUpdateService.AppVersion.Should().Be("4.6");
+        GitHubUpdateService.AppVersion.Should().Be("4.7");
         GitHubUpdateService.IsValidTwoPartVersionTag("v3.5").Should().BeTrue();
         GitHubUpdateService.IsValidTwoPartVersionTag("v3.5.0").Should().BeFalse();
         GitHubUpdateService.IsNewerVersion("3.4", "3.5").Should().BeTrue();
 
         string repoRoot = FindRepoRoot();
-        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<Version>4.6</Version>");
-        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<FileVersion>4.6.0.0</FileVersion>");
-        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<AssemblyVersion>4.6.0.0</AssemblyVersion>");
-        File.ReadAllText(Path.Combine(repoRoot, "installer", "setup.iss")).Should().Contain("#define MyAppVersion \"4.6\"");
+        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<Version>4.7</Version>");
+        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<FileVersion>4.7.0.0</FileVersion>");
+        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<AssemblyVersion>4.7.0.0</AssemblyVersion>");
+        File.ReadAllText(Path.Combine(repoRoot, "installer", "setup.iss")).Should().Contain("#define MyAppVersion \"4.7\"");
         File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "app.manifest")).Should().Contain("version=\"3.5.0.0\"");
         File.ReadAllText(Path.Combine(repoRoot, ".github", "workflows", "release.yml")).Should().Contain("default: 'v3.5'");
         File.Exists(Path.Combine(repoRoot, "docs", "RELEASE_NOTES_v3.5.md")).Should().BeTrue();

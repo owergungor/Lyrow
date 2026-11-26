@@ -3,10 +3,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
-    <Version>4.6</Version>
-    <PackageVersion>4.6</PackageVersion>
-    <InformationalVersion>4.6</InformationalVersion>
-    <AssemblyVersion>4.6.0.0</AssemblyVersion>
-    <FileVersion>4.6.0.0</FileVersion>
+    <Version>4.7</Version>
+    <PackageVersion>4.7</PackageVersion>
+    <InformationalVersion>4.7</InformationalVersion>
+    <AssemblyVersion>4.7.0.0</AssemblyVersion>
+    <FileVersion>4.7.0.0</FileVersion>
   </PropertyGroup>
 </Project>

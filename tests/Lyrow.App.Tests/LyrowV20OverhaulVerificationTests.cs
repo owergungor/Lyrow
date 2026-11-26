@@ -137,9 +137,9 @@ public class LyrowV20OverhaulVerificationTests
         string root = GetSolutionRoot();
 
         string buildProps = File.ReadAllText(Path.Combine(root, "Directory.Build.props"));
-        buildProps.Should().Contain("<Version>4.6</Version>");
-        buildProps.Should().Contain("<PackageVersion>4.6</PackageVersion>");
-        buildProps.Should().Contain("<InformationalVersion>4.6</InformationalVersion>");
+        buildProps.Should().Contain("<Version>4.7</Version>");
+        buildProps.Should().Contain("<PackageVersion>4.7</PackageVersion>");
+        buildProps.Should().Contain("<InformationalVersion>4.7</InformationalVersion>");
         buildProps.Should().NotContain("3.5.0</Version>");
         buildProps.Should().NotContain("3.4.0</Version>");
         buildProps.Should().NotContain("3.3.0</Version>");
@@ -153,7 +153,7 @@ public class LyrowV20OverhaulVerificationTests
         buildProps.Should().NotContain("2.0.0</Version>");
 
         string setupIss = File.ReadAllText(Path.Combine(root, "installer", "setup.iss"));
-        setupIss.Should().Contain("#define MyAppVersion \"4.6\"");
+        setupIss.Should().Contain("#define MyAppVersion \"4.7\"");
         setupIss.Should().NotContain("3.5.0");
         setupIss.Should().NotContain("3.4.0");
         setupIss.Should().NotContain("3.3.0");

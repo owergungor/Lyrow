@@ -26,24 +26,24 @@ public class LyrowV27PostReleaseHardeningTests
 
         // 1. Directory.Build.props
         string props = File.ReadAllText(Path.Combine(root, "Directory.Build.props"));
-        props.Should().Contain("<Version>4.6</Version>");
-        props.Should().Contain("<PackageVersion>4.6</PackageVersion>");
-        props.Should().Contain("<InformationalVersion>4.6</InformationalVersion>");
-        props.Should().Contain("<AssemblyVersion>4.6.0.0</AssemblyVersion>");
-        props.Should().Contain("<FileVersion>4.6.0.0</FileVersion>");
+        props.Should().Contain("<Version>4.7</Version>");
+        props.Should().Contain("<PackageVersion>4.7</PackageVersion>");
+        props.Should().Contain("<InformationalVersion>4.7</InformationalVersion>");
+        props.Should().Contain("<AssemblyVersion>4.7.0.0</AssemblyVersion>");
+        props.Should().Contain("<FileVersion>4.7.0.0</FileVersion>");
         props.Should().NotContain("<Version>3.5.0</Version>");
         props.Should().NotContain("<PackageVersion>3.5.0</PackageVersion>");
 
         // 2. Lyrow.App.csproj
         string csproj = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "Lyrow.App.csproj"));
-        csproj.Should().Contain("<Version>4.6</Version>");
-        csproj.Should().Contain("<PackageVersion>4.6</PackageVersion>");
-        csproj.Should().Contain("<InformationalVersion>4.6</InformationalVersion>");
+        csproj.Should().Contain("<Version>4.7</Version>");
+        csproj.Should().Contain("<PackageVersion>4.7</PackageVersion>");
+        csproj.Should().Contain("<InformationalVersion>4.7</InformationalVersion>");
         csproj.Should().NotContain("<Version>3.5.0</Version>");
 
         // 3. setup.iss
         string iss = File.ReadAllText(Path.Combine(root, "installer", "setup.iss"));
-        iss.Should().Contain("#define MyAppVersion \"4.6\"");
+        iss.Should().Contain("#define MyAppVersion \"4.7\"");
         iss.Should().NotContain("#define MyAppVersion \"3.5.0\"");
 
         // 4. app.manifest

@@ -3,7 +3,7 @@
 
 [CmdletBinding()]
 param (
-    [string]$Version = "4.6",
+    [string]$Version = "4.7",
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
     [string]$PublishDir = "",

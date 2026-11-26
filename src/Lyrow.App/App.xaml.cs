@@ -15,7 +15,7 @@ namespace Lyrow.App;
 /// </summary>
 public partial class App : Application
 {
-    public const string CurrentReleaseVersion = "4.6";
+    public const string CurrentReleaseVersion = "4.7";
     public static IServiceProvider Services { get; private set; } = null!;
     public static LyricsWindow? PrimaryWindowInstance { get; private set; }
     public static WelcomeWindow? ActiveWelcomeWindowInstance { get; internal set; }

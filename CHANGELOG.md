@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.7.0] - 2026-11-26
+
+### Changed
+- **Tek Ekranlı Fluent Karşılama Deneyimi (`WelcomeWindow`):** 5 adımlı kurulum sihirbazı kaldırılarak Windows 11 Fluent Design (`MicaBackdrop BaseAlt`) uyumlu, kaydırma gerektirmeyen (`680×550` DIP, DPI-duyarlı ortalanmış) tek ekranlı karşılama penceresine geçildi.
+  - Lyrow logosu, hero arka planı, güçlü tek başlık (**"Your Music. Your Lyrics. Your Atmosphere."** / **"Müziğin. Şarkı Sözlerin. Atmosferin."**), tek cümlelik değer önerisi ve 3 net fayda kartı eklendi.
+  - Büyük ve belirgin **Start Listening** (*Dinlemeye Başla*) ana aksiyonu ile sade **Customize later** (*Daha sonra özelleştir*) ikincil seçeneği eklendi.
+  - İlk açılışta tema, ses cihazı veya Kenar Işığı seçme zorunluluğu kaldırıldı; mevcut sistem teması otomatik uygulanır ve tüm kişiselleştirme seçenekleri Ayarlar'da hazır kalır.
+  - Hafif `160 ms` giriş animasyonu, klavye kısayolları (`Enter` / `Esc`), mevcut v4.5 ve v4.6 kullanıcı yükseltme koruması ve Ayarlar üzerinden manuel yeniden açma korundu.
+- **Birleşik `4.7` / `4.7.0.0` Sürüm Hizalaması:** `Directory.Build.props`, `Lyrow.App.csproj`, `GitHubUpdateService.AppVersion`, `App.CurrentReleaseVersion`, `installer/setup.iss`, `installer/build_packages.ps1`, `LyricsWindow.xaml` ve MSIX manifest sürümü `4.7` (`4.7.0.0`) olarak güncellendi.
+
+### Validation
+- **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** 744 / 744 PASS (%100 başarı).
+- **Canlı Görsel Doğrulama (İzole):** İngilizce, Türkçe ve Açık tema ekran görüntüleri `1020×825` (%150 DPI), `Scrollable=False (View=100%)`, `Overflows=0` olarak doğrulandı; tamamlanma, atlama, tekrar açılmama ve v4.5/v4.6 yükseltme senaryoları geçti.
+- **Dağıtım Paketleri (Yerel):** `Lyrow-4.7-Setup-x64.exe`, `Lyrow-v4.7-win-x64-portable.zip` ve `Lyrow-v4.7-x64.msix` (`crius.Lyrow` / `crius`, `4.7.0.0`, `runFullTrust=True`) yerel olarak üretildi ve 64/64 SHA-256 doğrulamasından geçti.
+
+---
+
 ## [4.6.0] - 2026-11-26
 
 ### Added

@@ -10,8 +10,8 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011%20Native-08a1f7?logo=windows)](https://microsoft.com/windows)
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![UI](https://img.shields.io/badge/UI-WinUI%203%20%2F%20Windows%20App%20SDK%201.8-03c1f4?logo=windows)](https://learn.microsoft.com/windows/apps/winui/winui3/)
-[![Release](https://img.shields.io/badge/Release-v4.6-success)](https://github.com/owergungor/Lyrow/releases)
-[![Tests](https://img.shields.io/badge/Tests-743%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
+[![Release](https://img.shields.io/badge/Release-v4.7-success)](https://github.com/owergungor/Lyrow/releases)
+[![Tests](https://img.shields.io/badge/Tests-744%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
 [![License](https://img.shields.io/badge/License-MIT-750014.svg)](LICENSE)
 
 **Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; doğrudan birincil pencere olarak açılan senkronize şarkı sözleri arayüzü, albüm kapağına göre otomatik renk değiştiren 4 kenarlı Kenar Işığı (Edge Light), tüm modlarda tıklamayla açılan ortak **Parlaklık (`10–100%`) ve Kalınlık (`0–64 px`)** kontrol paneli, 7 sekmeli sabit boyutlu Microsoft Windows 11 Fluent Design ayarlar modalı, hem Normal/Tam Ekran hem Dar Modda ikon-odaklı ses çıkışı ve Ghost Button kontrolleri, 2×/0.5× akıcı pencere genişliği geçişi ve kompakt Dar Mod (Mini Player) sunar.
@@ -20,19 +20,20 @@
 
 ## 📥 İndirme ve Kurulum
 
-### Güncel Sürüm: Lyrow v4.6 (Yerel Paketler Hazır — Setup EXE, Portable ZIP & MSIX)
+### Güncel Sürüm: Lyrow v4.7 (Yerel Paketler Hazır — Setup EXE, Portable ZIP & MSIX)
 
 | Kaynak | Dosya | Boyut | SHA-256 Doğrulama Özeti |
 |---|---|---|---|
-| **Kurulum Sihirbazı (Installer)** | `Lyrow-4.6-Setup-x64.exe` | 64.55 MB | `62674C1D29BDF2AA52EC0E5E56E7DF2FB7535FB367F0BDE82FCC32CEC585D135` |
-| **Taşınabilir Paket (Portable ZIP)** | `Lyrow-v4.6-win-x64-portable.zip` | 92.75 MB | `415AFF5370562FF9F5F1A2E875E2E1E71304A9B4D3BB5895D4572969598B54B2` |
-| **MSIX Paketi (Windows x64 — Store Kimlikli)** | `Lyrow-v4.6-x64.msix` *(imzasız)* | 94.81 MB | `282E8557B3710BD1A784CA944C975E223BDCEEB0DA716671AF4B807A470179CE` |
+| **Kurulum Sihirbazı (Installer)** | `Lyrow-4.7-Setup-x64.exe` | 64.53 MB | `1D630431408613559E89002951A3832E25BF142C6460233922937561D226FDAC` |
+| **Taşınabilir Paket (Portable ZIP)** | `Lyrow-v4.7-win-x64-portable.zip` | 92.74 MB | `5BADD0EBBE279E66A1C53A0909BC7B120FB3C0D2D85AD9E8ED6A4947EA47183F` |
+| **MSIX Paketi (Windows x64 — Store Kimlikli)** | `Lyrow-v4.7-x64.msix` *(imzasız)* | 94.80 MB | `1630A5CAB28C3456046DC632EFB4A222F7EFD8BB503F3AADA8D27278036C2038` |
 
 > [!NOTE]
-> Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz. MSIX paketi (`Lyrow-v4.6-x64.msix`) Microsoft Partner Center kimliğiyle (`crius.Lyrow` / `crius`) **imzasız** olarak üretilir; Microsoft Store yüklemesinde Store imzası uygulanır, yerel yan yükleme için güvenilen bir kod imzalama sertifikasıyla imzalanması gerekir.
+> Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz. MSIX paketi (`Lyrow-v4.7-x64.msix`) Microsoft Partner Center kimliğiyle (`crius.Lyrow` / `crius`) **imzasız** olarak üretilir; Microsoft Store yüklemesinde Store imzası uygulanır, yerel yan yükleme için güvenilen bir kod imzalama sertifikasıyla imzalanması gerekir.
 
-### Yayınlanmış Kararlı Sürümler (v4.5, v4.4, v4.3, v4.2, v4.1, v4.0, v3.8, v3.7 & v3.5)
+### Yayınlanmış Kararlı Sürümler (v4.6, v4.5, v4.4, v4.3, v4.2, v4.1, v4.0, v3.8, v3.7 & v3.5)
 GitHub Releases üzerinde yayında olan sürümler:
+- **v4.6 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.6](https://github.com/owergungor/Lyrow/releases/tag/v4.6)
 - **v4.5 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.5](https://github.com/owergungor/Lyrow/releases/tag/v4.5)
 - **v4.4 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.4](https://github.com/owergungor/Lyrow/releases/tag/v4.4)
 - **v4.3 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.3](https://github.com/owergungor/Lyrow/releases/tag/v4.3)
