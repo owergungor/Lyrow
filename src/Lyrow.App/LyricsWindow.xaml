@@ -72,7 +72,7 @@
             </Flyout>
         </Grid.Resources>
 
-        <!-- Ambient Dynamic Artwork Gradient Background with Cinematic Vignette (Preserved) -->
+        <!-- Ambient Dynamic Artwork Gradient Background with Theme-Aware Scrim & Vignette -->
         <Grid x:Name="AmbientBackgroundLayer" IsHitTestVisible="False">
             <Grid.Background>
                 <LinearGradientBrush x:Name="AmbientBrush" StartPoint="0,0" EndPoint="1,1">
@@ -81,13 +81,13 @@
                     <GradientStop x:Name="StopBottomRight" Color="#08080C" Offset="1.0" />
                 </LinearGradientBrush>
             </Grid.Background>
-            <Rectangle Fill="#50000000" />
-            <Rectangle>
+            <Rectangle x:Name="AmbientScrimRect" Fill="{ThemeResource LyrowAmbientScrimBrush}" />
+            <Rectangle x:Name="AmbientVignetteRect">
                 <Rectangle.Fill>
                     <RadialGradientBrush Center="0.5,0.5" RadiusX="0.8" RadiusY="0.8">
                         <GradientStop Color="#00000000" Offset="0.0" />
-                        <GradientStop Color="#30000000" Offset="0.6" />
-                        <GradientStop Color="#70000000" Offset="1.0" />
+                        <GradientStop x:Name="AmbientVignetteMid" Color="#30000000" Offset="0.6" />
+                        <GradientStop x:Name="AmbientVignetteOuter" Color="#70000000" Offset="1.0" />
                     </RadialGradientBrush>
                 </Rectangle.Fill>
             </Rectangle>

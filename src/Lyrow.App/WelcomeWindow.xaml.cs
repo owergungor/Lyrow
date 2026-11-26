@@ -91,7 +91,7 @@ public sealed partial class WelcomeWindow : Window
         double scale = dpi > 0 ? (dpi / 96.0) : 1.0;
 
         int targetWidth = (int)Math.Round(880 * scale);
-        int targetHeight = (int)Math.Round(612 * scale);
+        int targetHeight = (int)Math.Round(576 * scale);
 
         try
         {
@@ -158,11 +158,15 @@ public sealed partial class WelcomeWindow : Window
             SyncHeroPreviewEffects();
         };
 
-        BtnWelcomeStartListening.Click += async (_, _) => await CompleteAndCloseAsync(_coordinator.CompleteAsync);
-        BtnWelcomeCustomizeLater.Click += async (_, _) => await CompleteAndCloseAsync(_coordinator.SkipAsync);
+        BtnWelcomeStartListening.Click += OnStartListeningClicked;
 
         WelcomeRootLayout.KeyDown += OnRootKeyDown;
         Closed += OnWelcomeWindowClosed;
+    }
+
+    private async void OnStartListeningClicked(object sender, RoutedEventArgs e)
+    {
+        await ExecuteStartListeningAsync();
     }
 
     private void SelectLanguageLive(string languageCode)
@@ -235,15 +239,12 @@ public sealed partial class WelcomeWindow : Window
         if (e.Key == Windows.System.VirtualKey.Enter)
         {
             e.Handled = true;
-            _ = CompleteAndCloseAsync(_coordinator.CompleteAsync);
+            _ = ExecuteStartListeningAsync();
         }
         else if (e.Key == Windows.System.VirtualKey.Escape)
         {
             e.Handled = true;
-            var action = _coordinator.IsManualReopen
-                ? (Func<CancellationToken, Task<bool>>)_coordinator.CloseWindowAsync
-                : _coordinator.SkipAsync;
-            _ = CompleteAndCloseAsync(action);
+            _ = DismissWithoutSavingAsync();
         }
     }
 
@@ -252,24 +253,57 @@ public sealed partial class WelcomeWindow : Window
         StopAmbientAnimations();
         if (_isClosingHandled) return;
         _isClosingHandled = true;
+
+        // Roll back any temporary live preview edits and do NOT mark Welcome as completed
+        LocalizationService.Instance.SetLanguage(_coordinator.InitialLanguage);
+        App.PrimaryWindowInstance?.ApplyTheme(_coordinator.InitialTheme);
+
         await _coordinator.CloseWindowAsync();
         _onFinishedCallback?.Invoke(WelcomeCompletionReason.WindowClosed);
     }
 
-    private async Task CompleteAndCloseAsync(Func<CancellationToken, Task<bool>> finalizeAction)
+    /// <summary>
+    /// Single primary CTA handler: persists all selected preferences, applies chosen
+    /// language &amp; theme, marks Welcome as completed, and launches/returns to the main Lyrow window.
+    /// </summary>
+    private async Task ExecuteStartListeningAsync()
     {
         if (_isClosingHandled) return;
         _isClosingHandled = true;
         StopAmbientAnimations();
 
         BtnWelcomeStartListening.IsEnabled = false;
-        BtnWelcomeCustomizeLater.IsEnabled = false;
 
-        WelcomeCompletionReason reason = WelcomeCompletionReason.Completed;
-        _coordinator.OnboardingFinished += (_, r) => reason = r;
+        await _coordinator.CompleteAsync(CancellationToken.None);
+        LocalizationService.Instance.SetLanguage(_coordinator.SelectedLanguage);
+        App.PrimaryWindowInstance?.ApplyTheme(_coordinator.SelectedTheme);
 
-        await finalizeAction(CancellationToken.None);
-        _onFinishedCallback?.Invoke(reason);
+        _onFinishedCallback?.Invoke(WelcomeCompletionReason.Completed);
+
+        try
+        {
+            Close();
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Escape close handler: discards temporary Welcome edits, restores pre-Welcome
+    /// language &amp; theme without marking Welcome as completed, and closes the window.
+    /// </summary>
+    private async Task DismissWithoutSavingAsync()
+    {
+        if (_isClosingHandled) return;
+        _isClosingHandled = true;
+        StopAmbientAnimations();
+
+        BtnWelcomeStartListening.IsEnabled = false;
+
+        LocalizationService.Instance.SetLanguage(_coordinator.InitialLanguage);
+        App.PrimaryWindowInstance?.ApplyTheme(_coordinator.InitialTheme);
+
+        await _coordinator.CloseWindowAsync(CancellationToken.None);
+        _onFinishedCallback?.Invoke(WelcomeCompletionReason.WindowClosed);
 
         try
         {
@@ -310,9 +344,7 @@ public sealed partial class WelcomeWindow : Window
         AutomationProperties.SetName(ChkWelcomeDynamicBg, loc["Welcome_Pref_DynamicBgShort"]);
 
         TxtBtnStartListening.Text = loc["Welcome_Btn_StartListening"];
-        BtnWelcomeCustomizeLater.Content = loc["Welcome_Btn_CustomizeLater"];
         AutomationProperties.SetName(BtnWelcomeStartListening, loc["Welcome_Btn_StartListening"]);
-        AutomationProperties.SetName(BtnWelcomeCustomizeLater, loc["Welcome_Btn_CustomizeLater"]);
     }
 
     private void StartSubtleAnimationsIfEnabled()

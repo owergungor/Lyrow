@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lyrow v4.7 — Native Windows Music Companion</title>
+  <meta name="description" content="Lyrow v4.7 brings synchronized lyrics, Album-Adaptive Light & Dark themes, dynamic visuals, and audio-reactive Edge Light to Windows 10 & 11." />
+  <link rel="icon" type="image/png" href="assets/lyrow-logo.png" />
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --surface: #13192b;
+      --surface-alt: #1a2238;
+      --border: rgba(255, 255, 255, 0.11);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #6366f1;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f4f7fb;
+        --surface: #ffffff;
+        --surface-alt: #eef3fa;
+        --border: rgba(15, 23, 42, 0.10);
+        --text: #0f172a;
+        --muted: #475569;
+        --accent: #0284c7;
+        --accent-2: #4f46e5;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container { max-width: 1020px; margin: 0 auto; padding: 28px 20px 64px; }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; margin-bottom: 28px; flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
+    .brand img { width: 38px; height: 38px; }
+    .brand span { font-size: 1.35rem; font-weight: 700; letter-spacing: 0.02em; }
+    nav { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+    nav a { color: var(--muted); text-decoration: none; font-size: 0.94rem; font-weight: 500; }
+    nav a:hover { color: var(--text); }
+    .hero {
+      position: relative; border-radius: 20px; overflow: hidden;
+      border: 1px solid var(--border); background: var(--surface); margin-bottom: 32px;
+    }
+    .hero-banner { width: 100%; display: block; max-height: 360px; object-fit: cover; }
+    .hero-body { padding: 28px 32px 32px; text-align: center; }
+    .badge {
+      display: inline-block; padding: 4px 12px; border-radius: 999px;
+      background: rgba(56, 189, 248, 0.16); color: var(--accent);
+      font-size: 0.82rem; font-weight: 600; margin-bottom: 12px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+    h1 { font-size: clamp(1.8rem, 3.6vw, 2.5rem); font-weight: 700; margin-bottom: 10px; }
+    .lead { max-width: 680px; margin: 0 auto 24px; color: var(--muted); font-size: 1.05rem; }
+    .downloads { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px; padding: 13px 24px;
+      border-radius: 999px; font-weight: 600; font-size: 0.96rem; text-decoration: none;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); opacity: 0.94; }
+    .btn-primary {
+      background: linear-gradient(90deg, #0284c7, #2563eb 52%, #6366f1);
+      color: #ffffff; border: 1px solid rgba(103, 232, 249, 0.35);
+    }
+    .btn-secondary {
+      background: var(--surface-alt); color: var(--text); border: 1px solid var(--border);
+    }
+    .note { font-size: 0.84rem; color: var(--muted); max-width: 680px; margin: 0 auto; }
+    .section-title { font-size: 1.35rem; font-weight: 700; margin: 36px 0 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px;
+    }
+    .card h3 { font-size: 1.05rem; margin-bottom: 8px; }
+    .card p { color: var(--muted); font-size: 0.92rem; }
+    .checksums {
+      margin-top: 24px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 20px; overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; }
+    code { font-family: Consolas, monospace; font-size: 0.8rem; word-break: break-all; }
+    footer {
+      margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+      color: var(--muted); font-size: 0.86rem;
+    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a class="brand" href="./">
+        <img src="assets/lyrow-logo.png" alt="Lyrow Logo" />
+        <span>Lyrow</span>
+      </a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#downloads">Download v4.7</a>
+        <a href="https://github.com/owergungor/Lyrow/releases">Releases</a>
+        <a href="https://github.com/owergungor/Lyrow">GitHub</a>
+        <a href="privacy-policy.html">Privacy Policy</a>
+      </nav>
+    </header>
+
+    <section class="hero" id="downloads">
+      <img class="hero-banner" src="assets/lyrow-hero-banner.png" alt="Lyrow — Native Windows Music Companion" />
+      <div class="hero-body">
+        <div class="badge">Latest Release · Lyrow v4.7 · Windows 10 &amp; 11 (x64)</div>
+        <h1>Your Music Comes to Life.</h1>
+        <p class="lead">
+          Native WinUI 3 music companion with synchronized real-time lyrics, Album-Adaptive Light &amp; Dark themes,
+          a redesigned single-screen Welcome experience, and 4-edge audio-reactive lighting.
+        </p>
+        <div class="downloads">
+          <a class="btn btn-primary" href="https://github.com/owergungor/Lyrow/releases/download/v4.7/Lyrow-4.7-Setup-x64.exe">
+            Download Windows Installer (.exe) · 64.77 MB
+          </a>
+          <a class="btn btn-secondary" href="https://github.com/owergungor/Lyrow/releases/download/v4.7/Lyrow-v4.7-x64.msix">
+            Microsoft Store Package (.msix) · 94.80 MB
+          </a>
+        </div>
+        <p class="note">
+          Self-contained Windows x64 build — no separate .NET or Windows App SDK installation required.
+          The <code>.msix</code> package is currently unsigned (not yet published on the Microsoft Store); use the Windows Installer (<code>.exe</code>) for standard installation.
+        </p>
+      </div>
+    </section>
+
+    <h2 class="section-title" id="features">What's New in Lyrow v4.7</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Album-Adaptive Light Theme</h3>
+        <p>
+          Light Theme transforms each song's dominant album cover hues into an airy, luminous pastel atmosphere
+          (lavender, ice blue, rose blush, sage green, warm cream) that smoothly cross-fades on every track change
+          while keeping lyrics and controls razor-sharp.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Single-Screen Welcome Experience</h3>
+        <p>
+          A cinematic live music preview paired with compact Language (Türkçe / English), Theme (System / Dark / Light),
+          Edge Light, and Dynamic Background toggles — all applied with one clear <strong>Start Listening</strong> button.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Synced Lyrics, Mini Player &amp; Edge Light</h3>
+        <p>
+          Word-synced karaoke lyrics, click-to-seek, 7-tab Fluent Settings modal, compact Mini Player,
+          and 4-edge audio-reactive Edge Light analyzed locally in memory with zero telemetry.
+        </p>
+      </div>
+    </div>
+
+    <div class="checksums">
+      <h3 style="margin-bottom: 10px;">v4.7 Package Verification (SHA-256)</h3>
+      <table>
+        <thead>
+          <tr><th>Package</th><th>Size</th><th>SHA-256</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="https://github.com/owergungor/Lyrow/releases/download/v4.7/Lyrow-4.7-Setup-x64.exe" style="color:var(--accent);text-decoration:none;">Lyrow-4.7-Setup-x64.exe</a></td>
+            <td>64.77 MB</td>
+            <td><code>87345799863e402daa89d87e65e5e3c383ca373aa8008bb4a98d9d6963002ff6</code></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/owergungor/Lyrow/releases/download/v4.7/Lyrow-v4.7-x64.msix" style="color:var(--accent);text-decoration:none;">Lyrow-v4.7-x64.msix</a> (unsigned)</td>
+            <td>94.80 MB</td>
+            <td><code>2963af8c886caa79a428071843b497de0e99eb554331fd1006136a4e50ff264f</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer>
+      <span>Lyrow v4.7 · MIT License · Open Source</span>
+      <div style="display:flex;gap:16px;">
+        <a href="https://github.com/owergungor/Lyrow/releases/tag/v4.7">v4.7 Release Notes</a>
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="https://github.com/owergungor/Lyrow">GitHub Repository</a>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

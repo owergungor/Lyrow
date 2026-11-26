@@ -98,7 +98,8 @@ public class LyrowV33FeatureVerificationTests
         xaml.Should().Contain("x:Name=\"StopTopLeft\"");
         xaml.Should().Contain("x:Name=\"StopCenter\"");
         xaml.Should().Contain("x:Name=\"StopBottomRight\"");
-        xaml.Should().Contain("<Rectangle Fill=\"#50000000\" />");
+        xaml.Should().Contain("x:Name=\"AmbientScrimRect\"");
+        xaml.Should().Contain("LyrowAmbientScrimBrush");
         xaml.Should().Contain("<RadialGradientBrush Center=\"0.5,0.5\" RadiusX=\"0.8\" RadiusY=\"0.8\">");
 
         // Code-behind crossfade preserved

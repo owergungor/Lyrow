@@ -953,9 +953,16 @@ public sealed partial class LyricsWindow
         if (ModalSectionUpdates != null) ModalSectionUpdates.Visibility = category == "Updates" ? Visibility.Visible : Visibility.Collapsed;
         if (ModalSectionAbout != null) ModalSectionAbout.Visibility = category == "About" ? Visibility.Visible : Visibility.Collapsed;
 
-        var selectedBg = Application.Current.Resources.TryGetValue("SubtleFillColorSecondaryBrush", out var sb) ? sb as Brush : null;
-        var primaryFg = Application.Current.Resources.TryGetValue("TextFillColorPrimaryBrush", out var pf) ? pf as Brush : null;
-        var secondaryFg = Application.Current.Resources.TryGetValue("TextFillColorSecondaryBrush", out var sf) ? sf as Brush : null;
+        bool isLight = IsEffectiveLightTheme();
+        Brush selectedBg = new SolidColorBrush(isLight
+            ? Windows.UI.Color.FromArgb(22, 15, 23, 42)     // Soft Fluent Light nav active pill
+            : Windows.UI.Color.FromArgb(24, 255, 255, 255)); // Soft Fluent Dark nav active pill
+        Brush primaryFg = new SolidColorBrush(isLight
+            ? Windows.UI.Color.FromArgb(255, 15, 23, 42)    // Crisp dark ink (#0F172A) on Light
+            : Windows.UI.Color.FromArgb(255, 248, 250, 252)); // Crisp white (#F8FAFC) on Dark
+        Brush secondaryFg = new SolidColorBrush(isLight
+            ? Windows.UI.Color.FromArgb(255, 71, 85, 105)   // Readable slate (#475569) on Light
+            : Windows.UI.Color.FromArgb(255, 166, 173, 200)); // Readable silver (#A6ADC8) on Dark
 
         void SetNavState(Button? btn, Border? indicator, string tag)
         {

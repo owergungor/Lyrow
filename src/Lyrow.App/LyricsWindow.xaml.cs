@@ -104,10 +104,10 @@ public sealed partial class LyricsWindow : Window
         "About"
     };
 
-    // Preserved Ambient Dynamic Artwork Background Engine
-    private static readonly SolidColorBrush InactiveLyricBrush = new(Windows.UI.Color.FromArgb(200, 190, 190, 205));
-    private static readonly SolidColorBrush ActiveLyricBrush = new(Windows.UI.Color.FromArgb(255, 255, 255, 255));
-    private static readonly SolidColorBrush ActiveLyricGlowContainerBrush = new(Windows.UI.Color.FromArgb(24, 255, 255, 255));
+    // Theme-aware dynamic lyric brushes (mutated in-place on theme changes so all rendered lines update immediately)
+    private readonly SolidColorBrush InactiveLyricBrush = new(Windows.UI.Color.FromArgb(200, 190, 190, 205));
+    private readonly SolidColorBrush ActiveLyricBrush = new(Windows.UI.Color.FromArgb(255, 255, 255, 255));
+    private readonly SolidColorBrush ActiveLyricGlowContainerBrush = new(Windows.UI.Color.FromArgb(24, 255, 255, 255));
     private static readonly SolidColorBrush TransparentBrush = new(Windows.UI.Color.FromArgb(0, 0, 0, 0));
 
     private AmbientBackgroundPalette _currentAmbientPalette = AmbientBackgroundPalette.Default;
@@ -133,6 +133,10 @@ public sealed partial class LyricsWindow : Window
         InitializeComponent();
         _lyricsModule = lyricsModule;
         _settingsManager = settingsManager;
+        if (RootLayout != null)
+        {
+            RootLayout.ActualThemeChanged += (_, _) => RefreshThemeDependentVisuals();
+        }
         ApplyTheme(_settingsManager.Current.Theme);
         UpdateBackdropOpacity(_settingsManager.Current.LyricsBackdropOpacity);
         _artworkBitmapManager = artworkBitmapManager;
@@ -1581,11 +1585,9 @@ public sealed partial class LyricsWindow : Window
             LyricsScrollViewer.ChangeView(null, _currentScrollOffsetY, null, disableAnimation: true);
         }
 
-        // 4. Preserved ambient dynamic artwork background 60 FPS cross-fade
+        // 4. Preserved ambient dynamic artwork background 60 FPS cross-fade (theme-aware for Light & Dark)
         _currentAmbientPalette = AmbientBackgroundPalette.Lerp(_currentAmbientPalette, _targetAmbientPalette, 0.065f);
-        StopTopLeft.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Dominant.R, _currentAmbientPalette.Dominant.G, _currentAmbientPalette.Dominant.B);
-        StopCenter.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Secondary.R, _currentAmbientPalette.Secondary.G, _currentAmbientPalette.Secondary.B);
-        StopBottomRight.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Tertiary.R, _currentAmbientPalette.Tertiary.G, _currentAmbientPalette.Tertiary.B);
+        ApplyAmbientGradientStops();
 
         // 5. Lightweight zero-allocation Lyrics Glow aura update
         StepLyricsGlowAuraAnimation();
@@ -1842,8 +1844,77 @@ public sealed partial class LyricsWindow : Window
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);
 
+    private bool IsEffectiveLightTheme()
+    {
+        if (RootLayout == null) return false;
+        if (RootLayout.RequestedTheme == ElementTheme.Light) return true;
+        if (RootLayout.RequestedTheme == ElementTheme.Dark) return false;
+        return RootLayout.ActualTheme == ElementTheme.Light;
+    }
+
+    private void ApplyAmbientGradientStops()
+    {
+        if (StopTopLeft == null || StopCenter == null || StopBottomRight == null) return;
+        if (IsEffectiveLightTheme())
+        {
+            // Album-adaptive luminous pastel atmosphere preserving each cover's unique hue in Light mode
+            var lightPalette = ArtworkPaletteExtractor.CreateLightAmbientPalette(_currentAmbientPalette);
+            StopTopLeft.Color = Windows.UI.Color.FromArgb(255, lightPalette.Dominant.R, lightPalette.Dominant.G, lightPalette.Dominant.B);
+            StopCenter.Color = Windows.UI.Color.FromArgb(255, lightPalette.Secondary.R, lightPalette.Secondary.G, lightPalette.Secondary.B);
+            StopBottomRight.Color = Windows.UI.Color.FromArgb(255, lightPalette.Tertiary.R, lightPalette.Tertiary.G, lightPalette.Tertiary.B);
+        }
+        else
+        {
+            StopTopLeft.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Dominant.R, _currentAmbientPalette.Dominant.G, _currentAmbientPalette.Dominant.B);
+            StopCenter.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Secondary.R, _currentAmbientPalette.Secondary.G, _currentAmbientPalette.Secondary.B);
+            StopBottomRight.Color = Windows.UI.Color.FromArgb(255, _currentAmbientPalette.Tertiary.R, _currentAmbientPalette.Tertiary.G, _currentAmbientPalette.Tertiary.B);
+        }
+    }
+
+    private void RefreshThemeDependentVisuals()
+    {
+        bool isLight = IsEffectiveLightTheme();
+
+        // Update lyric brushes in-place so all active/passive lines update immediately across Normal & Compact modes
+        ActiveLyricBrush.Color = isLight
+            ? Windows.UI.Color.FromArgb(255, 11, 18, 32)     // Deep ink slate (#0B1220) — >11:1 contrast on pastel Light
+            : Windows.UI.Color.FromArgb(255, 255, 255, 255); // Crisp white (#FFFFFF) on Dark
+
+        InactiveLyricBrush.Color = isLight
+            ? Windows.UI.Color.FromArgb(196, 45, 55, 72)     // Refined readable charcoal-slate (#C42D3748) on pastel Light
+            : Windows.UI.Color.FromArgb(200, 190, 200, 220); // Soft silver-white (#C8BEC8DC) on Dark
+
+        ActiveLyricGlowContainerBrush.Color = isLight
+            ? Windows.UI.Color.FromArgb(30, 30, 102, 245)    // Soft Fluent blue active highlight on Light
+            : Windows.UI.Color.FromArgb(26, 137, 180, 250);  // Existing soft accent glow on Dark
+
+        if (AmbientScrimRect != null)
+        {
+            AmbientScrimRect.Fill = new SolidColorBrush(isLight
+                ? Windows.UI.Color.FromArgb(54, 255, 255, 255)  // Whisper-light frosted veil (#36FFFFFF) preserving rich pastel hues
+                : Windows.UI.Color.FromArgb(80, 0, 0, 0));      // Preserved Dark scrim (#50000000)
+        }
+
+        if (AmbientVignetteMid != null && AmbientVignetteOuter != null)
+        {
+            AmbientVignetteMid.Color = isLight
+                ? Windows.UI.Color.FromArgb(12, 255, 255, 255)  // Soft luminous center diffusion
+                : Windows.UI.Color.FromArgb(48, 0, 0, 0);       // Preserved Dark mid vignette (#30000000)
+            AmbientVignetteOuter.Color = isLight
+                ? Windows.UI.Color.FromArgb(26, 255, 255, 255)  // Airy pastel edge (zero muddy gray)
+                : Windows.UI.Color.FromArgb(112, 0, 0, 0);      // Preserved Dark outer vignette (#70000000)
+        }
+
+        ApplyAmbientGradientStops();
+        if (BtnModalTabGeneral != null)
+        {
+            ShowModalSettingsCategory(_activeModalSettingsCategory);
+        }
+    }
+
     /// <summary>
-    /// Applies Light, Dark, or SystemDefault theme dynamically across the Lyrics Window.
+    /// Applies Light, Dark, or SystemDefault theme dynamically across the Lyrics Window,
+    /// Mini Player (Compact Mode), lyrics brushes, ambient background, and Settings modal.
     /// </summary>
     public void ApplyTheme(ThemeMode mode)
     {
@@ -1854,6 +1925,7 @@ public sealed partial class LyricsWindow : Window
             ThemeMode.Light => ElementTheme.Light,
             _ => ElementTheme.Default
         };
+        RefreshThemeDependentVisuals();
         UpdateBackdropOpacity(_settingsManager.Current.LyricsBackdropOpacity);
     }
 
@@ -2115,7 +2187,8 @@ public sealed partial class LyricsWindow : Window
                 Text = string.Empty,
                 FontSize = isMiddleActive ? 13.0 : 11.5,
                 FontWeight = isMiddleActive ? FontWeights.Bold : FontWeights.Normal,
-                Opacity = isMiddleActive ? 1.0 : 0.48,
+                Foreground = isMiddleActive ? ActiveLyricBrush : InactiveLyricBrush,
+                Opacity = isMiddleActive ? 1.0 : 0.72,
                 TextAlignment = TextAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,

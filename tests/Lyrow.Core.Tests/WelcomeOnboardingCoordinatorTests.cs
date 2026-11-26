@@ -184,7 +184,7 @@ public sealed class WelcomeOnboardingCoordinatorTests
     }
 
     [Fact]
-    public async Task Scenario5_SkipSetup_SavesSelectedPreferencesKeepsDefaultsAndMarksCompleted()
+    public async Task Scenario5_SkipSetup_DiscardsTemporarySelectionsKeepsDefaultsAndMarksCompleted()
     {
         string path = CreateTempSettingsPath();
         try
@@ -194,7 +194,10 @@ public sealed class WelcomeOnboardingCoordinatorTests
             var coordinator = new WelcomeOnboardingCoordinator(manager);
 
             coordinator.GetStarted();
+            coordinator.SelectedLanguage = "tr";
             coordinator.SelectedTheme = ThemeMode.Dark;
+            coordinator.EnableEdgeLight = true;
+            coordinator.EnableDynamicBackground = false;
 
             WelcomeCompletionReason? reason = null;
             coordinator.OnboardingFinished += (_, r) => reason = r;
@@ -204,9 +207,10 @@ public sealed class WelcomeOnboardingCoordinatorTests
             Assert.True(ok);
             Assert.Equal(WelcomeCompletionReason.Skipped, reason);
             Assert.True(manager.Current.HasCompletedWelcome);
-            Assert.Equal(ThemeMode.Dark, manager.Current.Theme);
-            Assert.False(manager.Current.GlowEnabled); // Untouched default preserved
-            Assert.True(manager.Current.VisualIntegrationEnabled); // Untouched default preserved
+            Assert.Equal("en", manager.Current.Language); // Temporary edit discarded, default preserved
+            Assert.Equal(ThemeMode.SystemDefault, manager.Current.Theme); // Temporary edit discarded, default preserved
+            Assert.False(manager.Current.GlowEnabled); // Default preserved
+            Assert.True(manager.Current.VisualIntegrationEnabled); // Default preserved
         }
         finally
         {
@@ -261,7 +265,7 @@ public sealed class WelcomeOnboardingCoordinatorTests
     }
 
     [Fact]
-    public async Task Scenario7And14_WindowCloseAndAppRestart_PersistsCompletionAndNeverReshows()
+    public async Task Scenario7And14_WindowCloseDoesNotComplete_StartListeningPersistsAndNeverReshows()
     {
         string path = CreateTempSettingsPath();
         try
@@ -269,15 +273,27 @@ public sealed class WelcomeOnboardingCoordinatorTests
             var firstRunManager = new SettingsManager(path);
             await firstRunManager.LoadAsync();
             var coordinator = new WelcomeOnboardingCoordinator(firstRunManager);
+            coordinator.SelectedTheme = ThemeMode.Light;
+            coordinator.SelectedLanguage = "tr";
 
-            // Simulate user closing Welcome window via X button
+            // Simulate user closing Welcome window via X / Escape without clicking Start Listening
             bool closedOk = await coordinator.CloseWindowAsync();
             Assert.True(closedOk);
 
-            // Simulate application restart with a brand-new SettingsManager reading from disk
+            // Temporary edits must NOT be saved and Welcome must still show on next launch
+            var afterCloseManager = new SettingsManager(path);
+            var afterClose = await afterCloseManager.LoadAsync();
+            Assert.False(afterClose.HasCompletedWelcome);
+            Assert.True(WelcomeOnboardingCoordinator.ShouldShowWelcomeOnStartup(afterClose));
+            Assert.Equal(ThemeMode.SystemDefault, afterClose.Theme);
+            Assert.Equal("en", afterClose.Language);
+
+            // Now user clicks Start Listening -> persists completion and never re-shows on restart
+            var secondCoordinator = new WelcomeOnboardingCoordinator(afterCloseManager);
+            Assert.True(await secondCoordinator.CompleteAsync());
+
             var restartedManager = new SettingsManager(path);
             var reloaded = await restartedManager.LoadAsync();
-
             Assert.True(reloaded.HasCompletedWelcome);
             Assert.False(WelcomeOnboardingCoordinator.ShouldShowWelcomeOnStartup(reloaded));
         }

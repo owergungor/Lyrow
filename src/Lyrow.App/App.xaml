@@ -29,6 +29,10 @@
                     <SolidColorBrush x:Key="LyrowModalBackdropBrush" Color="#A6000000" />
                     <SolidColorBrush x:Key="LyrowModalSurfaceBrush" Color="#F2191A24" />
                     <SolidColorBrush x:Key="LyrowModalBorderBrush" Color="#38FFFFFF" />
+                    <SolidColorBrush x:Key="LyrowAmbientScrimBrush" Color="#50000000" />
+                    <SolidColorBrush x:Key="LyrowLyricActiveBrush" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="LyrowLyricInactiveBrush" Color="#C8BEC8DC" />
+                    <SolidColorBrush x:Key="LyrowLyricActiveGlowContainerBrush" Color="#1A89B4FA" />
                     <SolidColorBrush x:Key="LyrowNeumorphActiveBgBrush" Color="#2E89B4FA" />
                     <SolidColorBrush x:Key="LyrowNeumorphActiveBorderBrush" Color="#9989B4FA" />
                     <SolidColorBrush x:Key="LyrowNeumorphInactiveBgBrush" Color="#14FFFFFF" />
@@ -49,23 +53,19 @@
                     <SolidColorBrush x:Key="LyrowGhostHoverBackgroundBrush" Color="#180F172A" />
                     <SolidColorBrush x:Key="LyrowGhostPressedBackgroundBrush" Color="#280F172A" />
                     <SolidColorBrush x:Key="LyrowGhostBorderBrush" Color="#240F172A" />
-                    <SolidColorBrush x:Key="LyrowModalBackdropBrush" Color="#8C0F172A" />
-                    <SolidColorBrush x:Key="LyrowModalSurfaceBrush" Color="#FAF8FAFC" />
-                    <SolidColorBrush x:Key="LyrowModalBorderBrush" Color="#330F172A" />
+                    <SolidColorBrush x:Key="LyrowModalBackdropBrush" Color="#400F172A" />
+                    <SolidColorBrush x:Key="LyrowModalSurfaceBrush" Color="#FCFFFFFF" />
+                    <SolidColorBrush x:Key="LyrowModalBorderBrush" Color="#240F172A" />
+                    <SolidColorBrush x:Key="LyrowAmbientScrimBrush" Color="#B8F8FAFC" />
+                    <SolidColorBrush x:Key="LyrowLyricActiveBrush" Color="#FF0B1220" />
+                    <SolidColorBrush x:Key="LyrowLyricInactiveBrush" Color="#A6475569" />
+                    <SolidColorBrush x:Key="LyrowLyricActiveGlowContainerBrush" Color="#1E1E66F5" />
                     <SolidColorBrush x:Key="LyrowNeumorphActiveBgBrush" Color="#241E66F5" />
                     <SolidColorBrush x:Key="LyrowNeumorphActiveBorderBrush" Color="#881E66F5" />
                     <SolidColorBrush x:Key="LyrowNeumorphInactiveBgBrush" Color="#120F172A" />
                     <SolidColorBrush x:Key="LyrowNeumorphInactiveBorderBrush" Color="#1F0F172A" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
-
-            <!-- Global Fallback Brushes (in case referenced outside theme lookup) -->
-            <SolidColorBrush x:Key="LyrowAccentBrush" Color="#89B4FA" />
-            <SolidColorBrush x:Key="LyrowSuccessBrush" Color="#10B981" />
-            <SolidColorBrush x:Key="LyrowWarningBrush" Color="#F59E0B" />
-            <SolidColorBrush x:Key="LyrowStoppedBrush" Color="#71717A" />
-            <SolidColorBrush x:Key="LyrowSurfaceBrush" Color="#1E1E2E" />
-            <SolidColorBrush x:Key="LyrowCardBorderBrush" Color="#313244" />
 
             <!-- Geometry & CornerRadius Design Tokens -->
             <CornerRadius x:Key="LyrowCardCornerRadius">12</CornerRadius>

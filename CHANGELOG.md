@@ -9,18 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.7.0] - 2026-11-26
 
+### Added
+- **Albüme Uyarlanan Açık Tema (Album-Adaptive Light Theme):** `ArtworkPaletteExtractor.CreateLightAmbientPalette` ve `PrepareLightThemeAmbientColor` ile mevcut albüm renk analizinden gelen 3 baskın renk HSL uzayında tonu korunarak ferah pastel Açık tema gradyanına (`L = 0.82–0.89`) dönüştürülür; parça değişimlerinde 60 FPS yumuşak cross-fade ile geçiş yapar, Dinamik Arka Plan kapalıyken statik Mica Açık tema korunur.
+- **Tek Ekranlı Sinematik Welcome Deneyimi (`WelcomeWindow`):** 5 adımlı kurulum sihirbazı kaldırılarak Windows 11 Fluent Design (`MicaBackdrop BaseAlt`, `880×576` DIP, sıfır kaydırma) uyumlu sinematik canlı müzik önizlemeli karşılama ekranı oluşturuldu.
+  - Üst bölümde 4 kenarlı Kenar Işığı aurası, cam efektli canlı Lyrow önizlemesi, animasyonlu 5 bantlı ses spektrumu ve dil değişimine anında uyarlanan aktif şarkı sözü satırı yer alır.
+  - Alt bölümde kompakt Windows 11 Fluent tercih çubuğu üzerinden anında canlı önizlemeli **Dil** (`Türkçe` / `English`), **Tema** (`Sistem` / `Koyu` / `Açık`), **Kenar Işığı** ve **Dinamik Arka Plan** seçimleri sunulur.
+  - Tek belirgin ana aksiyon olarak **Dinlemeye Başla / Start Listening** kalır; `X` veya `Esc` ile kapatıldığında geçici seçimler kaydedilmez, önceki ayarlar geri yüklenir ve `HasCompletedWelcome` işaretlenmez.
+
+### Fixed
+- **Açık Tema Okunabilirliği (Tüm Pencereler):** Ana Lyrics penceresi, Mini Player (Dar Mod) ve 7 sekmeli Ayarlar modalında Açık tema seçiliyken koyu arka plan/beyaz metin kalıntıları tamamen giderildi (`RefreshThemeDependentVisuals`, `RootLayout.ActualThemeChanged`, tema duyarlı aktif `#0B1220` / pasif `#C42D3748` şarkı sözü fırçaları, şeffaf `#36FFFFFF` perde, yumuşak `#400F172A` modal karartması ve `ShowModalSettingsCategory` sol menü kontrastı). Koyu tema görünümü %100 korundu.
+
 ### Changed
-- **Tek Ekranlı Fluent Karşılama Deneyimi (`WelcomeWindow`):** 5 adımlı kurulum sihirbazı kaldırılarak Windows 11 Fluent Design (`MicaBackdrop BaseAlt`) uyumlu, kaydırma gerektirmeyen (`680×550` DIP, DPI-duyarlı ortalanmış) tek ekranlı karşılama penceresine geçildi.
-  - Lyrow logosu, hero arka planı, güçlü tek başlık (**"Your Music. Your Lyrics. Your Atmosphere."** / **"Müziğin. Şarkı Sözlerin. Atmosferin."**), tek cümlelik değer önerisi ve 3 net fayda kartı eklendi.
-  - Büyük ve belirgin **Start Listening** (*Dinlemeye Başla*) ana aksiyonu ile sade **Customize later** (*Daha sonra özelleştir*) ikincil seçeneği eklendi.
-  - İlk açılışta tema, ses cihazı veya Kenar Işığı seçme zorunluluğu kaldırıldı; mevcut sistem teması otomatik uygulanır ve tüm kişiselleştirme seçenekleri Ayarlar'da hazır kalır.
-  - Hafif `160 ms` giriş animasyonu, klavye kısayolları (`Enter` / `Esc`), mevcut v4.5 ve v4.6 kullanıcı yükseltme koruması ve Ayarlar üzerinden manuel yeniden açma korundu.
-- **Birleşik `4.7` / `4.7.0.0` Sürüm Hizalaması:** `Directory.Build.props`, `Lyrow.App.csproj`, `GitHubUpdateService.AppVersion`, `App.CurrentReleaseVersion`, `installer/setup.iss`, `installer/build_packages.ps1`, `LyricsWindow.xaml` ve MSIX manifest sürümü `4.7` (`4.7.0.0`) olarak güncellendi.
+- **Birleşik `4.7` / `4.7.0.0` Sürüm Hizalaması:** `Directory.Build.props`, `Lyrow.App.csproj`, `GitHubUpdateService.AppVersion`, `App.CurrentReleaseVersion`, `installer/setup.iss`, `installer/build_packages.ps1`, `LyricsWindow.xaml`, MSIX manifesti, `README.md` ve GitHub Pages (`docs/index.html`) `4.7` olarak güncellendi.
 
 ### Validation
-- **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** 744 / 744 PASS (%100 başarı).
-- **Canlı Görsel Doğrulama (İzole):** İngilizce, Türkçe ve Açık tema ekran görüntüleri `1020×825` (%150 DPI), `Scrollable=False (View=100%)`, `Overflows=0` olarak doğrulandı; tamamlanma, atlama, tekrar açılmama ve v4.5/v4.6 yükseltme senaryoları geçti.
-- **Dağıtım Paketleri (Yerel):** `Lyrow-4.7-Setup-x64.exe`, `Lyrow-v4.7-win-x64-portable.zip` ve `Lyrow-v4.7-x64.msix` (`crius.Lyrow` / `crius`, `4.7.0.0`, `runFullTrust=True`) yerel olarak üretildi ve 64/64 SHA-256 doğrulamasından geçti.
+- **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** 752 / 752 PASS (`Lyrow.Core.Tests`: 83, `Lyrow.Audio.Tests`: 53, `Lyrow.Music.Tests`: 120, `Lyrow.App.Tests`: 496).
+- **Canlı Görsel Doğrulama:** Açık/Koyu tema Ana Lyrics penceresi (KATSEYE canlı albüm kapağıyla), Mini Player, 7 sekmeli Ayarlar modalı, tek butonlu Welcome (EN/TR) ve v4.5/v4.6 yükseltme izolasyonu gerçek pencerede doğrulandı.
+- **GitHub Release Paketleri:** `Lyrow-4.7-Setup-x64.exe` (`64.77 MB`) ve `Lyrow-v4.7-x64.msix` (`94.80 MB`, imzasız, `crius.Lyrow` / `crius`, `4.7.0.0`, `runFullTrust=True`).
 
 ---
 

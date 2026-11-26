@@ -282,10 +282,10 @@
                     </Grid>
                 </Border>
 
-                <!-- 5. Primary Vibrant CTA & Quiet Secondary Option -->
-                <StackPanel Grid.Row="4" Spacing="5" HorizontalAlignment="Center" Margin="0,2,0,0">
+                <!-- 5. Single Prominent Primary CTA -->
+                <StackPanel Grid.Row="4" HorizontalAlignment="Center" Margin="0,4,0,2">
                     <Button x:Name="BtnWelcomeStartListening"
-                            MinWidth="260" Height="42" CornerRadius="21" Padding="24,0"
+                            MinWidth="268" Height="44" CornerRadius="22" Padding="28,0"
                             BorderThickness="1" BorderBrush="#5567E8F9"
                             Foreground="#FFFFFFFF"
                             HorizontalAlignment="Center"
@@ -299,18 +299,9 @@
                         </Button.Background>
                         <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <FontIcon Glyph="&#xE768;" FontSize="13" Foreground="#FFFFFFFF" VerticalAlignment="Center" />
-                            <TextBlock x:Name="TxtBtnStartListening" Text="Start Listening" FontSize="14.5" FontWeight="SemiBold" Foreground="#FFFFFFFF" VerticalAlignment="Center" />
+                            <TextBlock x:Name="TxtBtnStartListening" Text="Start Listening" FontSize="15" FontWeight="SemiBold" Foreground="#FFFFFFFF" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-
-                    <Button x:Name="BtnWelcomeCustomizeLater"
-                            Content="Customize later"
-                            Style="{StaticResource LyrowGhostButtonStyle}"
-                            Padding="14,0" Height="26" CornerRadius="8"
-                            FontSize="12"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            HorizontalAlignment="Center"
-                            AutomationProperties.Name="Customize later" />
                 </StackPanel>
             </Grid>
         </ScrollViewer>

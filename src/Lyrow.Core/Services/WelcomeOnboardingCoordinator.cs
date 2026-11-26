@@ -40,6 +40,12 @@ public sealed class WelcomeOnboardingCoordinator
     private int _finishSignaled;
 
     private WelcomeStep _currentStep = WelcomeStep.Welcome;
+    private readonly string _initialLanguage;
+    private readonly ThemeMode _initialTheme;
+    private readonly bool _initialEdgeLight;
+    private readonly bool _initialDynamicBackground;
+    private readonly string? _initialAudioDeviceId;
+
     private string _selectedLanguage;
     private ThemeMode _selectedTheme;
     private bool _enableEdgeLight;
@@ -59,18 +65,30 @@ public sealed class WelcomeOnboardingCoordinator
         _audioRoutingService = audioRoutingService;
         IsManualReopen = isManualReopen;
 
-        // Seed directly from current user settings so existing preferences are never overwritten
+        // Capture exact pre-Welcome snapshot so Customize Later / Window Close can discard temporary edits cleanly
         var current = _settingsManager.Current;
-        _selectedLanguage = string.IsNullOrWhiteSpace(current.Language) ? "en" : current.Language;
-        _selectedTheme = current.Theme;
-        _enableEdgeLight = current.GlowEnabled;
-        _enableDynamicBackground = current.VisualIntegrationEnabled;
-        _selectedAudioDeviceId = string.IsNullOrWhiteSpace(current.Glow.PreferredDeviceId)
+        _initialLanguage = string.IsNullOrWhiteSpace(current.Language) ? "en" : current.Language;
+        _initialTheme = current.Theme;
+        _initialEdgeLight = current.GlowEnabled;
+        _initialDynamicBackground = current.VisualIntegrationEnabled;
+        _initialAudioDeviceId = string.IsNullOrWhiteSpace(current.Glow.PreferredDeviceId)
             ? null
             : current.Glow.PreferredDeviceId;
+
+        // Seed active selections from current user settings
+        _selectedLanguage = _initialLanguage;
+        _selectedTheme = _initialTheme;
+        _enableEdgeLight = _initialEdgeLight;
+        _enableDynamicBackground = _initialDynamicBackground;
+        _selectedAudioDeviceId = _initialAudioDeviceId;
     }
 
     public bool IsManualReopen { get; }
+
+    public string InitialLanguage => _initialLanguage;
+    public ThemeMode InitialTheme => _initialTheme;
+    public bool InitialEdgeLight => _initialEdgeLight;
+    public bool InitialDynamicBackground => _initialDynamicBackground;
 
     public WelcomeStep CurrentStep => _currentStep;
 
@@ -232,16 +250,11 @@ public sealed class WelcomeOnboardingCoordinator
         StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public Task<bool> CompleteAsync(CancellationToken cancellationToken = default)
-        => FinalizeAsync(WelcomeCompletionReason.Completed, cancellationToken);
-
-    public Task<bool> SkipAsync(CancellationToken cancellationToken = default)
-        => FinalizeAsync(WelcomeCompletionReason.Skipped, cancellationToken);
-
-    public Task<bool> CloseWindowAsync(CancellationToken cancellationToken = default)
-        => FinalizeAsync(WelcomeCompletionReason.WindowClosed, cancellationToken);
-
-    private async Task<bool> FinalizeAsync(WelcomeCompletionReason reason, CancellationToken cancellationToken)
+    /// <summary>
+    /// Commits all user selections made on the Welcome screen (Language, Theme, Edge Light,
+    /// Dynamic Background, Audio Output) and marks Welcome as completed.
+    /// </summary>
+    public async Task<bool> CompleteAsync(CancellationToken cancellationToken = default)
     {
         if (Interlocked.CompareExchange(ref _finishSignaled, 1, 0) != 0)
         {
@@ -285,6 +298,74 @@ public sealed class WelcomeOnboardingCoordinator
                 }
             }, CancellationToken.None);
         }
+
+        OnboardingFinished?.Invoke(this, WelcomeCompletionReason.Completed);
+        return true;
+    }
+
+    /// <summary>
+    /// Discards any temporary selections made on the Welcome screen, preserves pre-Welcome
+    /// settings (or application defaults for new users), and marks Welcome as completed.
+    /// </summary>
+    public Task<bool> SkipAsync(CancellationToken cancellationToken = default)
+        => DismissWithoutApplyingChangesAsync(WelcomeCompletionReason.Skipped, cancellationToken);
+
+    /// <summary>
+    /// Discards temporary Welcome edits when closed via window chrome (X) or Escape,
+    /// restores pre-Welcome settings without saving temporary choices, and does NOT mark
+    /// Welcome as completed so new users will see Welcome again on next launch.
+    /// </summary>
+    public Task<bool> CloseWindowAsync(CancellationToken cancellationToken = default)
+    {
+        if (Interlocked.CompareExchange(ref _finishSignaled, 1, 0) != 0)
+        {
+            return Task.FromResult(false);
+        }
+
+        // Restore exact in-memory pre-Welcome snapshot without mutating persisted HasCompletedWelcome
+        _selectedLanguage = _initialLanguage;
+        _selectedTheme = _initialTheme;
+        _enableEdgeLight = _initialEdgeLight;
+        _enableDynamicBackground = _initialDynamicBackground;
+        _selectedAudioDeviceId = _initialAudioDeviceId;
+        _hasUserChangedAudioDevice = false;
+
+        var settings = _settingsManager.Current;
+        settings.Language = _initialLanguage;
+        settings.Theme = _initialTheme;
+        settings.GlowEnabled = _initialEdgeLight;
+        settings.VisualIntegrationEnabled = _initialDynamicBackground;
+        settings.Glow.PreferredDeviceId = _initialAudioDeviceId ?? string.Empty;
+
+        OnboardingFinished?.Invoke(this, WelcomeCompletionReason.WindowClosed);
+        return Task.FromResult(true);
+    }
+
+    private async Task<bool> DismissWithoutApplyingChangesAsync(WelcomeCompletionReason reason, CancellationToken cancellationToken)
+    {
+        if (Interlocked.CompareExchange(ref _finishSignaled, 1, 0) != 0)
+        {
+            return false;
+        }
+
+        // Restore exact pre-Welcome snapshot (defaults for brand-new user, existing prefs for returning user)
+        _selectedLanguage = _initialLanguage;
+        _selectedTheme = _initialTheme;
+        _enableEdgeLight = _initialEdgeLight;
+        _enableDynamicBackground = _initialDynamicBackground;
+        _selectedAudioDeviceId = _initialAudioDeviceId;
+        _hasUserChangedAudioDevice = false;
+
+        var settings = _settingsManager.Current;
+        settings.Language = _initialLanguage;
+        settings.Theme = _initialTheme;
+        settings.GlowEnabled = _initialEdgeLight;
+        settings.VisualIntegrationEnabled = _initialDynamicBackground;
+        settings.Glow.PreferredDeviceId = _initialAudioDeviceId ?? string.Empty;
+        settings.HasCompletedWelcome = true;
+        settings.HasCompletedFirstRun = true;
+
+        await _settingsManager.SaveAsync(settings, cancellationToken).ConfigureAwait(false);
 
         OnboardingFinished?.Invoke(this, reason);
         return true;
