@@ -1936,6 +1936,10 @@ public sealed partial class LyricsWindow
     public async Task ApplyOnboardingPreferencesAsync()
     {
         var current = _settingsManager.Current;
+        if (!string.IsNullOrWhiteSpace(current.Language))
+        {
+            LocalizationService.Instance.SetLanguage(current.Language);
+        }
         ApplyTheme(current.Theme);
 
         if (AmbientBackgroundLayer != null)

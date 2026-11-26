@@ -1,9 +1,13 @@
 using System.Runtime.InteropServices;
+using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
+using Windows.UI;
 using Lyrow.Core.Contracts;
 using Lyrow.Core.Localization;
 using Lyrow.Core.Models;
@@ -12,9 +16,9 @@ using Lyrow.Core.Services;
 namespace Lyrow.App;
 
 /// <summary>
-/// Windows 11 Fluent Design Immersive Single-Screen Welcome Window (Lyrow v4.7).
-/// Showcases a live-feeling lyrics, dynamic atmosphere, and sound-reactive Edge Light hero preview
-/// with a vibrant primary CTA, subtle secondary dismiss option, EN/TR localization, and DPI-safe layout.
+/// Windows 11 Fluent Design Immersive Single-Screen Welcome Window (Lyrow v4.7 V3).
+/// Combines the cinematic live music preview hero with compact live-previewing Language,
+/// Theme, Edge Light, and Dynamic Background controls and a prominent primary CTA.
 /// </summary>
 public sealed partial class WelcomeWindow : Window
 {
@@ -25,6 +29,7 @@ public sealed partial class WelcomeWindow : Window
     private readonly ISettingsManager _settingsManager;
     private readonly Action<WelcomeCompletionReason>? _onFinishedCallback;
     private Storyboard? _ambientStoryboard;
+    private bool _isUpdatingUi;
     private bool _isClosingHandled;
 
     public WelcomeWindow(
@@ -45,9 +50,10 @@ public sealed partial class WelcomeWindow : Window
             isManualReopen);
 
         ConfigureWindowChromeAndCenteredBounds();
-        ApplyTheme(_settingsManager.Current.Theme);
+        ApplyTheme(_coordinator.SelectedTheme);
         ApplyLocalization();
         WireControls();
+        SyncPreferenceControls();
         StartSubtleAnimationsIfEnabled();
     }
 
@@ -84,8 +90,8 @@ public sealed partial class WelcomeWindow : Window
         uint dpi = GetDpiForWindow(hwnd);
         double scale = dpi > 0 ? (dpi / 96.0) : 1.0;
 
-        int targetWidth = (int)Math.Round(860 * scale);
-        int targetHeight = (int)Math.Round(580 * scale);
+        int targetWidth = (int)Math.Round(880 * scale);
+        int targetHeight = (int)Math.Round(612 * scale);
 
         try
         {
@@ -93,8 +99,8 @@ public sealed partial class WelcomeWindow : Window
             var displayArea = DisplayArea.GetFromWindowId(windowId, DisplayAreaFallback.Primary);
             var workArea = displayArea.WorkArea;
 
-            int maxWidth = Math.Max(560, workArea.Width - (int)Math.Round(48 * scale));
-            int maxHeight = Math.Max(480, workArea.Height - (int)Math.Round(48 * scale));
+            int maxWidth = Math.Max(580, workArea.Width - (int)Math.Round(44 * scale));
+            int maxHeight = Math.Max(500, workArea.Height - (int)Math.Round(44 * scale));
             targetWidth = Math.Min(targetWidth, maxWidth);
             targetHeight = Math.Min(targetHeight, maxHeight);
 
@@ -112,18 +118,116 @@ public sealed partial class WelcomeWindow : Window
             overlapped.IsMaximizable = false;
             overlapped.IsMinimizable = true;
             overlapped.IsResizable = true;
-            overlapped.PreferredMinimumWidth = (int)Math.Round(660 * scale);
-            overlapped.PreferredMinimumHeight = (int)Math.Round(510 * scale);
+            overlapped.PreferredMinimumWidth = (int)Math.Round(720 * scale);
+            overlapped.PreferredMinimumHeight = (int)Math.Round(540 * scale);
         }
     }
 
     private void WireControls()
     {
+        BtnWelcomeLangTr.Click += (_, _) => SelectLanguageLive("tr");
+        BtnWelcomeLangEn.Click += (_, _) => SelectLanguageLive("en");
+
+        BtnWelcomeThemeSystem.Click += (_, _) => SelectThemeLive(ThemeMode.SystemDefault);
+        BtnWelcomeThemeDark.Click += (_, _) => SelectThemeLive(ThemeMode.Dark);
+        BtnWelcomeThemeLight.Click += (_, _) => SelectThemeLive(ThemeMode.Light);
+
+        ChkWelcomeEdgeLight.Checked += (_, _) =>
+        {
+            if (_isUpdatingUi) return;
+            _coordinator.EnableEdgeLight = true;
+            SyncHeroPreviewEffects();
+        };
+        ChkWelcomeEdgeLight.Unchecked += (_, _) =>
+        {
+            if (_isUpdatingUi) return;
+            _coordinator.EnableEdgeLight = false;
+            SyncHeroPreviewEffects();
+        };
+
+        ChkWelcomeDynamicBg.Checked += (_, _) =>
+        {
+            if (_isUpdatingUi) return;
+            _coordinator.EnableDynamicBackground = true;
+            SyncHeroPreviewEffects();
+        };
+        ChkWelcomeDynamicBg.Unchecked += (_, _) =>
+        {
+            if (_isUpdatingUi) return;
+            _coordinator.EnableDynamicBackground = false;
+            SyncHeroPreviewEffects();
+        };
+
         BtnWelcomeStartListening.Click += async (_, _) => await CompleteAndCloseAsync(_coordinator.CompleteAsync);
         BtnWelcomeCustomizeLater.Click += async (_, _) => await CompleteAndCloseAsync(_coordinator.SkipAsync);
 
         WelcomeRootLayout.KeyDown += OnRootKeyDown;
         Closed += OnWelcomeWindowClosed;
+    }
+
+    private void SelectLanguageLive(string languageCode)
+    {
+        _coordinator.SelectedLanguage = languageCode;
+        LocalizationService.Instance.SetLanguage(languageCode);
+        ApplyLocalization();
+        SyncSegmentedPillVisuals();
+    }
+
+    private void SelectThemeLive(ThemeMode mode)
+    {
+        _coordinator.SelectedTheme = mode;
+        ApplyTheme(mode);
+        App.PrimaryWindowInstance?.ApplyTheme(mode);
+        SyncSegmentedPillVisuals();
+    }
+
+    private void SyncPreferenceControls()
+    {
+        _isUpdatingUi = true;
+        try
+        {
+            ChkWelcomeEdgeLight.IsChecked = _coordinator.EnableEdgeLight;
+            ChkWelcomeDynamicBg.IsChecked = _coordinator.EnableDynamicBackground;
+            SyncSegmentedPillVisuals();
+            SyncHeroPreviewEffects();
+        }
+        finally
+        {
+            _isUpdatingUi = false;
+        }
+    }
+
+    private void SyncSegmentedPillVisuals()
+    {
+        var activeBg = new SolidColorBrush(Color.FromArgb(46, 14, 165, 233));     // Crisp luminous cyan tint
+        var activeBorder = new SolidColorBrush(Color.FromArgb(200, 56, 189, 248)); // Clear Fluent accent border
+        var inactiveBg = new SolidColorBrush(Colors.Transparent);
+        var inactiveBorder = new SolidColorBrush(Colors.Transparent);
+
+        void ApplyPill(Button btn, bool active)
+        {
+            btn.Background = active ? activeBg : inactiveBg;
+            btn.BorderBrush = active ? activeBorder : inactiveBorder;
+            btn.FontWeight = active
+                ? Microsoft.UI.Text.FontWeights.SemiBold
+                : Microsoft.UI.Text.FontWeights.Normal;
+        }
+
+        bool isTr = string.Equals(_coordinator.SelectedLanguage, "tr", StringComparison.OrdinalIgnoreCase);
+        ApplyPill(BtnWelcomeLangTr, isTr);
+        ApplyPill(BtnWelcomeLangEn, !isTr);
+
+        ApplyPill(BtnWelcomeThemeSystem, _coordinator.SelectedTheme == ThemeMode.SystemDefault);
+        ApplyPill(BtnWelcomeThemeDark, _coordinator.SelectedTheme == ThemeMode.Dark);
+        ApplyPill(BtnWelcomeThemeLight, _coordinator.SelectedTheme == ThemeMode.Light);
+    }
+
+    private void SyncHeroPreviewEffects()
+    {
+        // Subtle visual feedback in the hero stage while always keeping the showcase vibrant
+        EdgeLightAuraOuter.Opacity = _coordinator.EnableEdgeLight ? 1.0 : 0.72;
+        EdgeLightInnerRim.Opacity = _coordinator.EnableEdgeLight ? 0.75 : 0.35;
+        AmbientBloomLayerRight.Opacity = _coordinator.EnableDynamicBackground ? 0.72 : 0.30;
     }
 
     private void OnRootKeyDown(object sender, KeyRoutedEventArgs e)
@@ -188,13 +292,25 @@ public sealed partial class WelcomeWindow : Window
 
         TxtWelcomeHeadline.Text = loc["Welcome_V47_Headline"];
         TxtWelcomeSubtitle.Text = loc["Welcome_V47_Subtitle"];
-        TxtWelcomeCue1.Text = loc["Welcome_V47_Cue1"];
-        TxtWelcomeCue2.Text = loc["Welcome_V47_Cue2"];
-        TxtWelcomeCue3.Text = loc["Welcome_V47_Cue3"];
+
+        TxtPrefLanguageLabel.Text = loc["Welcome_Pref_Language"];
+        TxtPrefThemeLabel.Text = loc["Welcome_Pref_Theme"];
+        TxtPrefExperienceLabel.Text = loc["Welcome_Pref_Experience"];
+
+        BtnWelcomeThemeSystem.Content = loc["Welcome_Theme_SystemShort"];
+        BtnWelcomeThemeDark.Content = loc["Welcome_Theme_DarkShort"];
+        BtnWelcomeThemeLight.Content = loc["Welcome_Theme_LightShort"];
+        AutomationProperties.SetName(BtnWelcomeThemeSystem, loc["Welcome_Theme_SystemShort"]);
+        AutomationProperties.SetName(BtnWelcomeThemeDark, loc["Welcome_Theme_DarkShort"]);
+        AutomationProperties.SetName(BtnWelcomeThemeLight, loc["Welcome_Theme_LightShort"]);
+
+        ChkWelcomeEdgeLight.Content = loc["Welcome_Pref_EdgeLightShort"];
+        ChkWelcomeDynamicBg.Content = loc["Welcome_Pref_DynamicBgShort"];
+        AutomationProperties.SetName(ChkWelcomeEdgeLight, loc["Welcome_Pref_EdgeLightShort"]);
+        AutomationProperties.SetName(ChkWelcomeDynamicBg, loc["Welcome_Pref_DynamicBgShort"]);
 
         TxtBtnStartListening.Text = loc["Welcome_Btn_StartListening"];
         BtnWelcomeCustomizeLater.Content = loc["Welcome_Btn_CustomizeLater"];
-
         AutomationProperties.SetName(BtnWelcomeStartListening, loc["Welcome_Btn_StartListening"]);
         AutomationProperties.SetName(BtnWelcomeCustomizeLater, loc["Welcome_Btn_CustomizeLater"]);
     }
@@ -203,7 +319,6 @@ public sealed partial class WelcomeWindow : Window
     {
         if (!_settingsManager.Current.EnableAnimations) return;
 
-        // 1. Fast, smooth entrance (180 ms)
         WelcomeContentHost.Opacity = 0.0;
         WelcomeContentTranslate.Y = 10;
 
@@ -232,7 +347,6 @@ public sealed partial class WelcomeWindow : Window
         entrance.Children.Add(slide);
         entrance.Begin();
 
-        // 2. Gentle, GPU-friendly ambient breathing + spectrum bar motion
         var ambient = new Storyboard { RepeatBehavior = RepeatBehavior.Forever };
 
         var bloomPulse = new DoubleAnimation

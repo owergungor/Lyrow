@@ -40,6 +40,7 @@ public sealed class WelcomeOnboardingCoordinator
     private int _finishSignaled;
 
     private WelcomeStep _currentStep = WelcomeStep.Welcome;
+    private string _selectedLanguage;
     private ThemeMode _selectedTheme;
     private bool _enableEdgeLight;
     private bool _enableDynamicBackground;
@@ -60,6 +61,7 @@ public sealed class WelcomeOnboardingCoordinator
 
         // Seed directly from current user settings so existing preferences are never overwritten
         var current = _settingsManager.Current;
+        _selectedLanguage = string.IsNullOrWhiteSpace(current.Language) ? "en" : current.Language;
         _selectedTheme = current.Theme;
         _enableEdgeLight = current.GlowEnabled;
         _enableDynamicBackground = current.VisualIntegrationEnabled;
@@ -79,6 +81,19 @@ public sealed class WelcomeOnboardingCoordinator
     public bool CanContinue => _currentStep < WelcomeStep.Ready;
 
     public bool IsReadyStep => _currentStep == WelcomeStep.Ready;
+
+    public string SelectedLanguage
+    {
+        get => _selectedLanguage;
+        set
+        {
+            string normalized = string.IsNullOrWhiteSpace(value) ? "en" : value.Trim().ToLowerInvariant();
+            if (string.Equals(_selectedLanguage, normalized, StringComparison.OrdinalIgnoreCase)) return;
+            _selectedLanguage = normalized;
+            LanguageSelectionChanged?.Invoke(this, normalized);
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     public ThemeMode SelectedTheme
     {
@@ -133,6 +148,7 @@ public sealed class WelcomeOnboardingCoordinator
 
     public event EventHandler? StateChanged;
     public event EventHandler<WelcomeStep>? StepChanged;
+    public event EventHandler<string>? LanguageSelectionChanged;
     public event EventHandler<ThemeMode>? ThemeSelectionChanged;
     public event EventHandler<WelcomeCompletionReason>? OnboardingFinished;
 
@@ -233,6 +249,7 @@ public sealed class WelcomeOnboardingCoordinator
         }
 
         var settings = _settingsManager.Current;
+        settings.Language = _selectedLanguage;
         settings.Theme = _selectedTheme;
         settings.GlowEnabled = _enableEdgeLight;
         if (_enableEdgeLight && settings.GlowThickness <= 0)

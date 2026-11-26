@@ -11,7 +11,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![UI](https://img.shields.io/badge/UI-WinUI%203%20%2F%20Windows%20App%20SDK%201.8-03c1f4?logo=windows)](https://learn.microsoft.com/windows/apps/winui/winui3/)
 [![Release](https://img.shields.io/badge/Release-v4.7-success)](https://github.com/owergungor/Lyrow/releases)
-[![Tests](https://img.shields.io/badge/Tests-744%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
+[![Tests](https://img.shields.io/badge/Tests-746%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
 [![License](https://img.shields.io/badge/License-MIT-750014.svg)](LICENSE)
 
 **Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; doğrudan birincil pencere olarak açılan senkronize şarkı sözleri arayüzü, albüm kapağına göre otomatik renk değiştiren 4 kenarlı Kenar Işığı (Edge Light), tüm modlarda tıklamayla açılan ortak **Parlaklık (`10–100%`) ve Kalınlık (`0–64 px`)** kontrol paneli, 7 sekmeli sabit boyutlu Microsoft Windows 11 Fluent Design ayarlar modalı, hem Normal/Tam Ekran hem Dar Modda ikon-odaklı ses çıkışı ve Ghost Button kontrolleri, 2×/0.5× akıcı pencere genişliği geçişi ve kompakt Dar Mod (Mini Player) sunar.
@@ -24,9 +24,9 @@
 
 | Kaynak | Dosya | Boyut | SHA-256 Doğrulama Özeti |
 |---|---|---|---|
-| **Kurulum Sihirbazı (Installer)** | `Lyrow-4.7-Setup-x64.exe` | 64.54 MB | `63FE9946353744E2F2C4E77FFDAC1EE39CF46441F9183D4A0EC1ABA310FFFC87` |
-| **Taşınabilir Paket (Portable ZIP)** | `Lyrow-v4.7-win-x64-portable.zip` | 92.74 MB | `2A089FE71BFD4BBA857FBA21CC881A0B58D4652805893CA00C86AFD4A770B79C` |
-| **MSIX Paketi (Windows x64 — Store Kimlikli)** | `Lyrow-v4.7-x64.msix` *(imzasız)* | 94.80 MB | `847DFE6B8B5EE969EDBA89A3893CC4FC0174D8BC634FDE580CE1EF8729795AE2` |
+| **Kurulum Sihirbazı (Installer)** | `Lyrow-4.7-Setup-x64.exe` | 64.54 MB | `F84492D086449B77BD040C7BAF24A1E13DB1AF652BC9E4F56B5CFC114217F16A` |
+| **Taşınabilir Paket (Portable ZIP)** | `Lyrow-v4.7-win-x64-portable.zip` | 92.74 MB | `10FB9EA911437D959E3EEA71803AF03F80B6A08E8168741160764E5B4005E944` |
+| **MSIX Paketi (Windows x64 — Store Kimlikli)** | `Lyrow-v4.7-x64.msix` *(imzasız)* | 94.80 MB | `6C0184A83460244727274BC22E3F8F8C26AF020518E73049CEEBC9C141A177A2` |
 
 > [!NOTE]
 > Lyrow bağımsız (self-contained) bir Windows x64 paketidir. Çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Kurulum sihirbazını çalıştırabilir veya taşınabilir arşivi bir klasöre çıkartıp `Lyrow.App.exe` dosyasını doğrudan çalıştırabilirsiniz. MSIX paketi (`Lyrow-v4.7-x64.msix`) Microsoft Partner Center kimliğiyle (`crius.Lyrow` / `crius`) **imzasız** olarak üretilir; Microsoft Store yüklemesinde Store imzası uygulanır, yerel yan yükleme için güvenilen bir kod imzalama sertifikasıyla imzalanması gerekir.
