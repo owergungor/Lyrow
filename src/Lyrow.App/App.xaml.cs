@@ -15,9 +15,10 @@ namespace Lyrow.App;
 /// </summary>
 public partial class App : Application
 {
-    public const string CurrentReleaseVersion = "4.5";
+    public const string CurrentReleaseVersion = "4.6";
     public static IServiceProvider Services { get; private set; } = null!;
     public static LyricsWindow? PrimaryWindowInstance { get; private set; }
+    public static WelcomeWindow? ActiveWelcomeWindowInstance { get; internal set; }
     public static bool IsSmokeTestMode { get; set; }
 
     private const string AppGuid = "Lyrow_SingleInstance_f84b12c9-94b1-4c4f-9e63-47a61d15c89f";
@@ -136,23 +137,72 @@ public partial class App : Application
             }
 
             lyricsWindow.ApplyTheme(settings.Theme);
-            lyricsWindow.Activate();
-            LocalDiagnosticLogger.LogInfo("Primary LyricsWindow created and displayed successfully (v4.2).");
 
-            // Start LyricsOnly execution mode asynchronously off the WinUI UI thread to prevent WinRT/GSMTC UI-thread deadlock
-            _ = Task.Run(async () =>
+            if (WelcomeOnboardingCoordinator.ShouldShowWelcomeOnStartup(settings, IsSmokeTestMode))
             {
-                try
+                LocalDiagnosticLogger.LogInfo("First-run detected (HasCompletedWelcome=false): presenting Windows 11 Fluent WelcomeWindow.");
+                var welcomeWindow = new WelcomeWindow(
+                    settingsManager,
+                    audioCaptureService,
+                    audioRoutingService,
+                    isManualReopen: false,
+                    onFinishedCallback: reason =>
+                    {
+                        LocalDiagnosticLogger.LogInfo($"Welcome onboarding finished ({reason}); activating primary LyricsWindow.");
+                        ActiveWelcomeWindowInstance = null;
+                        lyricsWindow.DispatcherQueue.TryEnqueue(async () =>
+                        {
+                            await lyricsWindow.ApplyOnboardingPreferencesAsync();
+                            lyricsWindow.ShowAndActivate();
+                        });
+
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                var mode = settingsManager.Current.GlowEnabled
+                                    ? ModuleExecutionMode.BothEnabled
+                                    : ModuleExecutionMode.LyricsOnly;
+                                await moduleManager.ApplyExecutionModeAsync(mode).ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                LocalDiagnosticLogger.LogError("Non-fatal error activating execution mode after Welcome", ex);
+                            }
+                        });
+                    });
+
+                ActiveWelcomeWindowInstance = welcomeWindow;
+                welcomeWindow.Activate();
+            }
+            else
+            {
+                lyricsWindow.Activate();
+                LocalDiagnosticLogger.LogInfo("Primary LyricsWindow created and displayed successfully.");
+
+                // Start execution mode asynchronously off the WinUI UI thread to prevent WinRT/GSMTC UI-thread deadlock
+                _ = Task.Run(async () =>
                 {
-                    LocalDiagnosticLogger.LogInfo("Startup v4.2: Activating LyricsOnly mode asynchronously (Glow defaults to OFF).");
-                    await moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.LyricsOnly).ConfigureAwait(false);
-                    LocalDiagnosticLogger.LogInfo("Startup v4.2: LyricsOnly mode activated successfully.");
-                }
-                catch (Exception ex)
-                {
-                    LocalDiagnosticLogger.LogError("Non-fatal error activating LyricsOnly mode on startup", ex);
-                }
-            });
+                    try
+                    {
+                        if (settings.GlowEnabled)
+                        {
+                            LocalDiagnosticLogger.LogInfo("Startup: Activating BothEnabled mode asynchronously.");
+                            await moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.BothEnabled).ConfigureAwait(false);
+                            lyricsWindow.DispatcherQueue.TryEnqueue(async () => await lyricsWindow.SetEdgeGlowStateAsync(true));
+                        }
+                        else
+                        {
+                            LocalDiagnosticLogger.LogInfo("Startup: Activating LyricsOnly mode asynchronously.");
+                            await moduleManager.ApplyExecutionModeAsync(ModuleExecutionMode.LyricsOnly).ConfigureAwait(false);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LocalDiagnosticLogger.LogError("Non-fatal error activating execution mode on startup", ex);
+                    }
+                });
+            }
 
             if (IsSmokeTestMode)
             {
@@ -255,6 +305,10 @@ public partial class App : Application
         services.AddSingleton<UpdateCoordinator>(sp => new UpdateCoordinator(
             sp.GetRequiredService<IUpdateService>(),
             sp.GetRequiredService<ISettingsManager>()));
+        services.AddTransient<WelcomeOnboardingCoordinator>(sp => new WelcomeOnboardingCoordinator(
+            sp.GetRequiredService<ISettingsManager>(),
+            sp.GetService<IAudioCaptureService>(),
+            sp.GetService<IAudioRoutingService>()));
 
         // Audio capture & real Windows volume control services
         services.AddSingleton<IAudioCaptureService>(sp =>

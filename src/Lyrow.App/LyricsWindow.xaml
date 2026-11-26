@@ -722,6 +722,17 @@
                                             <ToggleSwitch x:Name="SwitchModalEnableAnimations" Grid.Column="2" IsOn="True" OffContent="" OnContent="" MinWidth="0" Margin="0" AutomationProperties.Name="Modal Animations Toggle" />
                                         </Grid>
                                     </Border>
+
+                                    <Border Padding="16,12" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" VerticalAlignment="Center">
+                                            <FontIcon Grid.Column="0" Glyph="&#xE895;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <TextBlock x:Name="TxtModalShowWelcomeLabel" Text="Show Welcome Screen" FontWeight="Normal" FontSize="14" />
+                                                <TextBlock x:Name="TxtModalShowWelcomeDesc" Text="Reopen the guided setup tour at any time" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <Button x:Name="BtnModalShowWelcome" Grid.Column="2" Content="Show Welcome Screen" AutomationProperties.Name="Show Welcome Screen" />
+                                        </Grid>
+                                    </Border>
                                 </StackPanel>
 
                                 <!-- TAB 2: APPEARANCE (Görünüm: Albüm Kapağı, Renk Çıkarımı, Dinamik Arka Plan, Pencere Saydamlığı) -->
@@ -962,7 +973,7 @@
                                     <Border Padding="16,12" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
                                             <ProgressRing x:Name="RingModalUpdateChecking" Grid.Column="0" Width="16" Height="16" IsActive="False" Visibility="Collapsed" VerticalAlignment="Center" />
-                                            <TextBlock x:Name="TxtModalUpdateStatus" Grid.Column="1" Text="Lyrow v4.5 — Release channel: GitHub Releases" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="TxtModalUpdateStatus" Grid.Column="1" Text="Lyrow v4.6 — Release channel: GitHub Releases" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
                                             <Button x:Name="BtnModalCheckUpdates" Grid.Column="2" Content="Check for Updates" AutomationProperties.Name="Modal Check for Updates" />
                                         </Grid>
                                     </Border>
@@ -1046,12 +1057,13 @@
                                                     </Image.Source>
                                                 </Image>
                                                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                                    <TextBlock Text="Lyrow v4.5" FontWeight="SemiBold" FontSize="15" />
+                                                    <TextBlock Text="Lyrow v4.6" FontWeight="SemiBold" FontSize="15" />
                                                     <TextBlock x:Name="TxtModalAboutSubtitle" Text="Native Windows Ambient Edge Lighting &amp; Synchronized Lyrics" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                                                     <TextBlock x:Name="TxtModalAboutLicense" Text="MIT License — Open Source" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2,0,0" />
                                                 </StackPanel>
                                             </Grid>
                                             <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                                <Button x:Name="BtnModalShowWelcomeAbout" Content="Show Welcome Screen" AutomationProperties.Name="Show Welcome Screen" />
                                                 <Button x:Name="BtnModalResetSettings" Content="Reset to Defaults" AutomationProperties.Name="Modal Reset Settings" />
                                                 <Button x:Name="BtnModalOpenLogs" Content="Open Diagnostic Log" AutomationProperties.Name="Modal Open Logs" />
                                             </StackPanel>

@@ -26,6 +26,7 @@ public sealed partial class LyricsWindow
     private long _widthAnimationGeneration = 0;
     private UpdateCoordinator? _updateCoordinator;
     private Controls.ProgressToastHandle? _activeUpdateToast;
+    private WelcomeWindow? _activeWelcomeWindow;
     private DispatcherTimer? _windowWidthAnimTimer;
 
     private void InitializeV4LyricsGlowAndSettingsModal()
@@ -181,6 +182,8 @@ public sealed partial class LyricsWindow
             }
 
             _isEdgeGlowActive = active;
+            _settingsManager.Current.GlowEnabled = active;
+            _ = _settingsManager.SaveAsync(_settingsManager.Current);
             if (active)
             {
                 glowOverlayManager?.StartOverlays();
@@ -1458,11 +1461,23 @@ public sealed partial class LyricsWindow
             };
         }
 
+        if (BtnModalShowWelcome != null)
+        {
+            BtnModalShowWelcome.Click += (_, _) => OpenWelcomeScreenFromSettings();
+        }
+
+        if (BtnModalShowWelcomeAbout != null)
+        {
+            BtnModalShowWelcomeAbout.Click += (_, _) => OpenWelcomeScreenFromSettings();
+        }
+
         if (BtnModalResetSettings != null)
         {
             BtnModalResetSettings.Click += async (_, _) =>
             {
                 var defaults = LyrowSettings.CreateDefault();
+                defaults.HasCompletedWelcome = true;
+                defaults.HasCompletedFirstRun = true;
                 await _settingsManager.SaveAsync(defaults);
                 await _settingsManager.LoadAsync();
                 _isLyricsGlowEnabled = _settingsManager.Current.Lyrics.LyricsTextGlowEnabled;
@@ -1601,6 +1616,10 @@ public sealed partial class LyricsWindow
 
         if (BtnModalResetSettings != null) BtnModalResetSettings.Content = loc["Settings_ResetDefaults"];
         if (BtnModalOpenLogs != null) BtnModalOpenLogs.Content = loc["Settings_OpenLog"];
+        if (TxtModalShowWelcomeLabel != null) TxtModalShowWelcomeLabel.Text = loc["Settings_ShowWelcome"];
+        if (TxtModalShowWelcomeDesc != null) TxtModalShowWelcomeDesc.Text = loc["Settings_ShowWelcomeDesc"];
+        if (BtnModalShowWelcome != null) BtnModalShowWelcome.Content = loc["Settings_ShowWelcome"];
+        if (BtnModalShowWelcomeAbout != null) BtnModalShowWelcomeAbout.Content = loc["Settings_ShowWelcome"];
 
         if (TxtModalAboutSubtitle != null) TxtModalAboutSubtitle.Text = loc["About_Subtitle"];
 
@@ -1863,5 +1882,80 @@ public sealed partial class LyricsWindow
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// Reopens the Windows 11 Fluent Welcome onboarding tour manually from Settings
+    /// with all current user preferences pre-selected, without closing LyricsWindow.
+    /// </summary>
+    public void OpenWelcomeScreenFromSettings()
+    {
+        if (_isSettingsModalOpen)
+        {
+            CloseSettingsModal();
+        }
+
+        if (_activeWelcomeWindow != null)
+        {
+            try
+            {
+                _activeWelcomeWindow.Activate();
+                return;
+            }
+            catch
+            {
+                _activeWelcomeWindow = null;
+            }
+        }
+
+        var welcome = new WelcomeWindow(
+            _settingsManager,
+            _audioCaptureService,
+            _audioRoutingService,
+            isManualReopen: true,
+            onFinishedCallback: _ =>
+            {
+                _activeWelcomeWindow = null;
+                App.ActiveWelcomeWindowInstance = null;
+                DispatcherQueue?.TryEnqueue(async () =>
+                {
+                    await ApplyOnboardingPreferencesAsync();
+                    ShowAndActivate();
+                });
+            });
+
+        _activeWelcomeWindow = welcome;
+        App.ActiveWelcomeWindowInstance = welcome;
+        welcome.Activate();
+    }
+
+    /// <summary>
+    /// Synchronizes LyricsWindow theme, Dynamic Background, Edge Light, and Audio Output UI
+    /// after first-run or manual Welcome onboarding completes.
+    /// </summary>
+    public async Task ApplyOnboardingPreferencesAsync()
+    {
+        var current = _settingsManager.Current;
+        ApplyTheme(current.Theme);
+
+        if (AmbientBackgroundLayer != null)
+        {
+            AmbientBackgroundLayer.Visibility = current.VisualIntegrationEnabled
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+        if (current.GlowEnabled != _isEdgeGlowActive)
+        {
+            await SetEdgeGlowStateAsync(current.GlowEnabled);
+        }
+        else
+        {
+            UpdateEdgeGlowVisualState();
+        }
+
+        SyncEdgeThicknessSliderFromSettings();
+        SyncModalSettingsFromModel();
+        UpdateOutputDeviceUi();
     }
 }

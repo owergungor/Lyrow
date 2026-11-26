@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Reflection;
 using Lyrow.Audio.Control;
 using Lyrow.Core.Contracts;
@@ -15,7 +15,7 @@ public sealed class LyrowV23FeatureVerificationTests
     [Fact]
     public void Versioning_IsStrictlyTwoPart_V23()
     {
-        Assert.Equal("4.5", GitHubUpdateService.AppVersion);
+        Assert.Equal("4.6", GitHubUpdateService.AppVersion);
         Assert.True(GitHubUpdateService.IsValidTwoPartVersionTag("v2.6"));
         Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.6.0"));
         Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("2.6.0"));

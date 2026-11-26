@@ -51,6 +51,8 @@ public sealed class LyrowSettings
 
     public bool HasCompletedFirstRun { get; set; } = false;
 
+    public bool HasCompletedWelcome { get; set; } = false;
+
     public bool EnableAnimations { get; set; } = true;
 
     public bool NotificationsEnabled { get; set; } = true;

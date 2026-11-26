@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using FluentAssertions;
@@ -15,7 +15,7 @@ public class LyrowV34CoreVerificationTests
     public void UpdateAutoRelaunchAfterInstallTests_VerifiesPackageAndBuildsRelaunchScript()
     {
         var service = new GitHubUpdateService();
-        service.CurrentVersion.Should().Be("4.5");
+        service.CurrentVersion.Should().Be("4.6");
 
         // 1. Non-existent or non-PE file must fail verification
         service.VerifyDownloadedPackage("").Should().BeFalse();

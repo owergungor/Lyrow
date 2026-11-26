@@ -99,7 +99,7 @@ public sealed class LyrowV45BrandingVerificationTests
 
         xaml.Should().Contain("x:Name=\"ImgModalAboutLogo\"");
         xaml.Should().Contain("ms-appx:///Assets/lyrow-logo-300.png");
-        xaml.Should().Contain("Text=\"Lyrow v4.5\"");
+        xaml.Should().Contain("Text=\"Lyrow v4.6\"");
         cs.Should().Contain("AppWindow.SetIcon(appIconPath)");
         toastCs.Should().Contain("ms-appx:///Assets/lyrow-logo-150.png");
     }

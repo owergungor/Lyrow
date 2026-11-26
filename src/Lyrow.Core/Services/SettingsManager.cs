@@ -104,9 +104,40 @@ public sealed class SettingsManager : ISettingsManager
 
             try
             {
-                await using var stream = File.OpenRead(_filePath);
-                var loaded = await JsonSerializer.DeserializeAsync<LyrowSettings>(stream, JsonOptions, cancellationToken).ConfigureAwait(false);
-                _current = loaded ?? LyrowSettings.CreateDefault();
+                string rawJson = await File.ReadAllTextAsync(_filePath, cancellationToken).ConfigureAwait(false);
+                bool hasExplicitWelcomeFlag = false;
+                if (!string.IsNullOrWhiteSpace(rawJson))
+                {
+                    using var doc = JsonDocument.Parse(rawJson);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                    {
+                        foreach (var prop in doc.RootElement.EnumerateObject())
+                        {
+                            if (string.Equals(prop.Name, nameof(LyrowSettings.HasCompletedWelcome), StringComparison.OrdinalIgnoreCase))
+                            {
+                                hasExplicitWelcomeFlag = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                var loaded = JsonSerializer.Deserialize<LyrowSettings>(rawJson, JsonOptions);
+                if (loaded != null)
+                {
+                    // Protect existing v4.5 (and earlier) users upgrading to v4.6:
+                    // If a valid pre-v4.6 settings.json already exists on disk without HasCompletedWelcome,
+                    // treat onboarding as already completed while preserving 100% of their saved settings.
+                    if (!hasExplicitWelcomeFlag || loaded.HasCompletedFirstRun)
+                    {
+                        loaded.HasCompletedWelcome = true;
+                    }
+                    _current = loaded;
+                }
+                else
+                {
+                    _current = LyrowSettings.CreateDefault();
+                }
                 _logger.LogInformation("Settings successfully loaded from {Path}.", _filePath);
             }
             catch (Exception ex)

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.6.0] - 2026-11-26
+
+### Added
+- **Windows 11 Fluent İlk Açılış Karşılama Deneyimi (`WelcomeWindow`):** Mica (`BaseAlt`) arka planlı, DPI-duyarlı `820×580` ortalanmış pencere düzeni, 5 aşamalı ilerleme göstergesi ve hafif geçiş animasyonlarıyla **Welcome**, **Appearance** (canlı Koyu/Açık/Sistem teması önizlemesi), **Your Experience** (Kenar Işığı, Dinamik Arka Plan, Dar Mod tanıtımı), **Audio** (asenkron ses çıkış cihazı seçimi) ve **Ready** (kurulum özeti + **Dinlemeye Başla**) adımları eklendi.
+- **MVVM Karşılama Koordinatörü (`WelcomeOnboardingCoordinator`):** Adım navigasyonu (`Get Started`, `Continue`, `Back`, `Skip Setup`, `Start Listening`, pencere kapatma `X`), canlı ayar yönetimi, güvenli tekil tamamlama kilidi ve asenkron ses cihazı keşfi `Lyrow.Core` içinde DI'a bağlandı.
+- **Mevcut v4.5 Kullanıcı Koruması (`HasCompletedWelcome`):** `LyrowSettings.HasCompletedWelcome` kalıcı ayarı eklendi; `SettingsManager.LoadAsync` mevcut v4.5/öncesi `settings.json` dosyalarını otomatik algılayarak yükseltme yapan mevcut kullanıcılarda Welcome ekranının açılmasını engeller ve tüm tercihlerini korur.
+- **Ayarlar'dan Yeniden Açma (`Show Welcome Screen`):** Ayarlar > Genel (`BtnModalShowWelcome`) ve Ayarlar > Hakkında (`BtnModalShowWelcomeAbout`) sekmelerine, mevcut ayarları önceden seçili olarak getirip ana pencereyi kapatmadan karşılama ekranını açan butonlar eklendi.
+- **Tam Türkçe & İngilizce Yerelleştirme:** Tüm Welcome ekranı ve Ayarlar metinleri `LocalizationService` üzerinden eksiksiz İngilizce ve Türkçe olarak eklendi.
+- **v4.6 Doğrulama Test Paketi:** `WelcomeOnboardingCoordinatorTests.cs` (15 senaryoyu kapsayan 9 kapsamlı test) ve `LyrowV46WelcomeExperienceTests.cs` (2 WinUI/XAML/DI doğrulama testi) eklendi.
+
+### Changed
+- **Birleşik `4.6` / `4.6.0.0` Sürüm Hizalaması:** `Directory.Build.props`, `Lyrow.App.csproj`, `GitHubUpdateService.AppVersion`, `App.CurrentReleaseVersion`, `installer/setup.iss`, `installer/build_packages.ps1`, `LyricsWindow.xaml` ve MSIX manifest sürümü `4.6` (`4.6.0.0`) olarak güncellendi.
+
+### Validation
+- **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** 743 / 743 PASS (%100 başarı).
+- **Gerçek Çalıştırma Doğrulaması:** Hem `publish\win-x64\Lyrow.App.exe` hem `AppData\Local\Programs\Lyrow\Lyrow.App.exe` `FileVersion=4.6.0.0`, `HasExplorerIcon=True`, `--smoke-test` (`ExitCode: 0`) ve canlı pencere açılışıyla doğrulandı.
+- **Dağıtım Paketleri (Yerel):** `Lyrow-4.6-Setup-x64.exe`, `Lyrow-v4.6-win-x64-portable.zip` ve `Lyrow-v4.6-x64.msix` (Partner Center kimlikli `crius.Lyrow` / `crius`, imzasız) yerel olarak üretildi ve 61/61 SHA-256 doğrulamasından geçti.
+
+---
+
 ## [4.5.0] - 2026-11-24
 
 ### Added
