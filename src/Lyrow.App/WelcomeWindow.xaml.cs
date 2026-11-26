@@ -12,9 +12,9 @@ using Lyrow.Core.Services;
 namespace Lyrow.App;
 
 /// <summary>
-/// Windows 11 Fluent Design Single-Screen First-Run Welcome Window (Lyrow v4.7).
-/// Delivers an immediate, zero-friction introduction with a prominent primary CTA,
-/// a subtle secondary dismiss option, full EN/TR localization, and safe upgrade preservation.
+/// Windows 11 Fluent Design Immersive Single-Screen Welcome Window (Lyrow v4.7).
+/// Showcases a live-feeling lyrics, dynamic atmosphere, and sound-reactive Edge Light hero preview
+/// with a vibrant primary CTA, subtle secondary dismiss option, EN/TR localization, and DPI-safe layout.
 /// </summary>
 public sealed partial class WelcomeWindow : Window
 {
@@ -24,6 +24,7 @@ public sealed partial class WelcomeWindow : Window
     private readonly WelcomeOnboardingCoordinator _coordinator;
     private readonly ISettingsManager _settingsManager;
     private readonly Action<WelcomeCompletionReason>? _onFinishedCallback;
+    private Storyboard? _ambientStoryboard;
     private bool _isClosingHandled;
 
     public WelcomeWindow(
@@ -47,7 +48,7 @@ public sealed partial class WelcomeWindow : Window
         ApplyTheme(_settingsManager.Current.Theme);
         ApplyLocalization();
         WireControls();
-        PlayEntranceAnimationIfEnabled();
+        StartSubtleAnimationsIfEnabled();
     }
 
     public WelcomeOnboardingCoordinator Coordinator => _coordinator;
@@ -83,8 +84,8 @@ public sealed partial class WelcomeWindow : Window
         uint dpi = GetDpiForWindow(hwnd);
         double scale = dpi > 0 ? (dpi / 96.0) : 1.0;
 
-        int targetWidth = (int)Math.Round(680 * scale);
-        int targetHeight = (int)Math.Round(550 * scale);
+        int targetWidth = (int)Math.Round(860 * scale);
+        int targetHeight = (int)Math.Round(580 * scale);
 
         try
         {
@@ -92,8 +93,8 @@ public sealed partial class WelcomeWindow : Window
             var displayArea = DisplayArea.GetFromWindowId(windowId, DisplayAreaFallback.Primary);
             var workArea = displayArea.WorkArea;
 
-            int maxWidth = Math.Max(480, workArea.Width - (int)Math.Round(48 * scale));
-            int maxHeight = Math.Max(440, workArea.Height - (int)Math.Round(48 * scale));
+            int maxWidth = Math.Max(560, workArea.Width - (int)Math.Round(48 * scale));
+            int maxHeight = Math.Max(480, workArea.Height - (int)Math.Round(48 * scale));
             targetWidth = Math.Min(targetWidth, maxWidth);
             targetHeight = Math.Min(targetHeight, maxHeight);
 
@@ -111,8 +112,8 @@ public sealed partial class WelcomeWindow : Window
             overlapped.IsMaximizable = false;
             overlapped.IsMinimizable = true;
             overlapped.IsResizable = true;
-            overlapped.PreferredMinimumWidth = (int)Math.Round(540 * scale);
-            overlapped.PreferredMinimumHeight = (int)Math.Round(470 * scale);
+            overlapped.PreferredMinimumWidth = (int)Math.Round(660 * scale);
+            overlapped.PreferredMinimumHeight = (int)Math.Round(510 * scale);
         }
     }
 
@@ -144,6 +145,7 @@ public sealed partial class WelcomeWindow : Window
 
     private async void OnWelcomeWindowClosed(object sender, WindowEventArgs args)
     {
+        StopAmbientAnimations();
         if (_isClosingHandled) return;
         _isClosingHandled = true;
         await _coordinator.CloseWindowAsync();
@@ -154,6 +156,7 @@ public sealed partial class WelcomeWindow : Window
     {
         if (_isClosingHandled) return;
         _isClosingHandled = true;
+        StopAmbientAnimations();
 
         BtnWelcomeStartListening.IsEnabled = false;
         BtnWelcomeCustomizeLater.IsEnabled = false;
@@ -176,33 +179,40 @@ public sealed partial class WelcomeWindow : Window
         var loc = LocalizationService.Instance;
         Title = loc["Welcome_WindowTitle"];
 
+        TxtPreviewTrackTitle.Text = loc["Welcome_V47_PreviewTrack"];
+        TxtPreviewArtist.Text = loc["Welcome_V47_PreviewArtist"];
+        TxtPreviewLyricPrev.Text = loc["Welcome_V47_PreviewLyricPrev"];
+        TxtPreviewLyricActive.Text = loc["Welcome_V47_PreviewLyricActive"];
+        TxtPreviewLyricNext.Text = loc["Welcome_V47_PreviewLyricNext"];
+        TxtPreviewLyricLater.Text = loc["Welcome_V47_PreviewLyricLater"];
+
         TxtWelcomeHeadline.Text = loc["Welcome_V47_Headline"];
         TxtWelcomeSubtitle.Text = loc["Welcome_V47_Subtitle"];
-        TxtWelcomeBenefit1.Text = loc["Welcome_V47_Benefit1"];
-        TxtWelcomeBenefit2.Text = loc["Welcome_V47_Benefit2"];
-        TxtWelcomeBenefit3.Text = loc["Welcome_V47_Benefit3"];
+        TxtWelcomeCue1.Text = loc["Welcome_V47_Cue1"];
+        TxtWelcomeCue2.Text = loc["Welcome_V47_Cue2"];
+        TxtWelcomeCue3.Text = loc["Welcome_V47_Cue3"];
 
-        BtnWelcomeStartListening.Content = loc["Welcome_Btn_StartListening"];
+        TxtBtnStartListening.Text = loc["Welcome_Btn_StartListening"];
         BtnWelcomeCustomizeLater.Content = loc["Welcome_Btn_CustomizeLater"];
 
         AutomationProperties.SetName(BtnWelcomeStartListening, loc["Welcome_Btn_StartListening"]);
         AutomationProperties.SetName(BtnWelcomeCustomizeLater, loc["Welcome_Btn_CustomizeLater"]);
     }
 
-    private void PlayEntranceAnimationIfEnabled()
+    private void StartSubtleAnimationsIfEnabled()
     {
         if (!_settingsManager.Current.EnableAnimations) return;
 
+        // 1. Fast, smooth entrance (180 ms)
         WelcomeContentHost.Opacity = 0.0;
-        WelcomeContentTranslate.Y = 8;
+        WelcomeContentTranslate.Y = 10;
 
-        var sb = new Storyboard();
-
+        var entrance = new Storyboard();
         var fade = new DoubleAnimation
         {
             From = 0.0,
             To = 1.0,
-            Duration = new Duration(TimeSpan.FromMilliseconds(160)),
+            Duration = new Duration(TimeSpan.FromMilliseconds(180)),
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
         };
         Storyboard.SetTarget(fade, WelcomeContentHost);
@@ -210,16 +220,66 @@ public sealed partial class WelcomeWindow : Window
 
         var slide = new DoubleAnimation
         {
-            From = 8.0,
+            From = 10.0,
             To = 0.0,
-            Duration = new Duration(TimeSpan.FromMilliseconds(160)),
+            Duration = new Duration(TimeSpan.FromMilliseconds(180)),
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
         };
         Storyboard.SetTarget(slide, WelcomeContentTranslate);
         Storyboard.SetTargetProperty(slide, "Y");
 
-        sb.Children.Add(fade);
-        sb.Children.Add(slide);
-        sb.Begin();
+        entrance.Children.Add(fade);
+        entrance.Children.Add(slide);
+        entrance.Begin();
+
+        // 2. Gentle, GPU-friendly ambient breathing + spectrum bar motion
+        var ambient = new Storyboard { RepeatBehavior = RepeatBehavior.Forever };
+
+        var bloomPulse = new DoubleAnimation
+        {
+            From = 0.68,
+            To = 0.96,
+            Duration = new Duration(TimeSpan.FromMilliseconds(2600)),
+            AutoReverse = true,
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+        };
+        Storyboard.SetTarget(bloomPulse, AmbientBloomLayer);
+        Storyboard.SetTargetProperty(bloomPulse, "Opacity");
+        ambient.Children.Add(bloomPulse);
+
+        void AddEqPulse(DependencyObject target, double from, double to, int ms)
+        {
+            var anim = new DoubleAnimation
+            {
+                From = from,
+                To = to,
+                Duration = new Duration(TimeSpan.FromMilliseconds(ms)),
+                AutoReverse = true,
+                EnableDependentAnimation = true,
+                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+            };
+            Storyboard.SetTarget(anim, target);
+            Storyboard.SetTargetProperty(anim, "ScaleY");
+            ambient.Children.Add(anim);
+        }
+
+        AddEqPulse(EqScale1, 0.45, 1.15, 760);
+        AddEqPulse(EqScale2, 0.65, 1.05, 620);
+        AddEqPulse(EqScale3, 0.40, 1.20, 840);
+        AddEqPulse(EqScale4, 0.55, 1.00, 690);
+        AddEqPulse(EqScale5, 0.50, 1.25, 780);
+
+        _ambientStoryboard = ambient;
+        _ambientStoryboard.Begin();
+    }
+
+    private void StopAmbientAnimations()
+    {
+        try
+        {
+            _ambientStoryboard?.Stop();
+            _ambientStoryboard = null;
+        }
+        catch { }
     }
 }
