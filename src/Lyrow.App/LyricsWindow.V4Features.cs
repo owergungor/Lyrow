@@ -57,10 +57,11 @@ public sealed partial class LyricsWindow
         }
         if (SettingsModalBackdrop != null)
         {
+            // Swallow pointer events on backdrop so background window cannot be interacted with
+            // and accidental clicks outside the modal do not unexpectedly close Settings.
             SettingsModalBackdrop.PointerPressed += (_, e) =>
             {
                 e.Handled = true;
-                CloseSettingsModal();
             };
         }
 
@@ -73,13 +74,13 @@ public sealed partial class LyricsWindow
                 handledEventsToo: true);
         }
 
-        // Exactly 7 Fluent Settings Tabs: General, Appearance, Lighting, Lyrics, System, Updates, About
+        // 7 Canonical Fluent Settings Tabs: Overview, General, Appearance, Lighting, Lyrics, System, About (Updates merged into About)
+        WireModalTabButton(BtnModalTabOverview, "Overview");
         WireModalTabButton(BtnModalTabGeneral, "General");
         WireModalTabButton(BtnModalTabAppearance, "Appearance");
         WireModalTabButton(BtnModalTabLighting, "Lighting");
         WireModalTabButton(BtnModalTabLyrics, "Lyrics");
         WireModalTabButton(BtnModalTabSystem, "System");
-        WireModalTabButton(BtnModalTabUpdates, "Updates");
         WireModalTabButton(BtnModalTabAbout, "About");
 
         WireModalSettingsControls();
@@ -138,13 +139,22 @@ public sealed partial class LyricsWindow
         Close();
     }
 
+    private readonly KeystrokeRecorderSession _glowHotkeyRecorder = new();
+    private readonly KeystrokeRecorderSession _lyricsHotkeyRecorder = new();
+    private KeystrokeRecorderSession? _activeHotkeyRecorder;
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _hotkeyRecordTimeoutTimer;
+
+    private bool IsHotkeyRecordingActive => _activeHotkeyRecorder?.IsRecording == true;
+
     public void ToggleEdgeGlowFromExternal()
     {
+        if (IsHotkeyRecordingActive) return;
         DispatcherQueue?.TryEnqueue(async () => await ToggleEdgeGlowAsync());
     }
 
     public void ToggleLyricsPanelFromExternal()
     {
+        if (IsHotkeyRecordingActive) return;
         DispatcherQueue?.TryEnqueue(() =>
         {
             ShowAndActivate();
@@ -808,6 +818,8 @@ public sealed partial class LyricsWindow
         ShowModalSettingsCategory(_activeModalSettingsCategory);
 
         _isSettingsModalOpen = true;
+        if (MainViewportArea != null) MainViewportArea.IsHitTestVisible = false;
+        if (BtnOpenSettingsModal != null) BtnOpenSettingsModal.IsEnabled = false;
         SettingsModalOverlay.Visibility = Visibility.Visible;
         SettingsModalScrollViewer?.ChangeView(null, 0, null, disableAnimation: true);
 
@@ -860,7 +872,14 @@ public sealed partial class LyricsWindow
     {
         if (SettingsModalOverlay == null || !_isSettingsModalOpen) return;
 
+        if (IsHotkeyRecordingActive)
+        {
+            CancelActiveHotkeyRecording(restoreHotkeys: true, feedbackKey: null);
+        }
+
         _isSettingsModalOpen = false;
+        if (MainViewportArea != null) MainViewportArea.IsHitTestVisible = true;
+        if (BtnOpenSettingsModal != null) BtnOpenSettingsModal.IsEnabled = true;
         _activeModalStoryboard?.Stop();
 
         if (_settingsManager.Current.EnableAnimations)
@@ -911,8 +930,12 @@ public sealed partial class LyricsWindow
 
     private void ShowModalSettingsCategory(string category)
     {
-        // Map any legacy category names cleanly into the 7 canonical v4.3 tabs
-        if (string.Equals(category, "Appearance", StringComparison.OrdinalIgnoreCase) ||
+        if (string.Equals(category, "Overview", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(category, "Shortcuts", StringComparison.OrdinalIgnoreCase))
+        {
+            category = "Overview";
+        }
+        else if (string.Equals(category, "Appearance", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(category, "Artwork", StringComparison.OrdinalIgnoreCase))
         {
             category = "Appearance";
@@ -930,27 +953,27 @@ public sealed partial class LyricsWindow
         {
             category = "System";
         }
-        else if (string.Equals(category, "Updates", StringComparison.OrdinalIgnoreCase))
-        {
-            category = "Updates";
-        }
         else if (string.Equals(category, "About", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(category, "Shortcuts", StringComparison.OrdinalIgnoreCase))
+                 string.Equals(category, "Updates", StringComparison.OrdinalIgnoreCase))
         {
             category = "About";
         }
-        else
+        else if (string.Equals(category, "General", StringComparison.OrdinalIgnoreCase))
         {
             category = "General";
         }
+        else
+        {
+            category = "Overview";
+        }
         _activeModalSettingsCategory = category;
 
+        if (ModalSectionOverview != null) ModalSectionOverview.Visibility = category == "Overview" ? Visibility.Visible : Visibility.Collapsed;
         if (ModalSectionGeneral != null) ModalSectionGeneral.Visibility = category == "General" ? Visibility.Visible : Visibility.Collapsed;
         if (ModalSectionAppearance != null) ModalSectionAppearance.Visibility = category == "Appearance" ? Visibility.Visible : Visibility.Collapsed;
         if (ModalSectionLighting != null) ModalSectionLighting.Visibility = category == "Lighting" ? Visibility.Visible : Visibility.Collapsed;
         if (ModalSectionLyrics != null) ModalSectionLyrics.Visibility = category == "Lyrics" ? Visibility.Visible : Visibility.Collapsed;
         if (ModalSectionSystem != null) ModalSectionSystem.Visibility = category == "System" ? Visibility.Visible : Visibility.Collapsed;
-        if (ModalSectionUpdates != null) ModalSectionUpdates.Visibility = category == "Updates" ? Visibility.Visible : Visibility.Collapsed;
         if (ModalSectionAbout != null) ModalSectionAbout.Visibility = category == "About" ? Visibility.Visible : Visibility.Collapsed;
 
         bool isLight = IsEffectiveLightTheme();
@@ -979,12 +1002,12 @@ public sealed partial class LyricsWindow
             }
         }
 
+        SetNavState(BtnModalTabOverview, NavIndicatorOverview, "Overview");
         SetNavState(BtnModalTabGeneral, NavIndicatorGeneral, "General");
         SetNavState(BtnModalTabAppearance, NavIndicatorAppearance, "Appearance");
         SetNavState(BtnModalTabLighting, NavIndicatorLighting, "Lighting");
         SetNavState(BtnModalTabLyrics, NavIndicatorLyrics, "Lyrics");
         SetNavState(BtnModalTabSystem, NavIndicatorSystem, "System");
-        SetNavState(BtnModalTabUpdates, NavIndicatorUpdates, "Updates");
         SetNavState(BtnModalTabAbout, NavIndicatorAbout, "About");
 
         UpdateSettingsModalResponsiveLayout(
@@ -996,23 +1019,23 @@ public sealed partial class LyricsWindow
     internal void UpdateSettingsModalResponsiveLayout(double windowWidth, double windowHeight = 720)
     {
         if (SettingsModalCard == null || ColSettingsSidebar == null) return;
-        double availableW = Math.Max(320, windowWidth - 40);
-        double availableH = Math.Max(320, windowHeight - 64);
+        double availableW = Math.Max(320, windowWidth - 48);
+        double availableH = Math.Max(340, windowHeight - 76);
 
-        // Fixed deterministic modal dimensions across all 7 tabs (no jumping on tab switch)
-        SettingsModalCard.Width = Math.Min(740, availableW);
-        SettingsModalCard.Height = Math.Min(520, availableH);
+        // True centered modal dialog physically separated from Windows title bar & caption buttons
+        SettingsModalCard.Width = Math.Min(820, availableW);
+        SettingsModalCard.Height = Math.Min(560, availableH);
 
         bool compactSidebar = availableW < 620;
         ColSettingsSidebar.Width = new GridLength(compactSidebar ? 54 : 204);
         var labelVis = compactSidebar ? Visibility.Collapsed : Visibility.Visible;
 
+        if (TxtModalNavOverview != null) TxtModalNavOverview.Visibility = labelVis;
         if (TxtModalNavGeneral != null) TxtModalNavGeneral.Visibility = labelVis;
         if (TxtModalNavAppearance != null) TxtModalNavAppearance.Visibility = labelVis;
         if (TxtModalNavLighting != null) TxtModalNavLighting.Visibility = labelVis;
         if (TxtModalNavLyrics != null) TxtModalNavLyrics.Visibility = labelVis;
         if (TxtModalNavSystem != null) TxtModalNavSystem.Visibility = labelVis;
-        if (TxtModalNavUpdates != null) TxtModalNavUpdates.Visibility = labelVis;
         if (TxtModalNavAbout != null) TxtModalNavAbout.Visibility = labelVis;
     }
 
@@ -1026,7 +1049,9 @@ public sealed partial class LyricsWindow
             SelectComboByTag(ComboModalLanguage, s.Language ?? "en");
             SelectComboByTag(ComboModalTheme, s.Theme.ToString());
             SelectComboByTag(ComboModalFftSize, s.Glow.FftSize.ToString());
+            SelectComboByTag(ComboOverviewMusicSensitivity, s.Glow.FftSize.ToString());
             SelectComboByTag(ComboModalUpdateFrequency, s.UpdateFrequency.ToString());
+            SelectComboByTag(ComboModalPreferredLyricsSource, string.IsNullOrWhiteSpace(s.Lyrics.PreferredProvider) ? "Auto" : s.Lyrics.PreferredProvider);
 
             if (SwitchModalLyricsGlow != null) SwitchModalLyricsGlow.IsOn = s.Lyrics.LyricsTextGlowEnabled;
             if (SwitchModalEnableAnimations != null) SwitchModalEnableAnimations.IsOn = s.EnableAnimations;
@@ -1042,10 +1067,14 @@ public sealed partial class LyricsWindow
             double focusedFont = Math.Clamp(s.FocusedLyricFontSize > 0 ? s.FocusedLyricFontSize : 28.0, 18.0, 42.0);
             if (SliderModalFocusedFontSize != null) SliderModalFocusedFontSize.Value = focusedFont;
             if (TxtModalFocusedFontValue != null) TxtModalFocusedFontValue.Text = $"{(int)Math.Round(focusedFont)} px";
+            if (SliderOverviewFocusedFontSize != null) SliderOverviewFocusedFontSize.Value = focusedFont;
+            if (TxtOverviewFocusedFontValue != null) TxtOverviewFocusedFontValue.Text = $"{(int)Math.Round(focusedFont)} px";
 
             double unfocusedFont = Math.Clamp(s.UnfocusedLyricFontSize > 0 ? s.UnfocusedLyricFontSize : 20.0, 14.0, 32.0);
             if (SliderModalUnfocusedFontSize != null) SliderModalUnfocusedFontSize.Value = unfocusedFont;
             if (TxtModalUnfocusedFontValue != null) TxtModalUnfocusedFontValue.Text = $"{(int)Math.Round(unfocusedFont)} px";
+            if (SliderOverviewUnfocusedFontSize != null) SliderOverviewUnfocusedFontSize.Value = unfocusedFont;
+            if (TxtOverviewUnfocusedFontValue != null) TxtOverviewUnfocusedFontValue.Text = $"{(int)Math.Round(unfocusedFont)} px";
 
             if (SwitchModalStartWithWindows != null) SwitchModalStartWithWindows.IsOn = s.StartWithWindows;
             if (SwitchModalSystemTray != null) SwitchModalSystemTray.IsOn = s.SystemTrayEnabled;
@@ -1058,9 +1087,10 @@ public sealed partial class LyricsWindow
             if (SliderModalArtworkSaturation != null) SliderModalArtworkSaturation.Value = satPct;
             if (TxtModalArtworkSaturationPercent != null) TxtModalArtworkSaturationPercent.Text = $"{satPct}%";
 
-            int radius = Math.Clamp((int)Math.Round(s.ArtworkCornerRadius), 4, 24);
+            int radius = Math.Clamp((int)Math.Round(s.ArtworkCornerRadius), 0, 64);
             if (SliderModalArtworkCornerRadius != null) SliderModalArtworkCornerRadius.Value = radius;
             if (TxtModalArtworkRadiusValue != null) TxtModalArtworkRadiusValue.Text = $"{radius} px";
+            if (BorderTrackArtwork != null) BorderTrackArtwork.CornerRadius = new CornerRadius(radius);
 
             if (SwitchModalAmbientEdgeGlow != null) SwitchModalAmbientEdgeGlow.IsOn = _isEdgeGlowActive;
             if (SliderModalGlowIntensity != null) SliderModalGlowIntensity.Value = Math.Clamp(s.GlowIntensity, 10, 100);
@@ -1071,8 +1101,10 @@ public sealed partial class LyricsWindow
 
             if (SwitchModalAutoUpdate != null) SwitchModalAutoUpdate.IsOn = s.AutoUpdateEnabled;
 
-            if (TxtModalHotkeyGlow != null) TxtModalHotkeyGlow.Text = s.Hotkeys.ToggleGlow ?? string.Empty;
-            if (TxtModalHotkeyLyrics != null) TxtModalHotkeyLyrics.Text = s.Hotkeys.ToggleLyrics ?? string.Empty;
+            _glowHotkeyRecorder.SetCommittedGesture(s.Hotkeys.ToggleGlow);
+            _lyricsHotkeyRecorder.SetCommittedGesture(s.Hotkeys.ToggleLyrics);
+            RenderKeystrokeRecorderVisual(TxtModalHotkeyGlow, PanelHotkeyGlowTokens, _glowHotkeyRecorder);
+            RenderKeystrokeRecorderVisual(TxtModalHotkeyLyrics, PanelHotkeyLyricsTokens, _lyricsHotkeyRecorder);
         }
         finally
         {
@@ -1154,6 +1186,74 @@ public sealed partial class LyricsWindow
             };
         }
 
+        if (ComboOverviewMusicSensitivity != null)
+        {
+            ComboOverviewMusicSensitivity.SelectionChanged += async (_, _) =>
+            {
+                if (_isUpdatingModalSettingsUi) return;
+                if (ComboOverviewMusicSensitivity.SelectedItem is ComboBoxItem item &&
+                    int.TryParse(item.Tag?.ToString(), out int fft))
+                {
+                    _settingsManager.Current.Glow.FftSize = fft;
+                    _isUpdatingModalSettingsUi = true;
+                    try { SelectComboByTag(ComboModalFftSize, fft.ToString()); }
+                    finally { _isUpdatingModalSettingsUi = false; }
+                    await _settingsManager.SaveAsync(_settingsManager.Current);
+                }
+            };
+        }
+
+        if (SliderOverviewFocusedFontSize != null)
+        {
+            SliderOverviewFocusedFontSize.ValueChanged += async (_, e) =>
+            {
+                if (_isUpdatingModalSettingsUi) return;
+                double val = Math.Clamp(Math.Round(e.NewValue), 18.0, 42.0);
+                if (TxtOverviewFocusedFontValue != null) TxtOverviewFocusedFontValue.Text = $"{(int)val} px";
+                _isUpdatingModalSettingsUi = true;
+                try
+                {
+                    if (SliderModalFocusedFontSize != null) SliderModalFocusedFontSize.Value = val;
+                    if (TxtModalFocusedFontValue != null) TxtModalFocusedFontValue.Text = $"{(int)val} px";
+                }
+                finally { _isUpdatingModalSettingsUi = false; }
+                _settingsManager.Current.FocusedLyricFontSize = val;
+                ApplyLyricsPersonalization();
+                await _settingsManager.SaveAsync(_settingsManager.Current);
+            };
+        }
+
+        if (SliderOverviewUnfocusedFontSize != null)
+        {
+            SliderOverviewUnfocusedFontSize.ValueChanged += async (_, e) =>
+            {
+                if (_isUpdatingModalSettingsUi) return;
+                double val = Math.Clamp(Math.Round(e.NewValue), 14.0, 32.0);
+                if (TxtOverviewUnfocusedFontValue != null) TxtOverviewUnfocusedFontValue.Text = $"{(int)val} px";
+                _isUpdatingModalSettingsUi = true;
+                try
+                {
+                    if (SliderModalUnfocusedFontSize != null) SliderModalUnfocusedFontSize.Value = val;
+                    if (TxtModalUnfocusedFontValue != null) TxtModalUnfocusedFontValue.Text = $"{(int)val} px";
+                }
+                finally { _isUpdatingModalSettingsUi = false; }
+                _settingsManager.Current.UnfocusedLyricFontSize = val;
+                ApplyLyricsPersonalization();
+                await _settingsManager.SaveAsync(_settingsManager.Current);
+            };
+        }
+
+        if (BtnOverviewCheckUpdates != null)
+        {
+            BtnOverviewCheckUpdates.Click += async (_, _) =>
+            {
+                if (_updateCoordinator != null)
+                {
+                    await _updateCoordinator.CheckForUpdatesAsync(isManual: true);
+                }
+            };
+        }
+
         if (SwitchModalEnableAnimations != null)
         {
             SwitchModalEnableAnimations.Toggled += async (_, _) =>
@@ -1197,6 +1297,13 @@ public sealed partial class LyricsWindow
                 if (_isUpdatingModalSettingsUi) return;
                 double val = Math.Clamp(Math.Round(e.NewValue), 18.0, 42.0);
                 if (TxtModalFocusedFontValue != null) TxtModalFocusedFontValue.Text = $"{(int)val} px";
+                _isUpdatingModalSettingsUi = true;
+                try
+                {
+                    if (SliderOverviewFocusedFontSize != null) SliderOverviewFocusedFontSize.Value = val;
+                    if (TxtOverviewFocusedFontValue != null) TxtOverviewFocusedFontValue.Text = $"{(int)val} px";
+                }
+                finally { _isUpdatingModalSettingsUi = false; }
                 _settingsManager.Current.FocusedLyricFontSize = val;
                 ApplyLyricsPersonalization();
                 await _settingsManager.SaveAsync(_settingsManager.Current);
@@ -1210,6 +1317,13 @@ public sealed partial class LyricsWindow
                 if (_isUpdatingModalSettingsUi) return;
                 double val = Math.Clamp(Math.Round(e.NewValue), 14.0, 32.0);
                 if (TxtModalUnfocusedFontValue != null) TxtModalUnfocusedFontValue.Text = $"{(int)val} px";
+                _isUpdatingModalSettingsUi = true;
+                try
+                {
+                    if (SliderOverviewUnfocusedFontSize != null) SliderOverviewUnfocusedFontSize.Value = val;
+                    if (TxtOverviewUnfocusedFontValue != null) TxtOverviewUnfocusedFontValue.Text = $"{(int)val} px";
+                }
+                finally { _isUpdatingModalSettingsUi = false; }
                 _settingsManager.Current.UnfocusedLyricFontSize = val;
                 ApplyLyricsPersonalization();
                 await _settingsManager.SaveAsync(_settingsManager.Current);
@@ -1299,7 +1413,7 @@ public sealed partial class LyricsWindow
             SliderModalArtworkCornerRadius.ValueChanged += async (_, e) =>
             {
                 if (_isUpdatingModalSettingsUi) return;
-                int r = Math.Clamp((int)Math.Round(e.NewValue), 4, 24);
+                int r = Math.Clamp((int)Math.Round(e.NewValue), 0, 64);
                 if (TxtModalArtworkRadiusValue != null) TxtModalArtworkRadiusValue.Text = $"{r} px";
                 _settingsManager.Current.ArtworkCornerRadius = r;
                 if (BorderTrackArtwork != null) BorderTrackArtwork.CornerRadius = new CornerRadius(r);
@@ -1358,6 +1472,9 @@ public sealed partial class LyricsWindow
                     int.TryParse(item.Tag?.ToString(), out int fft))
                 {
                     _settingsManager.Current.Glow.FftSize = fft;
+                    _isUpdatingModalSettingsUi = true;
+                    try { SelectComboByTag(ComboOverviewMusicSensitivity, fft.ToString()); }
+                    finally { _isUpdatingModalSettingsUi = false; }
                     await _settingsManager.SaveAsync(_settingsManager.Current);
                 }
             };
@@ -1440,16 +1557,48 @@ public sealed partial class LyricsWindow
             };
         }
 
+        if (ComboModalPreferredLyricsSource != null)
+        {
+            ComboModalPreferredLyricsSource.SelectionChanged += async (_, _) =>
+            {
+                if (_isUpdatingModalSettingsUi) return;
+                if (ComboModalPreferredLyricsSource.SelectedItem is ComboBoxItem item && item.Tag is string providerTag)
+                {
+                    _settingsManager.Current.Lyrics.PreferredProvider = string.IsNullOrWhiteSpace(providerTag) ? "Auto" : providerTag;
+                    await _settingsManager.SaveAsync(_settingsManager.Current);
+                }
+            };
+        }
+
+        PopulateStaticLyricsSourcesList();
+
+        InitializeKeystrokeRecorderControl(TxtModalHotkeyGlow, PanelHotkeyGlowTokens, _glowHotkeyRecorder);
+        InitializeKeystrokeRecorderControl(TxtModalHotkeyLyrics, PanelHotkeyLyricsTokens, _lyricsHotkeyRecorder);
+        this.Activated += (_, args) =>
+        {
+            if (args.WindowActivationState == WindowActivationState.Deactivated && IsHotkeyRecordingActive)
+            {
+                CancelActiveHotkeyRecording(restoreHotkeys: true, feedbackKey: "Hotkey_Cancelled");
+            }
+        };
+
         if (BtnModalClearHotkeys != null)
         {
             BtnModalClearHotkeys.Click += async (_, _) =>
             {
-                if (TxtModalHotkeyGlow != null) TxtModalHotkeyGlow.Text = string.Empty;
-                if (TxtModalHotkeyLyrics != null) TxtModalHotkeyLyrics.Text = string.Empty;
+                if (IsHotkeyRecordingActive)
+                {
+                    CancelActiveHotkeyRecording(restoreHotkeys: false, feedbackKey: null);
+                }
+                _glowHotkeyRecorder.SetCommittedGesture(string.Empty);
+                _lyricsHotkeyRecorder.SetCommittedGesture(string.Empty);
+                RenderKeystrokeRecorderVisual(TxtModalHotkeyGlow, PanelHotkeyGlowTokens, _glowHotkeyRecorder);
+                RenderKeystrokeRecorderVisual(TxtModalHotkeyLyrics, PanelHotkeyLyricsTokens, _lyricsHotkeyRecorder);
                 _settingsManager.Current.Hotkeys.ToggleGlow = string.Empty;
                 _settingsManager.Current.Hotkeys.ToggleLyrics = string.Empty;
                 await _settingsManager.SaveAsync(_settingsManager.Current);
                 ApplyHotkeysFromSettings();
+                ShowHotkeyFeedback(LocalizationService.Instance["Hotkey_Cleared"], isError: false);
             };
         }
 
@@ -1457,20 +1606,8 @@ public sealed partial class LyricsWindow
         {
             BtnModalSaveHotkeys.Click += async (_, _) =>
             {
-                _settingsManager.Current.Hotkeys.ToggleGlow = TxtModalHotkeyGlow?.Text?.Trim() ?? string.Empty;
-                _settingsManager.Current.Hotkeys.ToggleLyrics = TxtModalHotkeyLyrics?.Text?.Trim() ?? string.Empty;
-                await _settingsManager.SaveAsync(_settingsManager.Current);
-                ApplyHotkeysFromSettings();
-                _toastManager?.ShowToast(
-                    LocalizationService.Instance["Settings_ApplyHotkeys"],
-                    title: LocalizationService.Instance["Tab_Shortcuts"],
-                    severity: InfoBarSeverity.Success);
+                await SaveAndApplyHotkeysAsync();
             };
-        }
-
-        if (BtnModalShowWelcome != null)
-        {
-            BtnModalShowWelcome.Click += (_, _) => OpenWelcomeScreenFromSettings();
         }
 
         if (BtnModalShowWelcomeAbout != null)
@@ -1536,6 +1673,7 @@ public sealed partial class LyricsWindow
         if (TxtSettingsModalTitle != null) TxtSettingsModalTitle.Text = loc["Settings_Title"];
 
         bool isTr = string.Equals(loc.CurrentLanguage, "tr", StringComparison.OrdinalIgnoreCase);
+        string tabOverview = loc["Tab_Overview"];
         string tabGeneral = isTr ? "Genel" : "General";
         string tabAppearance = isTr ? "Görünüm" : "Appearance";
         string tabLighting = isTr ? "Işık" : "Lighting";
@@ -1544,14 +1682,15 @@ public sealed partial class LyricsWindow
         string tabUpdates = isTr ? "Güncellemeler" : "Updates";
         string tabAbout = isTr ? "Hakkında" : "About";
 
+        if (TxtModalNavOverview != null) TxtModalNavOverview.Text = tabOverview;
         if (TxtModalNavGeneral != null) TxtModalNavGeneral.Text = tabGeneral;
         if (TxtModalNavAppearance != null) TxtModalNavAppearance.Text = tabAppearance;
         if (TxtModalNavLighting != null) TxtModalNavLighting.Text = tabLighting;
         if (TxtModalNavLyrics != null) TxtModalNavLyrics.Text = tabLyrics;
         if (TxtModalNavSystem != null) TxtModalNavSystem.Text = tabSystem;
-        if (TxtModalNavUpdates != null) TxtModalNavUpdates.Text = tabUpdates;
         if (TxtModalNavAbout != null) TxtModalNavAbout.Text = tabAbout;
 
+        if (TxtModalSectionOverview != null) TxtModalSectionOverview.Text = tabOverview;
         if (TxtModalSectionGeneral != null) TxtModalSectionGeneral.Text = tabGeneral;
         if (TxtModalSectionAppearance != null) TxtModalSectionAppearance.Text = tabAppearance;
         if (TxtModalSectionLighting != null) TxtModalSectionLighting.Text = tabLighting;
@@ -1561,12 +1700,12 @@ public sealed partial class LyricsWindow
         if (TxtModalSectionAbout != null) TxtModalSectionAbout.Text = tabAbout;
         if (TxtModalAboutLicense != null) TxtModalAboutLicense.Text = isTr ? "MIT Lisansı — Açık Kaynak" : "MIT License — Open Source";
 
+        if (BtnModalTabOverview != null) { ToolTipService.SetToolTip(BtnModalTabOverview, tabOverview); AutomationProperties.SetName(BtnModalTabOverview, tabOverview); }
         if (BtnModalTabGeneral != null) { ToolTipService.SetToolTip(BtnModalTabGeneral, tabGeneral); AutomationProperties.SetName(BtnModalTabGeneral, tabGeneral); }
         if (BtnModalTabAppearance != null) { ToolTipService.SetToolTip(BtnModalTabAppearance, tabAppearance); AutomationProperties.SetName(BtnModalTabAppearance, tabAppearance); }
         if (BtnModalTabLighting != null) { ToolTipService.SetToolTip(BtnModalTabLighting, tabLighting); AutomationProperties.SetName(BtnModalTabLighting, tabLighting); }
         if (BtnModalTabLyrics != null) { ToolTipService.SetToolTip(BtnModalTabLyrics, tabLyrics); AutomationProperties.SetName(BtnModalTabLyrics, tabLyrics); }
         if (BtnModalTabSystem != null) { ToolTipService.SetToolTip(BtnModalTabSystem, tabSystem); AutomationProperties.SetName(BtnModalTabSystem, tabSystem); }
-        if (BtnModalTabUpdates != null) { ToolTipService.SetToolTip(BtnModalTabUpdates, tabUpdates); AutomationProperties.SetName(BtnModalTabUpdates, tabUpdates); }
         if (BtnModalTabAbout != null) { ToolTipService.SetToolTip(BtnModalTabAbout, tabAbout); AutomationProperties.SetName(BtnModalTabAbout, tabAbout); }
         if (TxtModalLanguageLabel != null) TxtModalLanguageLabel.Text = loc["Settings_Language"];
         if (TxtModalLanguageDesc != null) TxtModalLanguageDesc.Text = loc["Settings_LanguageDesc"];
@@ -1574,6 +1713,23 @@ public sealed partial class LyricsWindow
         if (TxtModalThemeDesc != null) TxtModalThemeDesc.Text = loc["Settings_ThemeDesc"];
         if (TxtModalLyricsGlowLabel != null) TxtModalLyricsGlowLabel.Text = loc["Settings_LyricsGlowLabel"];
         if (TxtModalLyricsGlowDesc != null) TxtModalLyricsGlowDesc.Text = loc["Settings_LyricsGlowDesc"];
+        if (TxtOverviewSensitivityLabel != null) TxtOverviewSensitivityLabel.Text = loc["Settings_MusicSensitivity"];
+        if (TxtOverviewSensitivityDesc != null) TxtOverviewSensitivityDesc.Text = loc["Settings_MusicSensitivityDesc"];
+        if (CbiOverviewSensLow != null) CbiOverviewSensLow.Content = loc["WelcomeV4_Sens_Calm"];
+        if (CbiOverviewSensBalanced != null) CbiOverviewSensBalanced.Content = loc["WelcomeV4_Sens_Balanced"];
+        if (CbiOverviewSensHigh != null) CbiOverviewSensHigh.Content = loc["WelcomeV4_Sens_Expressive"];
+        if (CbiLightingSensLow != null) CbiLightingSensLow.Content = loc["WelcomeV4_Sens_Calm"];
+        if (CbiLightingSensBalanced != null) CbiLightingSensBalanced.Content = loc["WelcomeV4_Sens_Balanced"];
+        if (CbiLightingSensHigh != null) CbiLightingSensHigh.Content = loc["WelcomeV4_Sens_Expressive"];
+        if (TxtOverviewFocusedFontLabel != null) TxtOverviewFocusedFontLabel.Text = loc["Settings_FocusedFontSize"];
+        if (TxtOverviewUnfocusedFontLabel != null) TxtOverviewUnfocusedFontLabel.Text = loc["Settings_UnfocusedFontSize"];
+        if (BtnOverviewCheckUpdates != null) BtnOverviewCheckUpdates.Content = loc["Settings_CheckUpdates"];
+        if (TxtModalLyricsSourcesLabel != null) TxtModalLyricsSourcesLabel.Text = loc["Settings_LyricsSources"];
+        if (TxtModalLyricsSourcesDesc != null) TxtModalLyricsSourcesDesc.Text = loc["Settings_LyricsSourcesDesc"];
+        if (TxtModalLyricsSourcesDragHint != null) TxtModalLyricsSourcesDragHint.Text = loc["Settings_LyricsSourcesDragHint"];
+        if (TxtModalPreferredSourceLabel != null) TxtModalPreferredSourceLabel.Text = loc["Settings_LyricsPreferredSource"];
+        if (CbiLyricsSourceAuto != null) CbiLyricsSourceAuto.Content = loc["Settings_LyricsPreferredAuto"];
+        PopulateStaticLyricsSourcesList();
         if (TxtModalAnimationsLabel != null) TxtModalAnimationsLabel.Text = loc["Settings_Animations"];
         if (TxtModalAnimationsDesc != null) TxtModalAnimationsDesc.Text = loc["Settings_AnimationsDesc"];
         if (TxtModalMasterOpacityLabel != null) TxtModalMasterOpacityLabel.Text = loc["Settings_MasterOpacity"];
@@ -1617,15 +1773,14 @@ public sealed partial class LyricsWindow
 
         if (TxtModalSectionShortcuts != null) TxtModalSectionShortcuts.Text = loc["Section_Shortcuts"];
         if (TxtModalShortcutGlowLabel != null) TxtModalShortcutGlowLabel.Text = loc["Settings_ShortcutGlow"];
+        RenderKeystrokeRecorderVisual(TxtModalHotkeyGlow, PanelHotkeyGlowTokens, _glowHotkeyRecorder);
+        RenderKeystrokeRecorderVisual(TxtModalHotkeyLyrics, PanelHotkeyLyricsTokens, _lyricsHotkeyRecorder);
         if (TxtModalShortcutLyricsLabel != null) TxtModalShortcutLyricsLabel.Text = loc["Settings_ShortcutLyrics"];
         if (BtnModalClearHotkeys != null) BtnModalClearHotkeys.Content = loc["Settings_ClearHotkeys"];
         if (BtnModalSaveHotkeys != null) BtnModalSaveHotkeys.Content = loc["Settings_ApplyHotkeys"];
 
         if (BtnModalResetSettings != null) BtnModalResetSettings.Content = loc["Settings_ResetDefaults"];
         if (BtnModalOpenLogs != null) BtnModalOpenLogs.Content = loc["Settings_OpenLog"];
-        if (TxtModalShowWelcomeLabel != null) TxtModalShowWelcomeLabel.Text = loc["Settings_ShowWelcome"];
-        if (TxtModalShowWelcomeDesc != null) TxtModalShowWelcomeDesc.Text = loc["Settings_ShowWelcomeDesc"];
-        if (BtnModalShowWelcome != null) BtnModalShowWelcome.Content = loc["Settings_ShowWelcome"];
         if (BtnModalShowWelcomeAbout != null) BtnModalShowWelcomeAbout.Content = loc["Settings_ShowWelcome"];
 
         if (TxtModalAboutSubtitle != null) TxtModalAboutSubtitle.Text = loc["About_Subtitle"];
@@ -1721,28 +1876,38 @@ public sealed partial class LyricsWindow
             RingModalUpdateChecking.IsActive = checking;
             RingModalUpdateChecking.Visibility = checking ? Visibility.Visible : Visibility.Collapsed;
         }
+        if (RingOverviewUpdateChecking != null)
+        {
+            bool checking = snapshot.WorkflowState == UpdateWorkflowState.Checking;
+            RingOverviewUpdateChecking.IsActive = checking;
+            RingOverviewUpdateChecking.Visibility = checking ? Visibility.Visible : Visibility.Collapsed;
+        }
 
         if (BtnModalCheckUpdates != null)
         {
             BtnModalCheckUpdates.IsEnabled = !snapshot.IsBusy;
         }
-
-        if (TxtModalUpdateStatus != null)
+        if (BtnOverviewCheckUpdates != null)
         {
-            TxtModalUpdateStatus.Text = snapshot.WorkflowState switch
-            {
-                UpdateWorkflowState.Checking => loc["Updates_Checking"],
-                UpdateWorkflowState.UpToDate => loc["Updates_UpToDate"],
-                UpdateWorkflowState.UpdateAvailable => $"{loc["Updates_Available"]}: v{snapshot.LastResult?.LatestVersion}",
-                UpdateWorkflowState.Downloading => snapshot.StatusMessage ?? loc["Updates_Downloading"],
-                UpdateWorkflowState.Verifying => loc["Updates_Verifying"],
-                UpdateWorkflowState.Installing => loc["Updates_StartingInstall"],
-                UpdateWorkflowState.Completed => loc["Updates_Completed"],
-                UpdateWorkflowState.UnsupportedDistribution => $"{loc["Updates_Available"]}: v{snapshot.LastResult?.LatestVersion}",
-                UpdateWorkflowState.Failed => loc["Updates_Failed"],
-                _ => $"Lyrow v{_updateCoordinator?.CurrentVersion ?? App.CurrentReleaseVersion} — {loc["Updates_Channel"]}"
-            };
+            BtnOverviewCheckUpdates.IsEnabled = !snapshot.IsBusy;
         }
+
+        string statusLine = snapshot.WorkflowState switch
+        {
+            UpdateWorkflowState.Checking => loc["Updates_Checking"],
+            UpdateWorkflowState.UpToDate => loc["Updates_UpToDate"],
+            UpdateWorkflowState.UpdateAvailable => $"{loc["Updates_Available"]}: v{snapshot.LastResult?.LatestVersion}",
+            UpdateWorkflowState.Downloading => snapshot.StatusMessage ?? loc["Updates_Downloading"],
+            UpdateWorkflowState.Verifying => loc["Updates_Verifying"],
+            UpdateWorkflowState.Installing => loc["Updates_StartingInstall"],
+            UpdateWorkflowState.Completed => loc["Updates_Completed"],
+            UpdateWorkflowState.UnsupportedDistribution => $"{loc["Updates_Available"]}: v{snapshot.LastResult?.LatestVersion}",
+            UpdateWorkflowState.Failed => loc["Updates_Failed"],
+            _ => $"Lyrow v{_updateCoordinator?.CurrentVersion ?? App.CurrentReleaseVersion} — {loc["Updates_Channel"]}"
+        };
+
+        if (TxtModalUpdateStatus != null) TxtModalUpdateStatus.Text = statusLine;
+        if (TxtOverviewUpdateStatus != null) TxtOverviewUpdateStatus.Text = statusLine;
 
         bool showDetailsCard = snapshot.HasAvailableUpdate || snapshot.WorkflowState is
             UpdateWorkflowState.Downloading or
@@ -1967,6 +2132,489 @@ public sealed partial class LyricsWindow
 
         SyncEdgeThicknessSliderFromSettings();
         SyncModalSettingsFromModel();
+        ApplyV4Localization();
+        ApplyHotkeysFromSettings();
         UpdateOutputDeviceUi();
+    }
+
+    private void UpdateLyricsSyncStatusUi()
+    {
+        // Sync mode is strictly Automatic in v5.0; active source code is displayed directly in the main lyrics toolbar (< CODE >).
+    }
+
+    /// <summary>
+    /// Validates, detects internal conflicts, registers with Windows global hotkey manager,
+    /// and persists keyboard shortcuts cleanly without blocking the UI thread.
+    /// Rolls back and shows clear user feedback if validation or OS registration fails.
+    /// </summary>
+    public sealed record LyricsSourceListItem(
+        Lyrow.Core.Lyrics.LyricsProviderId ProviderId,
+        string Code,
+        string DisplayName,
+        string QualityLabel);
+
+    private readonly System.Collections.ObjectModel.ObservableCollection<LyricsSourceListItem> _lyricsSourceItems = new();
+    private bool _isLyricsSourceCollectionWired;
+    private bool _isPopulatingLyricsSources;
+
+    private void PopulateStaticLyricsSourcesList()
+    {
+        if (ListModalLyricsSources == null) return;
+
+        var loc = LocalizationService.Instance;
+        string qSyl = loc["LyricsQuality_Syllable"];
+        string qWord = loc["LyricsQuality_Word"];
+        string qLine = loc["LyricsQuality_Line"];
+        string qUnsync = loc["LyricsQuality_Unsynced"];
+
+        var metadata = new Dictionary<Lyrow.Core.Lyrics.LyricsProviderId, (string Name, string Code, string Quality)>
+        {
+            [Lyrow.Core.Lyrics.LyricsProviderId.BetterLyrics] = ("Better Lyrics (TTML)", "BLY", $"{qSyl} / {qWord} / {qLine}"),
+            [Lyrow.Core.Lyrics.LyricsProviderId.AppleMusic] = ("Apple Music (LiriQo)", "APL", $"{qSyl} / {qWord} / {qLine}"),
+            [Lyrow.Core.Lyrics.LyricsProviderId.BetterLyricsUnison] = ("Better Lyrics Unison", "BLU", $"{qSyl} / {qWord} / {qLine} / {qUnsync}"),
+            [Lyrow.Core.Lyrics.LyricsProviderId.QQMusic] = ("QQ Music (LiriQo)", "QQ", $"{qWord} / {qLine}"),
+            [Lyrow.Core.Lyrics.LyricsProviderId.NetEase] = ("NetEase (LiriQo)", "NET", $"{qWord} / {qLine}"),
+            [Lyrow.Core.Lyrics.LyricsProviderId.KuGou] = ("KuGou (LiriQo)", "KUG", $"{qWord} / {qLine}"),
+            [Lyrow.Core.Lyrics.LyricsProviderId.Kuwo] = ("Kuwo (LiriQo)", "KWO", $"{qWord} / {qLine}"),
+            [Lyrow.Core.Lyrics.LyricsProviderId.Migu] = ("Migu (LiriQo)", "MIG", $"{qWord} / {qLine}"),
+            [Lyrow.Core.Lyrics.LyricsProviderId.PetitLyrics] = ("PetitLyrics (LiriQo)", "PET", $"{qWord} / {qLine}"),
+            [Lyrow.Core.Lyrics.LyricsProviderId.Lrclib] = ("LRCLIB", "LRC", $"{qLine} / {qUnsync}")
+        };
+
+        var orderedIds = Lyrow.Core.Lyrics.LyricsSourceOrderHelper.NormalizeOrder(_settingsManager.Current.Lyrics.SourcePriorityOrder);
+
+        _isPopulatingLyricsSources = true;
+        try
+        {
+            _lyricsSourceItems.Clear();
+            foreach (var id in orderedIds)
+            {
+                if (metadata.TryGetValue(id, out var info))
+                {
+                    _lyricsSourceItems.Add(new LyricsSourceListItem(id, info.Code, info.Name, info.Quality));
+                }
+            }
+
+            if (ListModalLyricsSources.ItemsSource == null)
+            {
+                ListModalLyricsSources.ItemsSource = _lyricsSourceItems;
+            }
+        }
+        finally
+        {
+            _isPopulatingLyricsSources = false;
+        }
+
+        if (!_isLyricsSourceCollectionWired)
+        {
+            _isLyricsSourceCollectionWired = true;
+            _lyricsSourceItems.CollectionChanged += async (_, e) =>
+            {
+                if (_isPopulatingLyricsSources || _isUpdatingModalSettingsUi) return;
+                if (e.Action is System.Collections.Specialized.NotifyCollectionChangedAction.Add
+                    or System.Collections.Specialized.NotifyCollectionChangedAction.Move
+                    or System.Collections.Specialized.NotifyCollectionChangedAction.Replace)
+                {
+                    if (_lyricsSourceItems.Count == Lyrow.Core.Lyrics.LyricsSourceOrderHelper.DefaultActiveProviderOrder.Count)
+                    {
+                        _settingsManager.Current.Lyrics.SourcePriorityOrder =
+                            Lyrow.Core.Lyrics.LyricsSourceOrderHelper.ToSettingsList(_lyricsSourceItems.Select(x => x.ProviderId));
+                        await _settingsManager.SaveAsync(_settingsManager.Current);
+                    }
+                }
+            };
+        }
+    }
+
+    private void InitializeKeystrokeRecorderControl(Button? button, StackPanel? tokenPanel, KeystrokeRecorderSession session)
+    {
+        if (button == null || tokenPanel == null) return;
+
+        button.Click += (_, _) =>
+        {
+            if (session.IsRecording) return;
+            StartHotkeyRecording(button, tokenPanel, session);
+        };
+
+        button.PreviewKeyDown += async (_, e) =>
+        {
+            if (!session.IsRecording) return;
+            e.Handled = true;
+            ResetHotkeyRecordTimeoutTimer();
+
+            var result = session.HandleKeyDown((int)e.Key);
+            RenderKeystrokeRecorderVisual(button, tokenPanel, session);
+
+            switch (result.Kind)
+            {
+                case KeystrokeRecorderEventKind.ModifierUpdated:
+                    ShowHotkeyFeedback(string.Empty, isError: false);
+                    break;
+
+                case KeystrokeRecorderEventKind.Completed:
+                    StopHotkeyRecordTimeoutTimer();
+                    _activeHotkeyRecorder = null;
+                    bool saved = await SaveAndApplyHotkeysAsync();
+                    if (!saved)
+                    {
+                        session.RollbackToPrevious();
+                        RenderKeystrokeRecorderVisual(button, tokenPanel, session);
+                        ApplyHotkeysFromSettings();
+                    }
+                    break;
+
+                case KeystrokeRecorderEventKind.Cancelled:
+                    StopHotkeyRecordTimeoutTimer();
+                    _activeHotkeyRecorder = null;
+                    ApplyHotkeysFromSettings();
+                    ShowHotkeyFeedback(LocalizationService.Instance["Hotkey_Cancelled"], isError: false);
+                    break;
+
+                case KeystrokeRecorderEventKind.Cleared:
+                    StopHotkeyRecordTimeoutTimer();
+                    _activeHotkeyRecorder = null;
+                    await SaveAndApplyHotkeysAsync();
+                    break;
+
+                case KeystrokeRecorderEventKind.InvalidKey:
+                    ShowHotkeyFeedback(result.ErrorMessage ?? LocalizationService.Instance["Hotkey_InvalidError"], isError: true);
+                    break;
+            }
+        };
+
+        button.PreviewKeyUp += (_, e) =>
+        {
+            if (!session.IsRecording) return;
+            e.Handled = true;
+            session.HandleKeyUp((int)e.Key);
+            RenderKeystrokeRecorderVisual(button, tokenPanel, session);
+        };
+
+        button.LostFocus += (_, _) =>
+        {
+            if (!session.IsRecording) return;
+            CancelActiveHotkeyRecording(restoreHotkeys: true, feedbackKey: "Hotkey_Cancelled");
+        };
+
+        RenderKeystrokeRecorderVisual(button, tokenPanel, session);
+    }
+
+    private void StartHotkeyRecording(Button button, StackPanel tokenPanel, KeystrokeRecorderSession session)
+    {
+        if (IsHotkeyRecordingActive)
+        {
+            CancelActiveHotkeyRecording(restoreHotkeys: false, feedbackKey: null);
+        }
+
+        // Suspend active Win32 global hotkeys while recording so old commands never trigger and raw keys reach WinUI 3
+        var hotkeyManager = App.Services?.GetService(typeof(IGlobalHotkeyManager)) as IGlobalHotkeyManager;
+        if (hotkeyManager != null)
+        {
+            _ = Task.Run(() => hotkeyManager.UnregisterAll());
+        }
+
+        session.StartRecording();
+        _activeHotkeyRecorder = session;
+        ShowHotkeyFeedback(string.Empty, isError: false);
+        RenderKeystrokeRecorderVisual(button, tokenPanel, session);
+        button.Focus(FocusState.Programmatic);
+        ResetHotkeyRecordTimeoutTimer();
+    }
+
+    private void CancelActiveHotkeyRecording(bool restoreHotkeys, string? feedbackKey)
+    {
+        StopHotkeyRecordTimeoutTimer();
+        var active = _activeHotkeyRecorder;
+        _activeHotkeyRecorder = null;
+
+        if (active != null && active.IsRecording)
+        {
+            active.Cancel();
+        }
+
+        RenderKeystrokeRecorderVisual(TxtModalHotkeyGlow, PanelHotkeyGlowTokens, _glowHotkeyRecorder);
+        RenderKeystrokeRecorderVisual(TxtModalHotkeyLyrics, PanelHotkeyLyricsTokens, _lyricsHotkeyRecorder);
+
+        if (restoreHotkeys)
+        {
+            ApplyHotkeysFromSettings();
+        }
+
+        if (!string.IsNullOrEmpty(feedbackKey))
+        {
+            ShowHotkeyFeedback(LocalizationService.Instance[feedbackKey], isError: false);
+        }
+    }
+
+    private void ResetHotkeyRecordTimeoutTimer()
+    {
+        if (DispatcherQueue == null) return;
+
+        if (_hotkeyRecordTimeoutTimer == null)
+        {
+            _hotkeyRecordTimeoutTimer = DispatcherQueue.CreateTimer();
+            _hotkeyRecordTimeoutTimer.Interval = _glowHotkeyRecorder.TimeoutDuration;
+            _hotkeyRecordTimeoutTimer.IsRepeating = false;
+            _hotkeyRecordTimeoutTimer.Tick += (_, _) =>
+            {
+                if (!IsHotkeyRecordingActive) return;
+                _activeHotkeyRecorder?.HandleTimeout();
+                _activeHotkeyRecorder = null;
+                RenderKeystrokeRecorderVisual(TxtModalHotkeyGlow, PanelHotkeyGlowTokens, _glowHotkeyRecorder);
+                RenderKeystrokeRecorderVisual(TxtModalHotkeyLyrics, PanelHotkeyLyricsTokens, _lyricsHotkeyRecorder);
+                ApplyHotkeysFromSettings();
+                ShowHotkeyFeedback(LocalizationService.Instance["Hotkey_Timeout"], isError: false);
+            };
+        }
+
+        _hotkeyRecordTimeoutTimer.Stop();
+        _hotkeyRecordTimeoutTimer.Start();
+    }
+
+    private void StopHotkeyRecordTimeoutTimer()
+    {
+        _hotkeyRecordTimeoutTimer?.Stop();
+    }
+
+    private void RenderKeystrokeRecorderVisual(Button? button, StackPanel? panel, KeystrokeRecorderSession session)
+    {
+        if (button == null || panel == null) return;
+
+        var loc = LocalizationService.Instance;
+        var resources = Application.Current.Resources;
+
+        if (session.IsRecording)
+        {
+            if (resources.TryGetValue("AccentFillColorDefaultBrush", out var acc) && acc is Brush accBrush)
+                button.BorderBrush = accBrush;
+            button.BorderThickness = new Thickness(1.5);
+        }
+        else
+        {
+            if (resources.TryGetValue("ControlStrokeColorDefaultBrush", out var stroke) && stroke is Brush strokeBrush)
+                button.BorderBrush = strokeBrush;
+            button.BorderThickness = new Thickness(1);
+        }
+
+        panel.Children.Clear();
+        var tokens = session.GetVisualTokens();
+
+        if (tokens.Count == 0)
+        {
+            var placeholder = new TextBlock
+            {
+                Text = session.IsRecording ? loc["Hotkey_RecordingPrompt"] : loc["Hotkey_ClickToRecord"],
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                Opacity = session.IsRecording ? 0.92 : 0.65
+            };
+            if (session.IsRecording && resources.TryGetValue("AccentTextFillColorPrimaryBrush", out var recFg) && recFg is Brush recFgBrush)
+            {
+                placeholder.Foreground = recFgBrush;
+            }
+            else if (resources.TryGetValue("TextFillColorSecondaryBrush", out var secFg) && secFg is Brush secFgBrush)
+            {
+                placeholder.Foreground = secFgBrush;
+            }
+            panel.Children.Add(placeholder);
+            return;
+        }
+
+        for (int i = 0; i < tokens.Count; i++)
+        {
+            var token = tokens[i];
+
+            if (!session.IsRecording && i > 0)
+            {
+                var plus = new TextBlock
+                {
+                    Text = "+",
+                    FontSize = 11.5,
+                    Opacity = 0.6,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                panel.Children.Add(plus);
+            }
+
+            var keycap = new Border
+            {
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(7, 2, 7, 2),
+                BorderThickness = new Thickness(1),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var label = new TextBlock
+            {
+                Text = token.Label,
+                FontSize = 12,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            if (token.IsActivePressed)
+            {
+                if (resources.TryGetValue("AccentFillColorDefaultBrush", out var activeBg) && activeBg is Brush activeBgBrush)
+                {
+                    keycap.Background = activeBgBrush;
+                    keycap.BorderBrush = activeBgBrush;
+                }
+                if (resources.TryGetValue("TextOnAccentFillColorPrimaryBrush", out var activeFg) && activeFg is Brush activeFgBrush)
+                {
+                    label.Foreground = activeFgBrush;
+                }
+            }
+            else
+            {
+                if (resources.TryGetValue("SubtleFillColorSecondaryBrush", out var idleBg) && idleBg is Brush idleBgBrush)
+                {
+                    keycap.Background = idleBgBrush;
+                }
+                if (resources.TryGetValue("ControlStrokeColorDefaultBrush", out var idleBorder) && idleBorder is Brush idleBorderBrush)
+                {
+                    keycap.BorderBrush = idleBorderBrush;
+                }
+                if (resources.TryGetValue("TextFillColorPrimaryBrush", out var idleFg) && idleFg is Brush idleFgBrush)
+                {
+                    label.Foreground = idleFgBrush;
+                }
+            }
+
+            keycap.Child = label;
+            panel.Children.Add(keycap);
+        }
+    }
+
+    /// <summary>
+    /// Validates, detects internal conflicts, registers with Windows global hotkey manager,
+    /// and persists keyboard shortcuts cleanly without blocking the UI thread.
+    /// Rolls back and shows clear user feedback if validation or OS registration fails.
+    /// </summary>
+    private async Task<bool> SaveAndApplyHotkeysAsync()
+    {
+        var loc = LocalizationService.Instance;
+        string rawGlow = _glowHotkeyRecorder.CurrentGesture?.Trim() ?? string.Empty;
+        string rawLyrics = _lyricsHotkeyRecorder.CurrentGesture?.Trim() ?? string.Empty;
+
+        // 1. Syntax & supported key validation
+        if (!HotkeyValidator.IsValidGesture(rawGlow, out var glowErr))
+        {
+            ShowHotkeyFeedback(glowErr ?? loc["Hotkey_InvalidError"], isError: true);
+            return false;
+        }
+        if (!HotkeyValidator.IsValidGesture(rawLyrics, out var lyricsErr))
+        {
+            ShowHotkeyFeedback(lyricsErr ?? loc["Hotkey_InvalidError"], isError: true);
+            return false;
+        }
+
+        string normGlow = HotkeyValidator.NormalizeGesture(rawGlow);
+        string normLyrics = HotkeyValidator.NormalizeGesture(rawLyrics);
+
+        var candidate = new HotkeySettings
+        {
+            ToggleGlow = normGlow,
+            ToggleLyrics = normLyrics,
+            ToggleClickThrough = _settingsManager.Current.Hotkeys.ToggleClickThrough
+        };
+
+        // 2. Internal conflict check
+        if (!HotkeyValidator.CheckInternalCollisions(candidate, out var collisionErr))
+        {
+            ShowHotkeyFeedback(collisionErr ?? loc["Hotkey_ConflictError"], isError: true);
+            return false;
+        }
+
+        // 3. Register with Windows Global Hotkey Manager off the UI thread so UI never freezes
+        var previous = new HotkeySettings
+        {
+            ToggleGlow = _settingsManager.Current.Hotkeys.ToggleGlow,
+            ToggleLyrics = _settingsManager.Current.Hotkeys.ToggleLyrics,
+            ToggleClickThrough = _settingsManager.Current.Hotkeys.ToggleClickThrough
+        };
+
+        var hotkeyManager = App.Services?.GetService(typeof(IGlobalHotkeyManager)) as IGlobalHotkeyManager;
+        bool registeredOk = true;
+        string? registerError = null;
+
+        if (hotkeyManager != null)
+        {
+            if (string.IsNullOrWhiteSpace(candidate.ToggleGlow) && string.IsNullOrWhiteSpace(candidate.ToggleLyrics))
+            {
+                await Task.Run(() => hotkeyManager.UnregisterAll()).ConfigureAwait(true);
+            }
+            else
+            {
+                registeredOk = await Task.Run(() => hotkeyManager.RegisterHotkeys(
+                    candidate,
+                    onGlowToggle: ToggleEdgeGlowFromExternal,
+                    onLyricsToggle: ToggleLyricsPanelFromExternal,
+                    onClickThroughToggle: () => { })).ConfigureAwait(true);
+
+                if (!registeredOk)
+                {
+                    var failedStatus = hotkeyManager.GetStatus()
+                        .FirstOrDefault(s => s.State is HotkeyRegistrationState.Conflict or HotkeyRegistrationState.Failed);
+                    registerError = failedStatus?.ErrorMessage ?? loc["Hotkey_RegisterFailed"];
+
+                    // Roll back OS registration to previous valid hotkeys
+                    await Task.Run(() =>
+                    {
+                        if (string.IsNullOrWhiteSpace(previous.ToggleGlow) && string.IsNullOrWhiteSpace(previous.ToggleLyrics))
+                        {
+                            hotkeyManager.UnregisterAll();
+                        }
+                        else
+                        {
+                            hotkeyManager.RegisterHotkeys(previous, ToggleEdgeGlowFromExternal, ToggleLyricsPanelFromExternal, () => { });
+                        }
+                    }).ConfigureAwait(true);
+                }
+            }
+        }
+
+        if (!registeredOk)
+        {
+            ShowHotkeyFeedback(registerError ?? loc["Hotkey_RegisterFailed"], isError: true);
+            return false;
+        }
+
+        // 4. Persist normalized valid hotkeys cleanly
+        try
+        {
+            _settingsManager.Current.Hotkeys.ToggleGlow = normGlow;
+            _settingsManager.Current.Hotkeys.ToggleLyrics = normLyrics;
+            _glowHotkeyRecorder.SetCommittedGesture(normGlow);
+            _lyricsHotkeyRecorder.SetCommittedGesture(normLyrics);
+            RenderKeystrokeRecorderVisual(TxtModalHotkeyGlow, PanelHotkeyGlowTokens, _glowHotkeyRecorder);
+            RenderKeystrokeRecorderVisual(TxtModalHotkeyLyrics, PanelHotkeyLyricsTokens, _lyricsHotkeyRecorder);
+
+            await _settingsManager.SaveAsync(_settingsManager.Current);
+            ShowHotkeyFeedback(loc["Hotkey_SavedSuccess"], isError: false);
+            _toastManager?.ShowToast(
+                loc["Hotkey_SavedSuccess"],
+                title: loc["Tab_Shortcuts"],
+                severity: InfoBarSeverity.Success);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LocalDiagnosticLogger.LogError("Failed to save keyboard shortcuts", ex);
+            ShowHotkeyFeedback(ex.Message, isError: true);
+            return false;
+        }
+    }
+
+    private void ShowHotkeyFeedback(string message, bool isError)
+    {
+        if (TxtModalHotkeyFeedback == null) return;
+        TxtModalHotkeyFeedback.Text = message;
+        TxtModalHotkeyFeedback.Visibility = string.IsNullOrWhiteSpace(message) ? Visibility.Collapsed : Visibility.Visible;
+        if (Application.Current.Resources.TryGetValue(
+                isError ? "SystemFillColorCriticalBrush" : "LyrowSuccessBrush",
+                out var brushObj) && brushObj is Brush brush)
+        {
+            TxtModalHotkeyFeedback.Foreground = brush;
+        }
     }
 }

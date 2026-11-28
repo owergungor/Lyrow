@@ -93,7 +93,7 @@ public sealed class LyrowSettings
 
     public double ArtworkBackgroundSaturation { get; set; } = 1.0;
 
-    public double ArtworkCornerRadius { get; set; } = 12.0;
+    public double ArtworkCornerRadius { get; set; } = 24.0;
 
     public int SeekStepSeconds { get; set; } = 5;
 

@@ -153,8 +153,8 @@ public class Stage6VerificationTests
             s.FocusedLyricFontSize = 32;
             // 5. Lyrics unfocused font size
             s.UnfocusedLyricFontSize = 22;
-            // 6. Lyrics sync offset
-            s.Lyrics.SyncOffsetMs = 150;
+            // 6. Lyrics preferred provider
+            s.Lyrics.PreferredProvider = "Lrclib";
             // 7. Glow thickness
             s.GlowThickness = 36;
             // 8. Glow intensity
@@ -191,7 +191,7 @@ public class Stage6VerificationTests
             reloaded.MasterOpacity.Should().Be(0.82);
             reloaded.FocusedLyricFontSize.Should().Be(32);
             reloaded.UnfocusedLyricFontSize.Should().Be(22);
-            reloaded.Lyrics.SyncOffsetMs.Should().Be(150);
+            reloaded.Lyrics.PreferredProvider.Should().Be("Lrclib");
             reloaded.GlowThickness.Should().Be(36);
             reloaded.GlowIntensity.Should().Be(65);
             reloaded.Glow.Sensitivity.Should().Be(3.2f);

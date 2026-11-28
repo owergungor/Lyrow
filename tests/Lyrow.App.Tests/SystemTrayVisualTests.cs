@@ -91,4 +91,18 @@ public class SystemTrayVisualTests
         var distinct = new System.Collections.Generic.HashSet<int>(commands);
         Assert.Equal(commands.Length, distinct.Count);
     }
+
+    [Fact]
+    public void SystemTrayManager_DisplayNameAndTooltip_IsStrictlyLyrow()
+    {
+        Assert.Equal("Lyrow", LyrowTrayIconManager.TrayDisplayName);
+
+        string repoRoot = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        string traySource = System.IO.File.ReadAllText(System.IO.Path.Combine(repoRoot, "src", "Lyrow.App", "Platform", "LyrowTrayIconManager.cs"));
+
+        Assert.DoesNotContain("Lyrow — Ambient Lighting & Synchronized Lyrics", traySource);
+        Assert.DoesNotContain("LyrowTrayListener", traySource);
+        Assert.DoesNotContain("szTip = _nowPlayingText", traySource);
+        Assert.Contains("szTip = TrayDisplayName", traySource);
+    }
 }

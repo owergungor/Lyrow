@@ -15,281 +15,579 @@
     <Grid x:Name="WelcomeRootLayout" Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Custom WinUI 3 TitleBar with Lyrow Brand Identity -->
+        <!-- 0. Custom WinUI 3 TitleBar -->
         <TitleBar x:Name="WelcomeTitleBar" Grid.Row="0" Canvas.ZIndex="100">
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="Assets/lyrow.ico" />
             </TitleBar.IconSource>
         </TitleBar>
 
-        <!-- Full Single-Screen Content (ScrollViewer only as safety on extreme small screens) -->
-        <ScrollViewer x:Name="WelcomeScrollViewer" Grid.Row="1"
-                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                      Padding="32,0,32,16">
-            <Grid x:Name="WelcomeContentHost" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
-                <Grid.RenderTransform>
-                    <TranslateTransform x:Name="WelcomeContentTranslate" Y="0" />
-                </Grid.RenderTransform>
-
-                <!-- 1. Brand Header (Logo + Wordmark) -->
-                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="9" HorizontalAlignment="Center" Margin="0,0,0,-4">
+        <!-- 1. Brand Header + Full-Width Responsive 5-Tab Stepper + Progress Indicator (Zero Horizontal Overflow) -->
+        <Border x:Name="WelcomeHeaderBorder" Grid.Row="1" Padding="24,4,24,10" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+            <StackPanel Spacing="10">
+                <!-- Row A: Brand Identity -->
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <Image Width="24" Height="24" Stretch="Uniform" VerticalAlignment="Center" AutomationProperties.Name="Lyrow Logo">
                         <Image.Source>
                             <BitmapImage UriSource="ms-appx:///Assets/lyrow-logo-300.png" DecodePixelWidth="64" />
                         </Image.Source>
                     </Image>
                     <TextBlock Text="Lyrow" FontSize="16" FontWeight="SemiBold" CharacterSpacing="20" VerticalAlignment="Center" />
+                    <Border CornerRadius="4" Padding="6,1" Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" VerticalAlignment="Center">
+                        <TextBlock Text="v5.0" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Border>
                 </StackPanel>
 
-                <!-- 2. CINEMATIC HERO STAGE (V2 Immersive Music Experience Preserved) -->
-                <Grid Grid.Row="1" Height="224" HorizontalAlignment="Stretch">
-                    <!-- Outer 4-Edge Sound-Reactive Edge Light Aura Frame -->
-                    <Border x:Name="EdgeLightAuraOuter" CornerRadius="18" Padding="2">
+                <!-- Row B: Equal-Column 5-Tab Horizontal Stepper (Always fits strictly inside window width) -->
+                <Grid x:Name="WelcomeStepperBar" ColumnDefinitions="*,*,*,*,*" ColumnSpacing="6" HorizontalAlignment="Stretch">
+                    <Button x:Name="BtnWelcomeTab0" Grid.Column="0" Tag="0" Height="32" Padding="6,0" CornerRadius="16" BorderThickness="1"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinWidth="0" AutomationProperties.Name="Start Tab">
+                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <Border x:Name="BadgeWelcomeTab0" Width="18" Height="18" CornerRadius="9" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                                <TextBlock Text="1" FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock x:Name="TxtWelcomeTab0" Text="Start" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="BtnWelcomeTab1" Grid.Column="1" Tag="1" Height="32" Padding="6,0" CornerRadius="16" BorderThickness="1"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinWidth="0" AutomationProperties.Name="Appearance Tab">
+                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <Border x:Name="BadgeWelcomeTab1" Width="18" Height="18" CornerRadius="9" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                                <TextBlock Text="2" FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock x:Name="TxtWelcomeTab1" Text="Appearance" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="BtnWelcomeTab2" Grid.Column="2" Tag="2" Height="32" Padding="6,0" CornerRadius="16" BorderThickness="1"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinWidth="0" AutomationProperties.Name="Music Reactivity Tab">
+                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <Border x:Name="BadgeWelcomeTab2" Width="18" Height="18" CornerRadius="9" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                                <TextBlock Text="3" FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock x:Name="TxtWelcomeTab2" Text="Music Reactivity" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="BtnWelcomeTab3" Grid.Column="3" Tag="3" Height="32" Padding="6,0" CornerRadius="16" BorderThickness="1"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinWidth="0" AutomationProperties.Name="Shortcuts Tab">
+                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <Border x:Name="BadgeWelcomeTab3" Width="18" Height="18" CornerRadius="9" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                                <TextBlock Text="4" FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock x:Name="TxtWelcomeTab3" Text="Shortcuts" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="BtnWelcomeTab4" Grid.Column="4" Tag="4" Height="32" Padding="6,0" CornerRadius="16" BorderThickness="1"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinWidth="0" AutomationProperties.Name="Finish Tab">
+                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <Border x:Name="BadgeWelcomeTab4" Width="18" Height="18" CornerRadius="9" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                                <TextBlock Text="5" FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock x:Name="TxtWelcomeTab4" Text="Finish" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <!-- Sleek Step Progress Bar -->
+                <ProgressBar x:Name="WelcomeProgressBar" Minimum="0" Maximum="100" Value="20" Height="3" CornerRadius="1.5" HorizontalAlignment="Stretch" />
+            </StackPanel>
+        </Border>
+
+        <!-- 2. Responsive Scrollable Tab Content Stage (HorizontalScrollMode strictly Disabled) -->
+        <ScrollViewer x:Name="WelcomeScrollViewer" Grid.Row="2"
+                      VerticalScrollMode="Enabled"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollMode="Disabled"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="24,18,24,18">
+            <Grid x:Name="WelcomeContentHost" MaxWidth="760" HorizontalAlignment="Center" VerticalAlignment="Top" RenderTransformOrigin="0.5,0.5">
+                <Grid.RenderTransform>
+                    <TranslateTransform x:Name="WelcomeContentTranslate" Y="0" />
+                </Grid.RenderTransform>
+
+                <!-- ========================================================= -->
+                <!-- TAB 0: BAŞLANGIÇ (Dil + Tema Kartları)                     -->
+                <!-- ========================================================= -->
+                <StackPanel x:Name="PanelWelcomeTabStart" Spacing="18" Visibility="Visible">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="TxtV4StartTitle" Text="Welcome to Lyrow" FontSize="26" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock x:Name="TxtV4StartSubtitle" Text="Choose your language and theme to personalize your listening space."
+                                   FontSize="13.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <!-- Language Selection Card (Responsive 2-col -> stacked on narrow viewports) -->
+                    <Border CornerRadius="12" Padding="16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <Grid x:Name="GridWelcomeLanguageRow" ColumnSpacing="14" RowSpacing="10" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition x:Name="ColWelcomeLanguageCombo" Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <FontIcon Grid.Row="0" Grid.Column="0" Glyph="&#xF2B7;" FontSize="18" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Row="0" Grid.Column="1" Spacing="2" VerticalAlignment="Center" MinWidth="0">
+                                <TextBlock x:Name="TxtPrefLanguageLabel" Text="Language" FontSize="14.5" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock x:Name="TxtPrefLanguageDesc" Text="Interface display language" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <ComboBox x:Name="ComboWelcomeLanguage" Grid.Row="0" Grid.Column="2"
+                                      MinWidth="150" MaxWidth="210" Height="36"
+                                      HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                      AutomationProperties.Name="Language Selector" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Visual Theme Selection Cards (Responsive 3-col -> 1-col stack on narrow viewports) -->
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="TxtPrefThemeLabel" Text="Theme" FontSize="14.5" FontWeight="SemiBold" />
+                        <Grid x:Name="GridWelcomeThemeCards" ColumnSpacing="12" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition x:Name="ColTheme0" Width="*" />
+                                <ColumnDefinition x:Name="ColTheme1" Width="*" />
+                                <ColumnDefinition x:Name="ColTheme2" Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- System Theme Card -->
+                            <Button x:Name="BtnWelcomeThemeSystem" Grid.Row="0" Grid.Column="0"
+                                    MinWidth="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                                    Padding="12" CornerRadius="12" BorderThickness="1.5"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    AutomationProperties.Name="System Theme">
+                                <StackPanel Spacing="10">
+                                    <Border Height="64" CornerRadius="8" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                        <Grid ColumnDefinitions="*,*">
+                                            <Border Grid.Column="0" CornerRadius="7,0,0,7" Background="#FF111827">
+                                                <StackPanel Margin="8" Spacing="5" VerticalAlignment="Center">
+                                                    <Border Height="6" Margin="0,0,10,0" CornerRadius="3" Background="#FF38BDF8" HorizontalAlignment="Stretch" />
+                                                    <Border Height="4" Margin="0,0,20,0" CornerRadius="2" Background="#66FFFFFF" HorizontalAlignment="Stretch" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="1" CornerRadius="0,7,7,0" Background="#FFF1F5F9">
+                                                <StackPanel Margin="8" Spacing="5" VerticalAlignment="Center">
+                                                    <Border Height="6" Margin="0,0,10,0" CornerRadius="3" Background="#FF1E66F5" HorizontalAlignment="Stretch" />
+                                                    <Border Height="4" Margin="0,0,20,0" CornerRadius="2" Background="#660F172A" HorizontalAlignment="Stretch" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                    <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
+                                        <FontIcon Glyph="&#xE770;" FontSize="14" />
+                                        <TextBlock x:Name="TxtWelcomeThemeSystem" Text="System" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Dark Theme Card -->
+                            <Button x:Name="BtnWelcomeThemeDark" Grid.Row="0" Grid.Column="1"
+                                    MinWidth="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                                    Padding="12" CornerRadius="12" BorderThickness="1.5"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    AutomationProperties.Name="Dark Theme">
+                                <StackPanel Spacing="10">
+                                    <Border Height="64" CornerRadius="8" Background="#FF0F172A" BorderBrush="#33FFFFFF" BorderThickness="1">
+                                        <StackPanel Margin="10" Spacing="6" VerticalAlignment="Center">
+                                            <Border Height="7" Margin="0,0,24,0" CornerRadius="3.5" Background="#FF38BDF8" HorizontalAlignment="Stretch" />
+                                            <Border Height="5" Margin="0,0,40,0" CornerRadius="2.5" Background="#55FFFFFF" HorizontalAlignment="Stretch" />
+                                            <Border Height="5" Margin="0,0,54,0" CornerRadius="2.5" Background="#33FFFFFF" HorizontalAlignment="Stretch" />
+                                        </StackPanel>
+                                    </Border>
+                                    <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
+                                        <FontIcon Glyph="&#xE708;" FontSize="14" />
+                                        <TextBlock x:Name="TxtWelcomeThemeDark" Text="Dark" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Light Theme Card -->
+                            <Button x:Name="BtnWelcomeThemeLight" Grid.Row="0" Grid.Column="2"
+                                    MinWidth="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                                    Padding="12" CornerRadius="12" BorderThickness="1.5"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    AutomationProperties.Name="Light Theme">
+                                <StackPanel Spacing="10">
+                                    <Border Height="64" CornerRadius="8" Background="#FFF8FAFC" BorderBrush="#260F172A" BorderThickness="1">
+                                        <StackPanel Margin="10" Spacing="6" VerticalAlignment="Center">
+                                            <Border Height="7" Margin="0,0,24,0" CornerRadius="3.5" Background="#FF1E66F5" HorizontalAlignment="Stretch" />
+                                            <Border Height="5" Margin="0,0,40,0" CornerRadius="2.5" Background="#550F172A" HorizontalAlignment="Stretch" />
+                                            <Border Height="5" Margin="0,0,54,0" CornerRadius="2.5" Background="#330F172A" HorizontalAlignment="Stretch" />
+                                        </StackPanel>
+                                    </Border>
+                                    <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
+                                        <FontIcon Glyph="&#xE706;" FontSize="14" />
+                                        <TextBlock x:Name="TxtWelcomeThemeLight" Text="Light" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ========================================================= -->
+                <!-- TAB 1: GÖRÜNÜM (Kenar Işığı + Dinamik Arka Plan + Önizleme) -->
+                <!-- ========================================================= -->
+                <StackPanel x:Name="PanelWelcomeTabAppearance" Spacing="10" Visibility="Collapsed">
+                    <StackPanel Spacing="2">
+                        <TextBlock x:Name="TxtV4AppearanceTitle" Text="Visual Atmosphere" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock x:Name="TxtV4AppearanceSubtitle" Text="Shape how Lyrow illuminates your screen while music plays."
+                                   FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <!-- Live Visual Preview Stage (Compact vertical footprint so all controls fit without clipping) -->
+                    <Border x:Name="EdgeLightAuraOuter" Height="114" CornerRadius="14" Padding="2">
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#CC06B6D4" Offset="0.0" />
-                                <GradientStop Color="#AA3B82F6" Offset="0.35" />
-                                <GradientStop Color="#BB8B5CF6" Offset="0.7" />
-                                <GradientStop Color="#CC22D3EE" Offset="1.0" />
+                                <GradientStop Color="#DD06B6D4" Offset="0.0" />
+                                <GradientStop Color="#BB3B82F6" Offset="0.4" />
+                                <GradientStop Color="#CC8B5CF6" Offset="0.75" />
+                                <GradientStop Color="#DD22D3EE" Offset="1.0" />
                             </LinearGradientBrush>
                         </Border.Background>
-
-                        <!-- Inner Deep Atmospheric Stage -->
-                        <Border CornerRadius="16" Background="#0A0E1A">
+                        <Border CornerRadius="12" Background="#FF0B1020">
                             <Grid>
-                                <!-- Layer 1: Dynamic Music Atmosphere Gradient -->
-                                <Border CornerRadius="16">
+                                <Border x:Name="AmbientBloomLayer" CornerRadius="12" Opacity="0.80">
                                     <Border.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#FF081226" Offset="0.0" />
-                                            <GradientStop Color="#FF0F1B3D" Offset="0.48" />
-                                            <GradientStop Color="#FF1A1438" Offset="1.0" />
-                                        </LinearGradientBrush>
-                                    </Border.Background>
-                                </Border>
-
-                                <!-- Layer 2: Soft Brand Wave Artwork -->
-                                <Border CornerRadius="16">
-                                    <Image Stretch="UniformToFill" Opacity="0.38" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <Image.Source>
-                                            <BitmapImage UriSource="ms-appx:///Assets/lyrow-welcome-hero.png" DecodePixelWidth="960" />
-                                        </Image.Source>
-                                    </Image>
-                                </Border>
-
-                                <!-- Layer 3: Controlled Ambient Light Blooms -->
-                                <Border x:Name="AmbientBloomLayer" CornerRadius="16" Opacity="0.82">
-                                    <Border.Background>
-                                        <RadialGradientBrush Center="0.22,0.52" GradientOrigin="0.22,0.52" RadiusX="0.52" RadiusY="0.72">
+                                        <RadialGradientBrush Center="0.22,0.5" RadiusX="0.55" RadiusY="0.75">
                                             <GradientStop Color="#6606B6D4" Offset="0.0" />
-                                            <GradientStop Color="#223B82F6" Offset="0.55" />
-                                            <GradientStop Color="#000A0E1A" Offset="1.0" />
+                                            <GradientStop Color="#000B1020" Offset="1.0" />
                                         </RadialGradientBrush>
                                     </Border.Background>
                                 </Border>
-                                <Border x:Name="AmbientBloomLayerRight" CornerRadius="16" Opacity="0.70">
+                                <Border x:Name="AmbientBloomLayerRight" CornerRadius="12" Opacity="0.75">
                                     <Border.Background>
-                                        <RadialGradientBrush Center="0.82,0.38" GradientOrigin="0.82,0.38" RadiusX="0.48" RadiusY="0.70">
-                                            <GradientStop Color="#558B5CF6" Offset="0.0" />
-                                            <GradientStop Color="#1A6366F1" Offset="0.55" />
-                                            <GradientStop Color="#000A0E1A" Offset="1.0" />
+                                        <RadialGradientBrush Center="0.80,0.4" RadiusX="0.52" RadiusY="0.72">
+                                            <GradientStop Color="#668B5CF6" Offset="0.0" />
+                                            <GradientStop Color="#000B1020" Offset="1.0" />
                                         </RadialGradientBrush>
                                     </Border.Background>
                                 </Border>
-
-                                <!-- Layer 4: Subtle Inner Edge-Light Rim Glow -->
-                                <Border x:Name="EdgeLightInnerRim" CornerRadius="16" BorderThickness="1.5" Opacity="0.55">
+                                <Border x:Name="EdgeLightInnerRim" CornerRadius="12" BorderThickness="1.5" Opacity="0.65">
                                     <Border.BorderBrush>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#9967E8F9" Offset="0.0" />
-                                            <GradientStop Color="#55A78BFA" Offset="0.5" />
-                                            <GradientStop Color="#9938BDF8" Offset="1.0" />
+                                            <GradientStop Color="#AA67E8F9" Offset="0.0" />
+                                            <GradientStop Color="#66A78BFA" Offset="0.5" />
+                                            <GradientStop Color="#AA38BDF8" Offset="1.0" />
                                         </LinearGradientBrush>
                                     </Border.BorderBrush>
                                 </Border>
-
-                                <!-- Layer 5: Floating Frosted-Glass Lyrow Live Preview Window -->
-                                <Border Margin="24,16" CornerRadius="14"
-                                        Background="#B80D1324"
-                                        BorderBrush="#36FFFFFF" BorderThickness="1"
-                                        Padding="20,14">
-                                    <Grid ColumnDefinitions="204,*" ColumnSpacing="24" VerticalAlignment="Center">
-                                        <!-- Left Column: Album Art + Track Info + Live Sound Spectrum -->
-                                        <StackPanel Grid.Column="0" Spacing="8" VerticalAlignment="Center">
-                                            <Border Width="96" Height="96" CornerRadius="11" HorizontalAlignment="Left"
-                                                    BorderBrush="#4467E8F9" BorderThickness="1">
-                                                <Border.Background>
-                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                        <GradientStop Color="#FF0E2A47" Offset="0.0" />
-                                                        <GradientStop Color="#FF1E3A8A" Offset="0.52" />
-                                                        <GradientStop Color="#FF4C1D95" Offset="1.0" />
-                                                    </LinearGradientBrush>
-                                                </Border.Background>
-                                                <Grid>
-                                                    <Border CornerRadius="10">
-                                                        <Border.Background>
-                                                            <RadialGradientBrush Center="0.5,0.5" RadiusX="0.65" RadiusY="0.65">
-                                                                <GradientStop Color="#5522D3EE" Offset="0.0" />
-                                                                <GradientStop Color="#00000000" Offset="1.0" />
-                                                            </RadialGradientBrush>
-                                                        </Border.Background>
-                                                    </Border>
-                                                    <Image Width="54" Height="54" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <Image.Source>
-                                                            <BitmapImage UriSource="ms-appx:///Assets/lyrow-logo-300.png" DecodePixelWidth="128" />
-                                                        </Image.Source>
-                                                    </Image>
-                                                </Grid>
-                                            </Border>
-
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                                <StackPanel Grid.Column="0" Spacing="1">
-                                                    <TextBlock x:Name="TxtPreviewTrackTitle" Text="Midnight Horizon"
-                                                               FontSize="13" FontWeight="SemiBold" Foreground="#FFF8FAFC"
-                                                               TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock x:Name="TxtPreviewArtist" Text="Lyrow Atmosphere"
-                                                               FontSize="11" Foreground="#99CBD5E1"
-                                                               TextTrimming="CharacterEllipsis" />
-                                                </StackPanel>
-
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3" VerticalAlignment="Bottom" Height="18" Margin="0,0,2,2">
-                                                    <Border x:Name="EqBar1" Width="3" Height="9" CornerRadius="1.5" Background="#FF38BDF8" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
-                                                        <Border.RenderTransform><ScaleTransform x:Name="EqScale1" ScaleY="1" /></Border.RenderTransform>
-                                                    </Border>
-                                                    <Border x:Name="EqBar2" Width="3" Height="15" CornerRadius="1.5" Background="#FF22D3EE" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
-                                                        <Border.RenderTransform><ScaleTransform x:Name="EqScale2" ScaleY="1" /></Border.RenderTransform>
-                                                    </Border>
-                                                    <Border x:Name="EqBar3" Width="3" Height="12" CornerRadius="1.5" Background="#FF818CF8" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
-                                                        <Border.RenderTransform><ScaleTransform x:Name="EqScale3" ScaleY="1" /></Border.RenderTransform>
-                                                    </Border>
-                                                    <Border x:Name="EqBar4" Width="3" Height="17" CornerRadius="1.5" Background="#FFA78BFA" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
-                                                        <Border.RenderTransform><ScaleTransform x:Name="EqScale4" ScaleY="1" /></Border.RenderTransform>
-                                                    </Border>
-                                                    <Border x:Name="EqBar5" Width="3" Height="8" CornerRadius="1.5" Background="#FF38BDF8" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
-                                                        <Border.RenderTransform><ScaleTransform x:Name="EqScale5" ScaleY="1" /></Border.RenderTransform>
-                                                    </Border>
-                                                </StackPanel>
-                                            </Grid>
-
-                                            <Grid Height="3" CornerRadius="1.5" Background="#28FFFFFF">
-                                                <Border Width="114" HorizontalAlignment="Left" CornerRadius="1.5">
-                                                    <Border.Background>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                            <GradientStop Color="#FF22D3EE" Offset="0.0" />
-                                                            <GradientStop Color="#FF818CF8" Offset="1.0" />
-                                                        </LinearGradientBrush>
-                                                    </Border.Background>
-                                                </Border>
-                                            </Grid>
-                                        </StackPanel>
-
-                                        <!-- Right Column: Real-Time Synchronized Lyrics Showcase -->
-                                        <StackPanel Grid.Column="1" Spacing="7" VerticalAlignment="Center">
-                                            <TextBlock x:Name="TxtPreviewLyricPrev"
-                                                       Text="Feel the rhythm drift into the night"
-                                                       FontSize="12.5" Foreground="#59E2E8F0" TextWrapping="Wrap" />
-
-                                            <Border CornerRadius="8" Padding="10,6" Margin="-10,0,0,0" Background="#1E38BDF8" BorderBrush="#3367E8F9" BorderThickness="1">
-                                                <TextBlock x:Name="TxtPreviewLyricActive"
-                                                           Text="Every note lights up the room"
-                                                           FontSize="16" FontWeight="SemiBold" Foreground="#FFFFFFFF" TextWrapping="Wrap" />
-                                            </Border>
-
-                                            <TextBlock x:Name="TxtPreviewLyricNext"
-                                                       Text="Lost inside the sound and glow"
-                                                       FontSize="13" Foreground="#88E2E8F0" TextWrapping="Wrap" />
-
-                                            <TextBlock x:Name="TxtPreviewLyricLater"
-                                                       Text="Where your music comes alive"
-                                                       FontSize="12" Foreground="#40CBD5E1" TextWrapping="Wrap" />
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
+                                <Grid Margin="16,10" ColumnDefinitions="Auto,*" ColumnSpacing="14" VerticalAlignment="Center">
+                                    <Border Grid.Column="0" Width="58" Height="58" CornerRadius="10" BorderBrush="#44FFFFFF" BorderThickness="1">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                <GradientStop Color="#FF0E2A47" Offset="0.0" />
+                                                <GradientStop Color="#FF1E3A8A" Offset="0.5" />
+                                                <GradientStop Color="#FF4C1D95" Offset="1.0" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <Image Width="32" Height="32" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Image.Source>
+                                                <BitmapImage UriSource="ms-appx:///Assets/lyrow-logo-300.png" DecodePixelWidth="96" />
+                                            </Image.Source>
+                                        </Image>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center" MinWidth="0">
+                                        <TextBlock x:Name="TxtPreviewLyricPrev" Text="Feel the rhythm drift into the night" FontSize="11.5" Foreground="#66E2E8F0" TextWrapping="Wrap" />
+                                        <TextBlock x:Name="TxtPreviewLyricActive" Text="Every note lights up the room" FontSize="15" FontWeight="SemiBold" Foreground="#FFFFFFFF" TextWrapping="Wrap" />
+                                        <TextBlock x:Name="TxtPreviewLyricNext" Text="Lost inside the sound and glow" FontSize="11.5" Foreground="#88E2E8F0" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Grid>
                             </Grid>
                         </Border>
                     </Border>
-                </Grid>
 
-                <!-- 3. Headline & Single-Sentence Value Proposition -->
-                <StackPanel Grid.Row="2" Spacing="3" HorizontalAlignment="Center">
-                    <TextBlock x:Name="TxtWelcomeHeadline"
-                               Text="Your Music Comes to Life."
-                               FontSize="23" FontWeight="SemiBold"
-                               HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
-                    <TextBlock x:Name="TxtWelcomeSubtitle"
-                               Text="Lyrics, visuals and sound-reactive effects — together in one experience."
-                               FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="640" />
+                    <!-- Appearance Toggle Cards (Compact vertical padding) -->
+                    <Border CornerRadius="10" Padding="14,10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+                            <FontIcon Grid.Column="0" Glyph="&#xE793;" FontSize="17" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Spacing="1" MinWidth="0">
+                                <TextBlock x:Name="TxtWelcomeEdgeLightTitle" Text="Edge Light" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock x:Name="TxtWelcomeEdgeLightDesc" Text="Surrounds your screen edges with a soft glow that dances to your music."
+                                           FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="ToggleWelcomeEdgeLight" Grid.Column="2" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center"
+                                          AutomationProperties.Name="Edge Light" />
+                        </Grid>
+                    </Border>
+
+                    <Border CornerRadius="10" Padding="14,10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+                            <FontIcon Grid.Column="0" Glyph="&#xE790;" FontSize="17" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Spacing="1" MinWidth="0">
+                                <TextBlock x:Name="TxtWelcomeDynamicBgTitle" Text="Dynamic Background" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock x:Name="TxtWelcomeDynamicBgDesc" Text="Blends album artwork colors into a living, adaptive backdrop."
+                                           FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="ToggleWelcomeDynamicBg" Grid.Column="2" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center"
+                                          AutomationProperties.Name="Dynamic Background" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
 
-                <!-- 4. Compact, Unified Windows 11 Fluent Preferences Bar (No bulky cards) -->
-                <Border Grid.Row="3" CornerRadius="12" Padding="18,10"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                    <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="16" VerticalAlignment="Center">
-                        <!-- Column 0: Language Segmented Selector -->
-                        <StackPanel Grid.Column="0" Spacing="5" VerticalAlignment="Center">
-                            <TextBlock x:Name="TxtPrefLanguageLabel" Text="Language" FontSize="11.5" FontWeight="SemiBold"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <Border CornerRadius="8" Padding="3" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                                <StackPanel Orientation="Horizontal" Spacing="3">
-                                    <Button x:Name="BtnWelcomeLangTr" Content="Türkçe" Height="28" Padding="12,0" FontSize="12" CornerRadius="6"
-                                            BorderThickness="1" AutomationProperties.Name="Türkçe" />
-                                    <Button x:Name="BtnWelcomeLangEn" Content="English" Height="28" Padding="12,0" FontSize="12" CornerRadius="6"
-                                            BorderThickness="1" AutomationProperties.Name="English" />
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
+                <!-- ========================================================= -->
+                <!-- TAB 2: MÜZİĞE TEPKİ (Sakin / Dengeli / Belirgin + Önizleme) -->
+                <!-- ========================================================= -->
+                <StackPanel x:Name="PanelWelcomeTabReactivity" Spacing="16" Visibility="Collapsed">
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="TxtV4ReactivityTitle" Text="Music Reactivity Sensitivity" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock x:Name="TxtV4ReactivitySubtitle" Text="Controls how Lyrow responds to rhythm and sound changes."
+                                   FontSize="13.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
 
-                        <!-- Divider -->
-                        <Border Grid.Column="1" Width="1" Height="40" VerticalAlignment="Center" Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+                    <!-- Live Music Reactivity Visualizer Preview -->
+                    <Border CornerRadius="14" MinHeight="96" Padding="20,14" Background="#FF0D1324" BorderBrush="#3367E8F9" BorderThickness="1">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" VerticalAlignment="Center">
+                            <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center" MinWidth="0">
+                                <TextBlock x:Name="TxtReactivityPreviewTitle" Text="Balanced" FontSize="16" FontWeight="SemiBold" Foreground="#FFFFFFFF" TextWrapping="Wrap" />
+                                <TextBlock x:Name="TxtReactivityPreviewDesc" Text="Ideal balance between rhythm response and smooth color flow."
+                                           FontSize="12.5" Foreground="#B8CBD5E1" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Height="48">
+                                <Border Width="5" Height="22" CornerRadius="2.5" Background="#FF38BDF8" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
+                                    <Border.RenderTransform><ScaleTransform x:Name="ReactivityEqScale1" ScaleY="1" /></Border.RenderTransform>
+                                </Border>
+                                <Border Width="5" Height="34" CornerRadius="2.5" Background="#FF22D3EE" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
+                                    <Border.RenderTransform><ScaleTransform x:Name="ReactivityEqScale2" ScaleY="1" /></Border.RenderTransform>
+                                </Border>
+                                <Border Width="5" Height="42" CornerRadius="2.5" Background="#FF60A5FA" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
+                                    <Border.RenderTransform><ScaleTransform x:Name="ReactivityEqScale3" ScaleY="1" /></Border.RenderTransform>
+                                </Border>
+                                <Border Width="5" Height="30" CornerRadius="2.5" Background="#FF818CF8" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
+                                    <Border.RenderTransform><ScaleTransform x:Name="ReactivityEqScale4" ScaleY="1" /></Border.RenderTransform>
+                                </Border>
+                                <Border Width="5" Height="44" CornerRadius="2.5" Background="#FFA78BFA" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
+                                    <Border.RenderTransform><ScaleTransform x:Name="ReactivityEqScale5" ScaleY="1" /></Border.RenderTransform>
+                                </Border>
+                                <Border Width="5" Height="32" CornerRadius="2.5" Background="#FF38BDF8" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
+                                    <Border.RenderTransform><ScaleTransform x:Name="ReactivityEqScale6" ScaleY="1" /></Border.RenderTransform>
+                                </Border>
+                                <Border Width="5" Height="20" CornerRadius="2.5" Background="#FF22D3EE" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
+                                    <Border.RenderTransform><ScaleTransform x:Name="ReactivityEqScale7" ScaleY="1" /></Border.RenderTransform>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
 
-                        <!-- Column 2: Theme Segmented Selector -->
-                        <StackPanel Grid.Column="2" Spacing="5" VerticalAlignment="Center">
-                            <TextBlock x:Name="TxtPrefThemeLabel" Text="Theme" FontSize="11.5" FontWeight="SemiBold"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <Border CornerRadius="8" Padding="3" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                                <StackPanel Orientation="Horizontal" Spacing="3">
-                                    <Button x:Name="BtnWelcomeThemeSystem" Content="System" Height="28" Padding="11,0" FontSize="12" CornerRadius="6"
-                                            BorderThickness="1" AutomationProperties.Name="System Theme" />
-                                    <Button x:Name="BtnWelcomeThemeDark" Content="Dark" Height="28" Padding="11,0" FontSize="12" CornerRadius="6"
-                                            BorderThickness="1" AutomationProperties.Name="Dark Theme" />
-                                    <Button x:Name="BtnWelcomeThemeLight" Content="Light" Height="28" Padding="11,0" FontSize="12" CornerRadius="6"
-                                            BorderThickness="1" AutomationProperties.Name="Light Theme" />
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
+                    <!-- Three User-Friendly Sensitivity Cards (Responsive 3-col -> 1-col stack) -->
+                    <Grid x:Name="GridWelcomeReactivityCards" ColumnSpacing="12" RowSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="ColSens0" Width="*" />
+                            <ColumnDefinition x:Name="ColSens1" Width="*" />
+                            <ColumnDefinition x:Name="ColSens2" Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                        <!-- Divider -->
-                        <Border Grid.Column="3" Width="1" Height="40" VerticalAlignment="Center" Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+                        <Button x:Name="BtnWelcomeSensCalm" Grid.Row="0" Grid.Column="0" Tag="4096"
+                                MinWidth="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top"
+                                Padding="14,12" CornerRadius="12" BorderThickness="1.5"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                AutomationProperties.Name="Calm Music Reactivity">
+                            <StackPanel Spacing="6">
+                                <FontIcon Glyph="&#xE945;" FontSize="17" HorizontalAlignment="Left" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                <TextBlock x:Name="TxtWelcomeSensCalm" Text="Calm" FontSize="14.5" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock x:Name="TxtWelcomeSensCalmDesc" Text="Smoother, gentler, and more relaxed rhythm transitions."
+                                           FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Button>
 
-                        <!-- Column 4: Music Experience Compact Toggles -->
-                        <StackPanel Grid.Column="4" Spacing="5" VerticalAlignment="Center">
-                            <TextBlock x:Name="TxtPrefExperienceLabel" Text="Music Experience" FontSize="11.5" FontWeight="SemiBold"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <StackPanel Orientation="Horizontal" Spacing="16" Height="34" VerticalAlignment="Center">
-                                <CheckBox x:Name="ChkWelcomeEdgeLight" Content="Edge Light" MinWidth="0" FontSize="12.5" VerticalAlignment="Center"
-                                          AutomationProperties.Name="Edge Light" />
-                                <CheckBox x:Name="ChkWelcomeDynamicBg" Content="Dynamic Background" MinWidth="0" FontSize="12.5" VerticalAlignment="Center"
-                                          AutomationProperties.Name="Dynamic Background" />
+                        <Button x:Name="BtnWelcomeSensBalanced" Grid.Row="0" Grid.Column="1" Tag="2048"
+                                MinWidth="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top"
+                                Padding="14,12" CornerRadius="12" BorderThickness="1.5"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                AutomationProperties.Name="Balanced Music Reactivity">
+                            <StackPanel Spacing="6">
+                                <FontIcon Glyph="&#xE767;" FontSize="17" HorizontalAlignment="Left" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                <TextBlock x:Name="TxtWelcomeSensBalanced" Text="Balanced" FontSize="14.5" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock x:Name="TxtWelcomeSensBalancedDesc" Text="Ideal balance between rhythm response and smooth color flow."
+                                           FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="BtnWelcomeSensExpressive" Grid.Row="0" Grid.Column="2" Tag="1024"
+                                MinWidth="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top"
+                                Padding="14,12" CornerRadius="12" BorderThickness="1.5"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                AutomationProperties.Name="Expressive Music Reactivity">
+                            <StackPanel Spacing="6">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                    <FontIcon Grid.Column="0" Glyph="&#xE945;" FontSize="17" HorizontalAlignment="Left" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                                    <Border x:Name="BadgeWelcomeSensRecommended" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            CornerRadius="10" Padding="8,2" Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                        <TextBlock x:Name="TxtWelcomeSensRecommended" Text="Recommended" FontSize="10.5" FontWeight="SemiBold"
+                                                   Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock x:Name="TxtWelcomeSensExpressive" Text="Expressive" FontSize="14.5" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock x:Name="TxtWelcomeSensExpressiveDesc" Text="Fastest and most energetic reaction to every beat."
+                                           FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+
+                <!-- ========================================================= -->
+                <!-- TAB 3: KLAVYE KISAYOLLARI (Gerçek Keystroke Recorder)      -->
+                <!-- ========================================================= -->
+                <StackPanel x:Name="PanelWelcomeTabShortcuts" Spacing="16" Visibility="Collapsed">
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="TxtV4ShortcutsTitle" Text="Keyboard Shortcuts" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock x:Name="TxtV4ShortcutsSubtitle" Text="Click a field and press your desired key combination, or keep the defaults."
+                                   FontSize="13.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Border CornerRadius="12" Padding="18,16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <StackPanel Spacing="14">
+                            <!-- Shortcut 1: Toggle Edge Light -->
+                            <Grid x:Name="GridWelcomeShortcutRowGlow" ColumnSpacing="14" RowSpacing="8" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition x:Name="ColShortcutGlowBtn" Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <FontIcon Grid.Row="0" Grid.Column="0" Glyph="&#xE765;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="TxtWelcomeShortcutGlowLabel" Grid.Row="0" Grid.Column="1" Text="Toggle Edge Light" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                <Button x:Name="BtnWelcomeHotkeyGlow" Grid.Row="0" Grid.Column="2"
+                                        MinWidth="180" Height="36" Padding="10,0" CornerRadius="6"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                        Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        AutomationProperties.Name="Welcome Hotkey Glow">
+                                    <StackPanel x:Name="PanelWelcomeHotkeyGlowTokens" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" />
+                                </Button>
+                            </Grid>
+
+                            <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+
+                            <!-- Shortcut 2: Toggle Lyrics -->
+                            <Grid x:Name="GridWelcomeShortcutRowLyrics" ColumnSpacing="14" RowSpacing="8" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition x:Name="ColShortcutLyricsBtn" Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <FontIcon Grid.Row="0" Grid.Column="0" Glyph="&#xE765;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="TxtWelcomeShortcutLyricsLabel" Grid.Row="0" Grid.Column="1" Text="Toggle Lyrics" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                <Button x:Name="BtnWelcomeHotkeyLyrics" Grid.Row="0" Grid.Column="2"
+                                        MinWidth="180" Height="36" Padding="10,0" CornerRadius="6"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                        Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        AutomationProperties.Name="Welcome Hotkey Lyrics">
+                                    <StackPanel x:Name="PanelWelcomeHotkeyLyricsTokens" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" />
+                                </Button>
+                            </Grid>
+
+                            <TextBlock x:Name="TxtWelcomeHotkeyFeedback" Text="" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed" />
+
+                            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" Margin="0,4,0,0">
+                                <Button x:Name="BtnWelcomeDefaultShortcuts" Content="Use Default Shortcuts" AutomationProperties.Name="Use Default Shortcuts" />
                             </StackPanel>
                         </StackPanel>
-                    </Grid>
-                </Border>
+                    </Border>
+                </StackPanel>
 
-                <!-- 5. Single Prominent Primary CTA -->
-                <StackPanel Grid.Row="4" HorizontalAlignment="Center" Margin="0,4,0,2">
+                <!-- ========================================================= -->
+                <!-- TAB 4: TAMAMLA (Özet + Tek Ana Buton: Lyrow'u Başlat)      -->
+                <!-- ========================================================= -->
+                <StackPanel x:Name="PanelWelcomeTabFinish" Spacing="18" Visibility="Collapsed">
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="TxtV4FinishTitle" Text="Ready to Listen" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock x:Name="TxtV4FinishSubtitle" Text="Review your preferences below. You can change any of them later in Settings."
+                                   FontSize="13.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <!-- Responsive 2-Column -> 1-Column Preference Summary Card -->
+                    <Border CornerRadius="12" Padding="18,16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <Grid x:Name="GridWelcomeSummary" ColumnSpacing="20" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition x:Name="ColSummary0" Width="*" />
+                                <ColumnDefinition x:Name="ColSummary1" Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel x:Name="PanelSummaryLanguage" Grid.Row="0" Grid.Column="0" Spacing="2" MinWidth="0">
+                                <TextBlock x:Name="TxtSummaryLanguageKey" Text="Language" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="TxtSummaryLanguageVal" Text="English" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel x:Name="PanelSummaryTheme" Grid.Row="0" Grid.Column="1" Spacing="2" MinWidth="0">
+                                <TextBlock x:Name="TxtSummaryThemeKey" Text="Theme" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="TxtSummaryThemeVal" Text="System" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <StackPanel x:Name="PanelSummaryEdgeLight" Grid.Row="1" Grid.Column="0" Spacing="2" MinWidth="0">
+                                <TextBlock x:Name="TxtSummaryEdgeLightKey" Text="Edge Light" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="TxtSummaryEdgeLightVal" Text="Enabled" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel x:Name="PanelSummaryDynamicBg" Grid.Row="1" Grid.Column="1" Spacing="2" MinWidth="0">
+                                <TextBlock x:Name="TxtSummaryDynamicBgKey" Text="Dynamic Background" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="TxtSummaryDynamicBgVal" Text="Enabled" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <StackPanel x:Name="PanelSummaryReactivity" Grid.Row="2" Grid.Column="0" Spacing="2" MinWidth="0">
+                                <TextBlock x:Name="TxtSummaryReactivityKey" Text="Music Reactivity Sensitivity" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="TxtSummaryReactivityVal" Text="Balanced" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel x:Name="PanelSummaryShortcuts" Grid.Row="2" Grid.Column="1" Spacing="2" MinWidth="0">
+                                <TextBlock x:Name="TxtSummaryShortcutsKey" Text="Keyboard Shortcuts" FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="TxtSummaryShortcutsVal" Text="Ctrl+Alt+G / Ctrl+Alt+L" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Save / Validation Error Banner -->
+                    <TextBlock x:Name="TxtWelcomeSaveError" Text="" FontSize="12.5" Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                               TextWrapping="Wrap" HorizontalAlignment="Center" Visibility="Collapsed" />
+
+                    <!-- Single Prominent Primary Launch CTA -->
                     <Button x:Name="BtnWelcomeStartListening"
-                            MinWidth="268" Height="44" CornerRadius="22" Padding="28,0"
+                            MinWidth="240" MaxWidth="340" Height="44" CornerRadius="22" Padding="24,0"
                             BorderThickness="1" BorderBrush="#5567E8F9"
                             Foreground="#FFFFFFFF"
                             HorizontalAlignment="Center"
-                            AutomationProperties.Name="Start Listening">
+                            AutomationProperties.Name="Launch Lyrow">
                         <Button.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                 <GradientStop Color="#FF0284C7" Offset="0.0" />
@@ -299,11 +597,31 @@
                         </Button.Background>
                         <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <FontIcon Glyph="&#xE768;" FontSize="13" Foreground="#FFFFFFFF" VerticalAlignment="Center" />
-                            <TextBlock x:Name="TxtBtnStartListening" Text="Start Listening" FontSize="15" FontWeight="SemiBold" Foreground="#FFFFFFFF" VerticalAlignment="Center" />
+                            <TextBlock x:Name="TxtBtnStartListening" Text="Launch Lyrow" FontSize="15" FontWeight="SemiBold" Foreground="#FFFFFFFF" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
             </Grid>
         </ScrollViewer>
+
+        <!-- 3. Bottom Navigation Footer (Use Defaults + Back / Next) -->
+        <Border x:Name="WelcomeFooterBorder" Grid.Row="3" Padding="24,10,24,14" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <Button x:Name="BtnWelcomeUseDefaults" Grid.Column="0" Content="Use Defaults"
+                        Style="{StaticResource LyrowGhostButtonStyle}" Padding="12,6" Height="34"
+                        AutomationProperties.Name="Use Defaults" />
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="BtnWelcomeBack" Content="Back" MinWidth="84" Height="34" Visibility="Collapsed"
+                            AutomationProperties.Name="Previous Step" />
+                    <Button x:Name="BtnWelcomeNext" Content="Next" MinWidth="96" Height="34"
+                            Style="{ThemeResource AccentButtonStyle}"
+                            AutomationProperties.Name="Next Step" />
+                    <Button x:Name="BtnWelcomeFinishFooter" Content="Start" MinWidth="96" Height="34" Visibility="Collapsed"
+                            Style="{ThemeResource AccentButtonStyle}"
+                            AutomationProperties.Name="Start Lyrow" />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

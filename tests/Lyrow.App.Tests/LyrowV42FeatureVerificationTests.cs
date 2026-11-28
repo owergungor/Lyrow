@@ -169,12 +169,13 @@ public sealed class LyrowV42FeatureVerificationTests
         // Windows 11 two-pane sidebar + independent scrollable content + 7 canonical tab accent indicator pills
         xaml.Should().Contain("x:Name=\"SettingsModalSidebar\"");
         xaml.Should().Contain("x:Name=\"ColSettingsSidebar\"");
+        xaml.Should().Contain("x:Name=\"NavIndicatorOverview\"");
         xaml.Should().Contain("x:Name=\"NavIndicatorGeneral\"");
         xaml.Should().Contain("x:Name=\"NavIndicatorAppearance\"");
         xaml.Should().Contain("x:Name=\"NavIndicatorLighting\"");
         xaml.Should().Contain("x:Name=\"NavIndicatorLyrics\"");
         xaml.Should().Contain("x:Name=\"NavIndicatorSystem\"");
-        xaml.Should().Contain("x:Name=\"NavIndicatorUpdates\"");
+        xaml.Should().NotContain("x:Name=\"NavIndicatorUpdates\"");
         xaml.Should().Contain("x:Name=\"NavIndicatorAbout\"");
         xaml.Should().Contain("x:Name=\"SettingsModalScrollViewer\"");
         xaml.Should().NotContain("BtnModalTabAll");

@@ -10,11 +10,11 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011%20Native-08a1f7?logo=windows)](https://microsoft.com/windows)
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![UI](https://img.shields.io/badge/UI-WinUI%203%20%2F%20Windows%20App%20SDK%201.8-03c1f4?logo=windows)](https://learn.microsoft.com/windows/apps/winui/winui3/)
-[![Release](https://img.shields.io/badge/Release-v4.7-success)](https://github.com/owergungor/Lyrow/releases/tag/v4.7)
-[![Tests](https://img.shields.io/badge/Tests-752%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
+[![Release](https://img.shields.io/badge/Release-v5.0-success)](https://github.com/owergungor/Lyrow/releases/tag/v5.0)
+[![Tests](https://img.shields.io/badge/Tests-851%20Passed-brightgreen)](https://github.com/owergungor/Lyrow/actions)
 [![License](https://img.shields.io/badge/License-MIT-750014.svg)](LICENSE)
 
-**Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; çalan şarkının albüm kapağı renklerinden pastel atmosfer oluşturan **Albüme Uyarlanan Açık Tema (Album-Adaptive Light Theme)**, sinematik canlı önizlemeli **tek ekranlı ve tek butonlu Welcome deneyimi**, doğrudan birincil pencere olarak açılan senkronize şarkı sözleri arayüzü, albüm kapağına göre renk değiştiren 4 kenarlı Kenar Işığı (Edge Light), 7 sekmeli Windows 11 Fluent Design ayarlar modalı ve kompakt Dar Mod (Mini Player) sunar.
+**Lyrow**, Windows 10 ve 11 için geliştirilmiş, müzik dinleme deneyimini görsel bir atmosfere dönüştüren yerel bir masaüstü uygulamasıdır. **WinUI 3 ve Windows App SDK** mimarisi üzerinde çalışan Lyrow; **hece, kelime, satır ve asenkron** destekli çoklu sağlayıcılı şarkı sözü senkronizasyon motoru, 6 noktalı sürükle-bırak kaynak önceliği ve anlık kaynak etiketi (`WEB`, `APL`, `BLU`, `LRC`, `QQ`, `NTE`...), 5 adımlı **Welcome V4** ilk kurulum deneyimi, albüm kapağına göre pastel atmosfer oluşturan **Albüme Uyarlanan Açık Tema**, 4 kenarlı Kenar Işığı (Edge Light), 7 sekmeli Windows 11 Fluent Design ayarlar modalı ve kompakt Dar Mod (Mini Player) sunar.
 
 🌐 **Proje & İndirme Sayfası:** [owergungor.github.io/Lyrow](https://owergungor.github.io/Lyrow/)
 
@@ -22,22 +22,25 @@
 
 ## 📥 İndirme ve Kurulum
 
-### Güncel Sürüm: [Lyrow v4.7](https://github.com/owergungor/Lyrow/releases/tag/v4.7) (Windows x64 — EXE & MSIX)
+### Güncel Sürüm: [Lyrow v5.0](https://github.com/owergungor/Lyrow/releases/tag/v5.0) (Windows x64 — EXE & MSIX)
 
 | Dağıtım Türü | Dosya | Boyut | SHA-256 Doğrulama Özeti |
 |---|---|---|---|
-| **Windows Installer (.exe)** — Standart Windows kurulumu | [Lyrow-4.7-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/download/v4.7/Lyrow-4.7-Setup-x64.exe) | 64.77 MB | `87345799863E402DAA89D87E65E5E3C383CA373AA8008BB4A98D9D6963002FF6` |
-| **Microsoft Store Package (.msix)** — MSIX destekli Windows kurulumu | [Lyrow-v4.7-x64.msix](https://github.com/owergungor/Lyrow/releases/download/v4.7/Lyrow-v4.7-x64.msix) *(imzasız)* | 94.80 MB | `2963AF8C886CAA79A428071843B497DE0E99EB554331FD1006136A4E50FF264F` |
+| **Windows Installer (.exe)** — Standart Windows kurulumu | [Lyrow-5.0-Setup-x64.exe](https://github.com/owergungor/Lyrow/releases/download/v5.0/Lyrow-5.0-Setup-x64.exe) | 64.84 MB | `05E0F41212FDFBEE1760A2F3B68C3AF1B7DE4D5668FEC40661FB6033BC72638E` |
+| **Microsoft Store Package (.msix)** — MSIX destekli Windows kurulumu | [Lyrow-v5.0-x64.msix](https://github.com/owergungor/Lyrow/releases/download/v5.0/Lyrow-v5.0-x64.msix) *(imzasız)* | 94.88 MB | `C339EB87D4E936D142A9B44699B052874BF5EAAF5420517759382465498747BC` |
 
 > [!NOTE]
 > Lyrow bağımsız (self-contained) bir Windows x64 uygulamasıdır; çalışmak için harici bir .NET Runtime veya Windows App SDK kurulumu gerektirmez. Standart kurulum için **Windows Installer (.exe)** dosyasını çalıştırmanız yeterlidir. **Microsoft Store Package (.msix)** (`crius.Lyrow` / `crius`) şu anda **imzasız** olarak sunulmaktadır ve henüz Microsoft Store'da yayımlanmamıştır; yerel yan yükleme için güvenilen bir kod imzalama sertifikasıyla imzalanması gerekir.
 
-### v4.7 Öne Çıkan Yenilikler
-- **Albüme Uyarlanan Açık Tema (Album-Adaptive Light Theme):** Açık tema artık düz beyaz veya gri değil; çalan şarkının albüm kapağından çıkarılan baskın renkler yumuşak pastel tonlara (lavanta, buz mavisi, gül kurusu, adaçayı, sıcak krem/amber) dönüştürülerek şarkı değiştikçe 60 FPS yumuşak geçişle ana pencere ve Mini Player arka planına yayılır. Aktif ve pasif şarkı sözleri ile 7 sekmeli Ayarlar modalı Açık temada yüksek kontrastla okunur.
-- **Sinematik Tek Butonlu Welcome Deneyimi:** İlk açılışta Lyrow'un canlı şarkı sözü, dinamik atmosfer ve Kenar Işığı deneyimini gösteren tek ekranlı sinematik karşılama penceresi açılır. Alt çubuktan **Dil** (`Türkçe` / `English`), **Tema** (`Sistem` / `Koyu` / `Açık`), **Kenar Işığı** ve **Dinamik Arka Plan** tercihleri canlı önizlemeyle seçilip tek ana aksiyon olan **Dinlemeye Başla / Start Listening** ile kaydedilir.
+### v5.0 Öne Çıkan Yenilikler
+- **Çoklu Sağlayıcılı Gelişmiş Şarkı Sözü Senkronizasyonu (`LyricsSyncEngine`):** Better Lyrics (TTML), LiriQo (Apple Music, QQ Music, NetEase, KuGou, Kuwo, Migu, PetitLyrics), Better Lyrics Unison ve LRCLIB kaynaklarını paralel sorgular; gerçek zamanlama kalitesini (`Hece → Kelime → Satır → Asenkron`) otomatik seçip aşamalı olarak yükseltir.
+- **6 Noktalı Sürükle-Bırak Kaynak Sıralaması & Kaynak Etiketi:** Ayarlar > Şarkı Sözleri bölümünde sağlayıcı önceliği 6 noktalı tutamaçla sürüklenerek sıralanır; normal ve kompakt şarkı sözü görünümünde kullanılan gerçek kaynağın kodu (`WEB`, `APL`, `BLU`, `LRC`, `QQ`, `NTE`, `KG`, `KW`, `MG`, `PL`) sade bir etiket olarak gösterilir. Manuel ms zamanlama ayarı kaldırılarak deneyim sadeleştirildi.
+- **Welcome V4 İlk Kurulum Deneyimi:** Responsive 5 adımlı Fluent ilk kurulum ekranı; yeni kurulumlarda Müziğe Tepki hassasiyeti varsayılan olarak **Belirgin (Önerilen)** seçili gelir, mevcut kullanıcı tercihleri korunur.
+- **Kısayol Tuş Kaydedici, Kalan Süre & Sistem Tepsisi İyileştirmeleri:** Ayarlar > Kısayollar bölümünde doğrudan tuş kombinasyonu kaydedici, GSMTC `StartTime`/`EndTime`/`MaxSeekTime` doğrulamasıyla hassas kalan süre gösterimi, satıra tıklayarak güvenilir seek ve sadeleştirilmiş `Lyrow` sistem tepsisi adı.
 
 ### Yayınlanmış Kararlı Sürümler (Sürüm Geçmişi)
 GitHub Releases üzerinde yayında olan önceki sürümler:
+- **v4.7 Sürümü (Setup EXE, MSIX):** [Lyrow v4.7](https://github.com/owergungor/Lyrow/releases/tag/v4.7)
 - **v4.6 Sürümü:** [Lyrow v4.6](https://github.com/owergungor/Lyrow/releases/tag/v4.6)
 - **v4.5 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.5](https://github.com/owergungor/Lyrow/releases/tag/v4.5)
 - **v4.4 Sürümü (Setup EXE, Portable ZIP, MSIX):** [Lyrow v4.4](https://github.com/owergungor/Lyrow/releases/tag/v4.4)

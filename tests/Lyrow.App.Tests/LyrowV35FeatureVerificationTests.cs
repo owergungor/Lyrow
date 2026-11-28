@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -79,16 +79,16 @@ public class LyrowV35FeatureVerificationTests
     [Fact]
     public void StrictV35VersioningTests_AllArtifactsMatch35()
     {
-        GitHubUpdateService.AppVersion.Should().Be("4.7");
+        GitHubUpdateService.AppVersion.Should().Be("5.0");
         GitHubUpdateService.IsValidTwoPartVersionTag("v3.5").Should().BeTrue();
         GitHubUpdateService.IsValidTwoPartVersionTag("v3.5.0").Should().BeFalse();
         GitHubUpdateService.IsNewerVersion("3.4", "3.5").Should().BeTrue();
 
         string repoRoot = FindRepoRoot();
-        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<Version>4.7</Version>");
-        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<FileVersion>4.7.0.0</FileVersion>");
-        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<AssemblyVersion>4.7.0.0</AssemblyVersion>");
-        File.ReadAllText(Path.Combine(repoRoot, "installer", "setup.iss")).Should().Contain("#define MyAppVersion \"4.7\"");
+        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<Version>5.0</Version>");
+        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<FileVersion>5.0.0.0</FileVersion>");
+        File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props")).Should().Contain("<AssemblyVersion>5.0.0.0</AssemblyVersion>");
+        File.ReadAllText(Path.Combine(repoRoot, "installer", "setup.iss")).Should().Contain("#define MyAppVersion \"5.0\"");
         File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "app.manifest")).Should().Contain("version=\"3.5.0.0\"");
         File.ReadAllText(Path.Combine(repoRoot, ".github", "workflows", "release.yml")).Should().Contain("default: 'v3.5'");
         File.Exists(Path.Combine(repoRoot, "docs", "RELEASE_NOTES_v3.5.md")).Should().BeTrue();

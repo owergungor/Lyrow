@@ -78,10 +78,9 @@ public sealed class LyrowV36FeatureVerificationTests
         string repoRoot = FindRepoRoot();
         string lyricsWindowCode = File.ReadAllText(Path.Combine(repoRoot, "src", "Lyrow.App", "LyricsWindow.xaml.cs"));
 
-        // Verify that SeekToLyricLineAsync adjusts target position by SyncOffsetMs
-        lyricsWindowCode.Should().Contain("int offsetMs = _lyricsModule.Synchronizer.SyncOffsetMs;");
-        lyricsWindowCode.Should().Contain("timestamp -= TimeSpan.FromMilliseconds(offsetMs);");
-        lyricsWindowCode.Should().Contain("await _mediaMonitor.TrySeekAsync(timestamp);");
+        // Verify that SeekToLyricLineIndexAsync resolves target position via LyricLineClickCoordinator
+        lyricsWindowCode.Should().Contain("LyricLineClickCoordinator.ResolveSeekTarget(");
+        lyricsWindowCode.Should().Contain("await _mediaMonitor.TrySeekAsync(resolved.SeekTimestamp);");
     }
 
     [Fact]

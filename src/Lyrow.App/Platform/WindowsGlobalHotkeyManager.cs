@@ -329,13 +329,31 @@ public sealed class WindowsGlobalHotkeyManager : IGlobalHotkeyManager
             return true;
         }
 
-        if (keyToken.StartsWith('F') && int.TryParse(keyToken[1..], out int fIndex) && fIndex >= 1 && fIndex <= 12)
+        if (keyToken.StartsWith('F') && int.TryParse(keyToken[1..], out int fIndex) && fIndex >= 1 && fIndex <= 24)
         {
-            vk = (uint)(0x70 + (fIndex - 1)); // VK_F1 = 0x70
+            vk = (uint)(0x70 + (fIndex - 1)); // VK_F1 = 0x70 .. VK_F24 = 0x87
             return true;
         }
 
-        return false;
+        vk = keyToken switch
+        {
+            "SPACE" => 0x20,
+            "TAB" => 0x09,
+            "ENTER" or "RETURN" => 0x0D,
+            "PAGEUP" or "PAGE UP" or "PGUP" => 0x21,
+            "PAGEDOWN" or "PAGE DOWN" or "PGDN" => 0x22,
+            "END" => 0x23,
+            "HOME" => 0x24,
+            "LEFT" => 0x25,
+            "UP" => 0x26,
+            "RIGHT" => 0x27,
+            "DOWN" => 0x28,
+            "INSERT" or "INS" => 0x2D,
+            "DELETE" or "DEL" => 0x2E,
+            _ => 0u
+        };
+
+        return vk != 0;
     }
 
     public void UnregisterAll()

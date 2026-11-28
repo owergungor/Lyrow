@@ -152,7 +152,7 @@ public class LyrowIdentityAndDesktopExperienceTests
         var settings = LyrowSettings.CreateDefault();
 
         settings.ArtworkBackgroundSaturation.Should().Be(1.0);
-        settings.ArtworkCornerRadius.Should().Be(12.0);
+        settings.ArtworkCornerRadius.Should().Be(24.0);
         settings.SeekStepSeconds.Should().Be(5);
         settings.AutoPauseOnMute.Should().BeFalse();
 

@@ -118,8 +118,9 @@ public sealed class PlaybackTimelineEngine : IPlaybackTimelineEngine
 
     public static string FormatRemaining(TimeSpan remaining)
     {
-        if (remaining <= TimeSpan.Zero) return "-0:00";
+        if (remaining <= TimeSpan.Zero) return "0:00";
         var rounded = TimeSpan.FromSeconds(Math.Round(remaining.TotalSeconds, MidpointRounding.AwayFromZero));
+        if (rounded <= TimeSpan.Zero) return "0:00";
         return rounded.TotalHours >= 1 ? $"-{rounded:h\\:mm\\:ss}" : $"-{rounded:m\\:ss}";
     }
 
@@ -157,13 +158,14 @@ public sealed class PlaybackTimelineEngine : IPlaybackTimelineEngine
                 bool isSameTrack = !string.IsNullOrEmpty(_currentTrackId) &&
                                    string.Equals(incomingTrackId, _currentTrackId, StringComparison.OrdinalIgnoreCase);
 
+                var sanitizedDuration = track.Duration > TimeSpan.Zero ? track.Duration : TimeSpan.Zero;
                 if (isSameTrack)
                 {
                     // Secondary metadata / thumbnail / duration enrichment for active track:
                     // Preserve current position, anchor, and interpolation state!
-                    if (track.Duration > TimeSpan.Zero && _currentTrackDuration <= TimeSpan.Zero)
+                    if (sanitizedDuration > TimeSpan.Zero && _currentTrackDuration <= TimeSpan.Zero)
                     {
-                        _currentTrackDuration = track.Duration;
+                        _currentTrackDuration = sanitizedDuration;
                     }
                     snapshot = CreateSnapshotLocked(DateTime.UtcNow);
                 }
@@ -185,7 +187,7 @@ public sealed class PlaybackTimelineEngine : IPlaybackTimelineEngine
                     }
 
                     _currentTrackId = incomingTrackId;
-                    _currentTrackDuration = track.Duration;
+                    _currentTrackDuration = sanitizedDuration;
                     _anchorPosition = TimeSpan.Zero;
                     _lastAnchorUtc = nowUtc;
                     _trackSwitchUtc = nowUtc;
@@ -318,7 +320,9 @@ public sealed class PlaybackTimelineEngine : IPlaybackTimelineEngine
             _lastAnchorUtc = nowUtc;
             _lastSeekUtc = nowUtc;
             _lastSeekTarget = clamped;
-            if (_playbackStatus != MediaPlaybackStatus.Stopped && _playbackStatus != MediaPlaybackStatus.Closed)
+            if (_playbackStatus == MediaPlaybackStatus.Changing ||
+                _playbackStatus == MediaPlaybackStatus.Opened ||
+                _playbackStatus == MediaPlaybackStatus.Unknown)
             {
                 _playbackStatus = MediaPlaybackStatus.Playing;
             }

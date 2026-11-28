@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.0] - 2026-11-28
+
+### Added
+- **Gelişmiş Şarkı Sözü Senkronizasyon Motoru (`LyricsSyncEngine`):** Tekil oynatma zaman ekseni (`_timelineEngine`) üzerinden O(log N) hızında ve kare başına sıfır bellek tahsisiyle (0 byte/frame) aktif hece, kelime ve satır segmentlerini hesaplayan yüksek hassasiyetli senkronizasyon motoru eklendi.
+- **Çoklu Sağlayıcı Orkestratörü & LiriQo Entegrasyonu (`MultiProviderLyricsOrchestrator`, `TtmlLyricsParser`, `BetterLyricsClient`, `LiriQoClient`, `LrclibSyncProvider`):** Better Lyrics (TTML hece/kelime), Apple Music / QQ Music / NetEase / KuGou / Kuwo / Migu / PetitLyrics (LiriQo), Better Lyrics Unison ve LRCLIB kaynaklarını paralel sorgular ve aşamalı olarak en yüksek gerçek zamanlama kalitesine (`Hece → Kelime → Satır → Asenkron`) yükseltir.
+- **6 Noktalı Sürükle-Bırak Kaynak Önceliği & Canlı Kaynak Etiketi (`LyricsSourceBadgeFormatter`):** Ayarlar > Şarkı Sözleri bölümünde sağlayıcı önceliği sürükle-bırak ile kalıcı olarak sıralanabilir; normal ve kompakt şarkı sözü alanlarında aktif sağlayıcının kısa kodu (`WEB`, `APL`, `SPT`, `BLU`, `LRC`, `QQ`, `NTE`, `KG`, `KW`, `MG`, `PL`) sade bir etiket olarak gösterilir.
+- **Welcome V4 İlk Kurulum Deneyimi (`WelcomeWindow`, `WelcomeResponsiveLayoutCalculator`):** 5 adımlı, yatay taşmasız responsive Fluent ilk kurulum ekranı; yeni kurulumlarda Müziğe Tepki varsayılan olarak **Belirgin (Önerilen)** seçili gelir, mevcut kullanıcı tercihleri korunur.
+- **Kısayol Tuş Kaydedici (`KeystrokeRecorderSession`):** Ayarlar > Kısayollar ekranında doğrudan tuş kombinasyonu kaydederek global kısayol atama ve çakışma doğrulaması.
+- **Güvenilir Satır Tıklama & Kalan Süre Çözümleyici (`LyricLineClickCoordinator`, `GsmtcDurationResolver`):** Canlı indeks tabanlı satır tıklama seek eşleştirmesi, ortak seek sıra koruması (`_activeSeekSequence`), duraklatılmışken seek durumunun korunması ve GSMTC `StartTime`/`EndTime`/`MaxSeekTime` doğrulamasıyla hassas kalan süre gösterimi.
+
+### Changed / Removed
+- **Manuel ms Zamanlama Ayarı Kaldırıldı:** Şarkı sözleri ayarlarındaki manuel `±250 ms` zamanlama kontrolleri ve `SyncOffsetMs` ayarı kaldırıldı (eski `settings.json` dosyalarındaki alan hata vermeden yok sayılır).
+- **Sistem Tepsisi Adı:** Windows bildirim alanındaki simge adı ve tooltip metni `Lyrow` olarak sadeleştirildi.
+- **Hakkında Bölümü:** Gereksiz tanıtım metinleri temizlendi; sürüm, lisans ve güncelleme bilgileri korundu.
+
+### Validation
+- **Birim ve Entegrasyon Testleri (Deterministik/Seri Koşu):** 851 / 851 PASS (`Lyrow.Core.Tests`: 99, `Lyrow.Audio.Tests`: 53, `Lyrow.Music.Tests`: 140, `Lyrow.App.Tests`: 559).
+- **GitHub Release Paketleri:** `Lyrow-5.0-Setup-x64.exe` (`64.84 MB`, SHA-256: `05E0F41212FDFBEE1760A2F3B68C3AF1B7DE4D5668FEC40661FB6033BC72638E`) ve `Lyrow-v5.0-x64.msix` (`94.88 MB`, imzasız, `crius.Lyrow` / `crius`, `5.0.0.0`, SHA-256: `C339EB87D4E936D142A9B44699B052874BF5EAAF5420517759382465498747BC`).
+
+---
+
 ## [4.7.0] - 2026-11-26
 
 ### Added

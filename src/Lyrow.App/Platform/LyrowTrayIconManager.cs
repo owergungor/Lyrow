@@ -299,6 +299,8 @@ public sealed class LyrowTrayIconManager : IDisposable
         _onToggleLyricsFullscreen = onToggleLyricsFullscreen;
     }
 
+    public const string TrayDisplayName = "Lyrow";
+
     public void UpdateNowPlaying(string? title, string? artist, string? album, bool isPlaying, bool isMuted)
     {
         _isPlaying = isPlaying;
@@ -324,7 +326,7 @@ public sealed class LyrowTrayIconManager : IDisposable
                     hWnd = _hwnd,
                     uID = 101,
                     uFlags = NIF_TIP,
-                    szTip = _nowPlayingText.Length > 120 ? _nowPlayingText.Substring(0, 120) : _nowPlayingText
+                    szTip = TrayDisplayName
                 };
                 Shell_NotifyIcon(NIM_MODIFY, ref nid);
             }
@@ -355,7 +357,7 @@ public sealed class LyrowTrayIconManager : IDisposable
         };
 
         RegisterClassEx(ref wcx);
-        _hwnd = CreateWindowEx(0, className, "LyrowTrayListener", 0, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero, wcx.hInstance, IntPtr.Zero);
+        _hwnd = CreateWindowEx(0, className, TrayDisplayName, 0, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero, wcx.hInstance, IntPtr.Zero);
     }
 
     private void CreateTrayIcon()
@@ -376,7 +378,7 @@ public sealed class LyrowTrayIconManager : IDisposable
             uFlags = NIF_MESSAGE | NIF_TIP | (_hIcon != IntPtr.Zero ? NIF_ICON : 0),
             uCallbackMessage = WM_TRAYICON,
             hIcon = _hIcon,
-            szTip = "Lyrow — Ambient Lighting & Synchronized Lyrics"
+            szTip = TrayDisplayName
         };
 
         Shell_NotifyIcon(NIM_ADD, ref nid);

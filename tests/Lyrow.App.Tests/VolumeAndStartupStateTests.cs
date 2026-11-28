@@ -28,7 +28,8 @@ public class VolumeAndStartupStateTests
     [Fact]
     public async Task StartupState_ModulesDefaultToOff_DeterministicSourceOfTruth()
     {
-        var settingsManager = new SettingsManager();
+        string isolatedPath = Path.Combine(Path.GetTempPath(), $"lyrow_startup_default_{Guid.NewGuid():N}.json");
+        var settingsManager = new SettingsManager(isolatedPath);
         var settings = await settingsManager.LoadAsync();
 
         // 1. Persisted defaults must specify OFF for Glow and Lyrics

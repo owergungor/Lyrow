@@ -26,8 +26,8 @@
                     <SolidColorBrush x:Key="LyrowGhostHoverBackgroundBrush" Color="#26FFFFFF" />
                     <SolidColorBrush x:Key="LyrowGhostPressedBackgroundBrush" Color="#3DFFFFFF" />
                     <SolidColorBrush x:Key="LyrowGhostBorderBrush" Color="#2EFFFFFF" />
-                    <SolidColorBrush x:Key="LyrowModalBackdropBrush" Color="#A6000000" />
-                    <SolidColorBrush x:Key="LyrowModalSurfaceBrush" Color="#F2191A24" />
+                    <SolidColorBrush x:Key="LyrowModalBackdropBrush" Color="#59000000" />
+                    <SolidColorBrush x:Key="LyrowModalSurfaceBrush" Color="#FF191A24" />
                     <SolidColorBrush x:Key="LyrowModalBorderBrush" Color="#38FFFFFF" />
                     <SolidColorBrush x:Key="LyrowAmbientScrimBrush" Color="#50000000" />
                     <SolidColorBrush x:Key="LyrowLyricActiveBrush" Color="#FFFFFFFF" />
@@ -54,7 +54,7 @@
                     <SolidColorBrush x:Key="LyrowGhostPressedBackgroundBrush" Color="#280F172A" />
                     <SolidColorBrush x:Key="LyrowGhostBorderBrush" Color="#240F172A" />
                     <SolidColorBrush x:Key="LyrowModalBackdropBrush" Color="#400F172A" />
-                    <SolidColorBrush x:Key="LyrowModalSurfaceBrush" Color="#FCFFFFFF" />
+                    <SolidColorBrush x:Key="LyrowModalSurfaceBrush" Color="#FFFFFFFF" />
                     <SolidColorBrush x:Key="LyrowModalBorderBrush" Color="#240F172A" />
                     <SolidColorBrush x:Key="LyrowAmbientScrimBrush" Color="#B8F8FAFC" />
                     <SolidColorBrush x:Key="LyrowLyricActiveBrush" Color="#FF0B1220" />
@@ -71,7 +71,7 @@
             <CornerRadius x:Key="LyrowCardCornerRadius">12</CornerRadius>
             <CornerRadius x:Key="LyrowControlCornerRadius">8</CornerRadius>
             <CornerRadius x:Key="LyrowPillCornerRadius">20</CornerRadius>
-            <CornerRadius x:Key="LyrowArtworkCornerRadius">12</CornerRadius>
+            <CornerRadius x:Key="LyrowArtworkCornerRadius">24</CornerRadius>
             <CornerRadius x:Key="LyrowBadgeCornerRadius">4</CornerRadius>
 
             <!-- Typography Hierarchy Tokens -->

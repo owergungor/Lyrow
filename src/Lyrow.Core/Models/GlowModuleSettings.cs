@@ -8,9 +8,10 @@ public sealed class GlowModuleSettings
     public bool IsEnabled { get; set; } = false;
 
     /// <summary>
-    /// FFT sample window size (must be a power of two, e.g. 512, 1024, 2048, 4096).
+    /// FFT sample window size (must be a power of two, e.g. 1024=Expressive, 2048=Balanced, 4096=Calm).
+    /// Defaults to 1024 (Expressive / Belirgin) on brand-new installations; existing user preferences are preserved on load.
     /// </summary>
-    public int FftSize { get; set; } = 2048;
+    public int FftSize { get; set; } = 1024;
 
     /// <summary>
     /// Target visualization rendering frame rate (e.g. 30, 60, 120).

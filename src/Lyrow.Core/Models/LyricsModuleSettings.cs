@@ -8,11 +8,6 @@ public sealed class LyricsModuleSettings
     public bool IsEnabled { get; set; } = false;
 
     /// <summary>
-    /// User manual timestamp sync offset in milliseconds (+ delays lyrics, - advances lyrics).
-    /// </summary>
-    public int SyncOffsetMs { get; set; } = 0;
-
-    /// <summary>
     /// Target frame rate for lyrics interpolation & progress update.
     /// </summary>
     public int TargetFps { get; set; } = 30;
@@ -57,4 +52,23 @@ public sealed class LyricsModuleSettings
     /// Defaults to false (OFF) on fresh install; persisted when toggled by user.
     /// </summary>
     public bool LyricsTextGlowEnabled { get; set; } = false;
+
+    /// <summary>
+    /// Preferred lyrics synchronization granularity (Lyrow v5.0).
+    /// Defaults to Automatic so Lyrow selects the highest genuinely supported timing precision.
+    /// </summary>
+    public Lyrow.Core.Lyrics.LyricsSyncMode SyncMode { get; set; } = Lyrow.Core.Lyrics.LyricsSyncMode.Automatic;
+
+    /// <summary>
+    /// Persistent general lyrics source preference ("Auto" or a canonical LyricsProviderId name).
+    /// Independent of the currently playing song; in "Auto" mode, highest genuine sync quality wins.
+    /// </summary>
+    public string PreferredProvider { get; set; } = "Auto";
+
+    /// <summary>
+    /// User-customized drag-and-drop priority order of active lyrics providers.
+    /// Empty uses <see cref="Lyrow.Core.Lyrics.LyricsSourceOrderHelper.DefaultActiveProviderOrder"/>.
+    /// Within equal genuine sync quality, earlier providers take precedence; higher sync quality always wins.
+    /// </summary>
+    public List<string> SourcePriorityOrder { get; set; } = new();
 }

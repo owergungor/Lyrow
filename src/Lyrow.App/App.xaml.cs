@@ -15,7 +15,7 @@ namespace Lyrow.App;
 /// </summary>
 public partial class App : Application
 {
-    public const string CurrentReleaseVersion = "4.7";
+    public const string CurrentReleaseVersion = "5.0";
     public static IServiceProvider Services { get; private set; } = null!;
     public static LyricsWindow? PrimaryWindowInstance { get; private set; }
     public static WelcomeWindow? ActiveWelcomeWindowInstance { get; internal set; }
@@ -359,8 +359,34 @@ public partial class App : Application
             }
             return new Lyrow.Music.Session.SyntheticMediaSessionMonitor();
         });
-        services.AddSingleton<ILyricsClient>(sp => new Lyrow.Music.Lyrics.LrclibClient(
+        services.AddSingleton<Lyrow.Music.Lyrics.LrclibClient>(sp => new Lyrow.Music.Lyrics.LrclibClient(
             normalizer: sp.GetRequiredService<IMediaMetadataNormalizer>()));
+        services.AddSingleton<Lyrow.Core.Lyrics.LyricsProviderPriorityResolver>();
+        services.AddSingleton<Lyrow.Music.Lyrics.MultiProviderLyricsOrchestrator>(sp =>
+        {
+            var normalizer = sp.GetRequiredService<IMediaMetadataNormalizer>();
+            var lrclib = sp.GetRequiredService<Lyrow.Music.Lyrics.LrclibClient>();
+            var providers = new ILyricsSyncProvider[]
+            {
+                new Lyrow.Music.Lyrics.BetterLyricsClient(normalizer: normalizer),
+                new Lyrow.Music.Lyrics.BetterLyricsUnisonClient(normalizer: normalizer),
+                new Lyrow.Music.Lyrics.UnconfiguredSyncProvider(Lyrow.Core.Lyrics.LyricsProviderId.BiniLyrics),
+                new Lyrow.Music.Lyrics.LrclibSyncProvider(lrclib),
+                new Lyrow.Music.Lyrics.UnconfiguredSyncProvider(Lyrow.Core.Lyrics.LyricsProviderId.BetterLyricsPortato),
+                new Lyrow.Music.Lyrics.UnconfiguredSyncProvider(Lyrow.Core.Lyrics.LyricsProviderId.BetterLyricsLegato)
+            };
+            var multiTrackProviders = new IMultiTrackLyricsProvider[]
+            {
+                new Lyrow.Music.Lyrics.LiriQoClient(normalizer: normalizer)
+            };
+            return new Lyrow.Music.Lyrics.MultiProviderLyricsOrchestrator(
+                providers,
+                sp.GetRequiredService<Lyrow.Core.Lyrics.LyricsProviderPriorityResolver>(),
+                sp.GetRequiredService<ISettingsManager>(),
+                multiTrackProviders: multiTrackProviders);
+        });
+        services.AddSingleton<IMultiProviderLyricsService>(sp => sp.GetRequiredService<Lyrow.Music.Lyrics.MultiProviderLyricsOrchestrator>());
+        services.AddSingleton<ILyricsClient>(sp => sp.GetRequiredService<Lyrow.Music.Lyrics.MultiProviderLyricsOrchestrator>());
         services.AddSingleton<ILyricsCache, Lyrow.Music.Lyrics.LocalFileLyricsCache>();
         services.AddSingleton<IArtworkService, ArtworkService>();
         services.AddSingleton<ArtworkBitmapManager>();
@@ -372,7 +398,8 @@ public partial class App : Application
             sp.GetRequiredService<ILyricsCache>(),
             sp.GetRequiredService<IEventBus>(),
             sp.GetRequiredService<ISettingsManager>(),
-            sp.GetRequiredService<Lyrow.Core.Contracts.IPlaybackTimelineEngine>()));
+            sp.GetRequiredService<Lyrow.Core.Contracts.IPlaybackTimelineEngine>(),
+            fallbackLyricsClient: sp.GetRequiredService<Lyrow.Music.Lyrics.LrclibClient>()));
 
         services.AddSingleton<IWindowPlatformAdapter>(sp =>
         {

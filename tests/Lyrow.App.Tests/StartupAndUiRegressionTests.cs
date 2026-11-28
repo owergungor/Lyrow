@@ -48,12 +48,12 @@ public class StartupAndUiRegressionTests
             await manager.UpdateAsync(s =>
             {
                 s.Theme = ThemeMode.Dark;
-                s.Lyrics.SyncOffsetMs = 250;
+                s.Lyrics.PreferredProvider = "AppleMusic";
                 s.Glow.Sensitivity = 1.8f;
             });
 
             manager.Current.Theme.Should().Be(ThemeMode.Dark);
-            manager.Current.Lyrics.SyncOffsetMs.Should().Be(250);
+            manager.Current.Lyrics.PreferredProvider.Should().Be("AppleMusic");
             manager.Current.Glow.Sensitivity.Should().Be(1.8f);
         }
         finally

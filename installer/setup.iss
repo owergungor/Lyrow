@@ -3,7 +3,7 @@
 
 #define MyAppName "Lyrow"
 #ifndef MyAppVersion
-#define MyAppVersion "4.7"
+#define MyAppVersion "5.0"
 #endif
 #define MyAppPublisher "Lyrow Team"
 #define MyAppURL "https://github.com/owergungor/Lyrow"

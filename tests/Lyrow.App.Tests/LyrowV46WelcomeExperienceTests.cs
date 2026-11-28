@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Lyrow.Core.Localization;
 using Lyrow.Core.Models;
 using Lyrow.Core.Services;
@@ -30,36 +30,35 @@ public sealed class LyrowV46WelcomeExperienceTests
 
         string xaml = File.ReadAllText(welcomeXamlPath);
         xaml.Should().Contain("<MicaBackdrop Kind=\"BaseAlt\" />");
-        xaml.Should().Contain("ms-appx:///Assets/lyrow-welcome-hero.png");
         xaml.Should().Contain("ms-appx:///Assets/lyrow-logo-300.png");
 
-        // V2/V3 Cinematic hero preview preserved
+        // Welcome V4 5-tab Fluent structure & live previews
+        xaml.Should().Contain("x:Name=\"PanelWelcomeTabStart\"");
+        xaml.Should().Contain("x:Name=\"PanelWelcomeTabAppearance\"");
+        xaml.Should().Contain("x:Name=\"PanelWelcomeTabReactivity\"");
+        xaml.Should().Contain("x:Name=\"PanelWelcomeTabShortcuts\"");
+        xaml.Should().Contain("x:Name=\"PanelWelcomeTabFinish\"");
         xaml.Should().Contain("x:Name=\"EdgeLightAuraOuter\"");
         xaml.Should().Contain("x:Name=\"TxtPreviewLyricActive\"");
-        xaml.Should().Contain("x:Name=\"EqBar1\"");
-        xaml.Should().Contain("x:Name=\"TxtWelcomeHeadline\"");
-        xaml.Should().Contain("x:Name=\"TxtWelcomeSubtitle\"");
+        xaml.Should().Contain("x:Name=\"ReactivityEqScale1\"");
 
-        // V3 compact Fluent preference controls
-        xaml.Should().Contain("x:Name=\"BtnWelcomeLangTr\"");
-        xaml.Should().Contain("x:Name=\"BtnWelcomeLangEn\"");
+        // v5.0 Welcome V4 preference controls
+        xaml.Should().Contain("x:Name=\"ComboWelcomeLanguage\"");
         xaml.Should().Contain("x:Name=\"BtnWelcomeThemeSystem\"");
         xaml.Should().Contain("x:Name=\"BtnWelcomeThemeDark\"");
         xaml.Should().Contain("x:Name=\"BtnWelcomeThemeLight\"");
-        xaml.Should().Contain("x:Name=\"ChkWelcomeEdgeLight\"");
-        xaml.Should().Contain("x:Name=\"ChkWelcomeDynamicBg\"");
+        xaml.Should().Contain("x:Name=\"ToggleWelcomeEdgeLight\"");
+        xaml.Should().Contain("x:Name=\"ToggleWelcomeDynamicBg\"");
+        xaml.Should().Contain("x:Name=\"BtnWelcomeSensCalm\"");
+        xaml.Should().Contain("x:Name=\"BtnWelcomeSensBalanced\"");
+        xaml.Should().Contain("x:Name=\"BtnWelcomeSensExpressive\"");
+        xaml.Should().Contain("x:Name=\"BtnWelcomeHotkeyGlow\"");
+        xaml.Should().Contain("x:Name=\"BtnWelcomeHotkeyLyrics\"");
 
-        // Single primary CTA only (Customize Later removed)
+        // Single prominent primary launch CTA on Finish tab (Customize Later removed)
         xaml.Should().Contain("x:Name=\"BtnWelcomeStartListening\"");
         xaml.Should().NotContain("x:Name=\"BtnWelcomeCustomizeLater\"");
         xaml.Should().Contain("AutomationProperties.Name=");
-
-        // Multi-step wizard clutter remains removed
-        xaml.Should().NotContain("x:Name=\"StepDot0\"");
-        xaml.Should().NotContain("x:Name=\"StepPanelAppearance\"");
-        xaml.Should().NotContain("x:Name=\"StepPanelAudio\"");
-        xaml.Should().NotContain("x:Name=\"BtnWelcomeBack\"");
-        xaml.Should().NotContain("x:Name=\"BtnWelcomeContinue\"");
     }
 
     [Fact]
@@ -381,16 +380,16 @@ public sealed class LyrowV46WelcomeExperienceTests
         string v4Cs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "LyricsWindow.V4Features.cs"));
         string appCs = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "App.xaml.cs"));
 
-        lyricsXaml.Should().Contain("x:Name=\"BtnModalShowWelcome\"");
+        lyricsXaml.Should().NotContain("x:Name=\"BtnModalShowWelcome\"");
         lyricsXaml.Should().Contain("x:Name=\"BtnModalShowWelcomeAbout\"");
-        lyricsXaml.Should().Contain("Text=\"Lyrow v4.7\"");
+        lyricsXaml.Should().Contain("Text=\"Lyrow v5.0\"");
 
         v4Cs.Should().Contain("public void OpenWelcomeScreenFromSettings()");
         v4Cs.Should().Contain("isManualReopen: true");
         v4Cs.Should().Contain("public async Task ApplyOnboardingPreferencesAsync()");
         v4Cs.Should().Contain("LocalizationService.Instance.SetLanguage(current.Language)");
 
-        appCs.Should().Contain("public const string CurrentReleaseVersion = \"4.7\";");
+        appCs.Should().Contain("public const string CurrentReleaseVersion = \"5.0\";");
         appCs.Should().Contain("WelcomeOnboardingCoordinator.ShouldShowWelcomeOnStartup(settings, IsSmokeTestMode)");
         appCs.Should().Contain("services.AddTransient<WelcomeOnboardingCoordinator>");
     }

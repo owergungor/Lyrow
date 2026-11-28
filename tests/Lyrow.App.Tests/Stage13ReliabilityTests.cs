@@ -83,7 +83,7 @@ public class Stage13ReliabilityTests
                 await manager.UpdateAsync(s =>
                 {
                     s.StartWithWindows = (i % 2 == 0);
-                    s.Lyrics.SyncOffsetMs = i * 10;
+                    s.Lyrics.BackdropOpacity = 50 + (i % 40);
                 });
             })).ToArray();
 

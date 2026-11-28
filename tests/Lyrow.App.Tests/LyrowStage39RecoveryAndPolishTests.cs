@@ -157,19 +157,23 @@ public sealed class LyrowStage39RecoveryAndPolishTests
     [Fact]
     public void Settings_SystemTab_IsNotInVisibleTabsList()
     {
-        // v4.3 defines exactly 7 canonical tabs in order: General, Appearance, Lighting, Lyrics, System, Updates, About (no All or standalone Shortcuts tab)
+        // v5.0 defines exactly 7 canonical tabs in order: Overview, General, Appearance, Lighting, Lyrics, System, About
         SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("All",
             "The All/Tümü tab must be strictly removed from visible settings tabs");
         SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("Shortcuts",
-            "Shortcuts must live inside About, not as a separate tab");
+            "Shortcuts must live inside Overview, not as a separate tab");
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("Updates",
+            "Updates must live inside About, not as a separate tab");
         SettingsNavigationModel.VisibleSettingsTabKeys.Should().Equal(
-            "General", "Appearance", "Lighting", "Lyrics", "System", "Updates", "About");
+            "Overview", "General", "Appearance", "Lighting", "Lyrics", "System", "About");
     }
 
     [Fact]
     public void Settings_UpdatesTab_IsInVisibleTabsList()
     {
-        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Contain("Updates");
+        // v5.0 consolidates Updates into About (no standalone Updates tab)
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().Contain("About");
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("Updates");
     }
 
     [Fact]
@@ -198,7 +202,7 @@ public sealed class LyrowStage39RecoveryAndPolishTests
             "Compact_NormalMode", "Compact_ToggleLyrics", "Compact_Player",
             "Lyrics_HideLyrics", "Lyrics_ShowLyrics", "Fullscreen_Toggle",
             "Playback_Prev", "Playback_PlayPause", "Playback_Next", "Playback_MuteUnmute",
-            "Offset_Delay", "Offset_Advance", "Offset_Decrease", "Offset_Increase"
+            "Lyrics_PrevSource", "Lyrics_NextSource"
         };
 
         loc.SetLanguage("en");

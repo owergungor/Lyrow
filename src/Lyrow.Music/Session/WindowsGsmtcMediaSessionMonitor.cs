@@ -26,6 +26,7 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
     private long _trackSequence = 0;
     private long _sessionGeneration = 0;
     private DateTime _lastTrackSwitchUtc = DateTime.MinValue;
+    private TimeSpan _previousTrackDuration = TimeSpan.Zero;
     private DateTime _lastSeekUtc = DateTime.MinValue;
     private TimeSpan _lastSeekTargetPosition = TimeSpan.Zero;
     private int _lastTrackThumbnailHash = 0;
@@ -549,7 +550,21 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
             var timelineProps = session.GetTimelineProperties();
             var startTime = timelineProps?.StartTime ?? TimeSpan.Zero;
             var endTime = timelineProps?.EndTime ?? TimeSpan.Zero;
-            var duration = endTime > startTime ? (endTime - startTime) : endTime;
+            var minSeekTime = timelineProps?.MinSeekTime ?? TimeSpan.Zero;
+            var maxSeekTime = timelineProps?.MaxSeekTime ?? TimeSpan.Zero;
+            var rawPos = timelineProps?.Position ?? TimeSpan.Zero;
+            var (_, duration) = Lyrow.Core.Timeline.GsmtcDurationResolver.Resolve(
+                startTime, endTime, minSeekTime, maxSeekTime, rawPos);
+            if (isTrackSwitch)
+            {
+                _previousTrackDuration = CurrentTrack.Duration;
+                if (duration > TimeSpan.Zero && _previousTrackDuration > TimeSpan.Zero && duration == _previousTrackDuration)
+                {
+                    // Avoid carrying over previous track's stale GSMTC EndTime on the instant of a track switch;
+                    // UpdatePlaybackAndTimelineAsync (immediate + 150ms + 450ms follow-ups) will supply the real new duration.
+                    duration = TimeSpan.Zero;
+                }
+            }
 
             var pbInfo = session.GetPlaybackInfo();
             string? appId = session.SourceAppUserModelId;
@@ -730,9 +745,28 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
 
             var startTime = timelineProps?.StartTime ?? TimeSpan.Zero;
             var endTime = timelineProps?.EndTime ?? TimeSpan.Zero;
+            var minSeekTime = timelineProps?.MinSeekTime ?? TimeSpan.Zero;
+            var maxSeekTime = timelineProps?.MaxSeekTime ?? TimeSpan.Zero;
             var rawPos = timelineProps?.Position ?? TimeSpan.Zero;
-            var dur = endTime > startTime ? (endTime - startTime) : endTime;
-            var pos = rawPos >= startTime ? (rawPos - startTime) : rawPos;
+            var (pos, dur) = Lyrow.Core.Timeline.GsmtcDurationResolver.Resolve(
+                startTime, endTime, minSeekTime, maxSeekTime, rawPos);
+
+            DateTime? reportedUtc = (timelineProps != null && timelineProps.LastUpdatedTime.Year > 2020)
+                ? timelineProps.LastUpdatedTime.UtcDateTime
+                : null;
+
+            // Reject stale previous-track duration if GSMTC timeline has not updated since track switch
+            if (dur > TimeSpan.Zero &&
+                _previousTrackDuration > TimeSpan.Zero &&
+                dur == _previousTrackDuration &&
+                _lastTrackSwitchUtc != DateTime.MinValue &&
+                (DateTime.UtcNow - _lastTrackSwitchUtc).TotalSeconds < 2.0 &&
+                reportedUtc.HasValue &&
+                reportedUtc.Value < _lastTrackSwitchUtc)
+            {
+                dur = TimeSpan.Zero;
+            }
+
             if (dur <= TimeSpan.Zero && CurrentTrack.Duration > TimeSpan.Zero)
             {
                 dur = CurrentTrack.Duration;
@@ -742,10 +776,6 @@ public sealed class WindowsGsmtcMediaSessionMonitor : IMediaSessionMonitor
                 CurrentTrack = CurrentTrack with { Duration = dur };
                 TrackChanged?.Invoke(this, CurrentTrack);
             }
-
-            DateTime? reportedUtc = (timelineProps != null && timelineProps.LastUpdatedTime.Year > 2020)
-                ? timelineProps.LastUpdatedTime.UtcDateTime
-                : null;
 
             var controls = playbackInfo?.Controls;
             string? appId = session.SourceAppUserModelId;

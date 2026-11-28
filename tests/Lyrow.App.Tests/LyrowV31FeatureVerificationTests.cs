@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -255,21 +255,21 @@ public sealed class LyrowV31FeatureVerificationTests
 
         // 1. Directory.Build.props
         string props = File.ReadAllText(Path.Combine(root, "Directory.Build.props"));
-        props.Should().Contain("<Version>4.7</Version>");
-        props.Should().Contain("<PackageVersion>4.7</PackageVersion>");
-        props.Should().Contain("<InformationalVersion>4.7</InformationalVersion>");
-        props.Should().Contain("<AssemblyVersion>4.7.0.0</AssemblyVersion>");
-        props.Should().Contain("<FileVersion>4.7.0.0</FileVersion>");
+        props.Should().Contain("<Version>5.0</Version>");
+        props.Should().Contain("<PackageVersion>5.0</PackageVersion>");
+        props.Should().Contain("<InformationalVersion>5.0</InformationalVersion>");
+        props.Should().Contain("<AssemblyVersion>5.0.0.0</AssemblyVersion>");
+        props.Should().Contain("<FileVersion>5.0.0.0</FileVersion>");
         props.Should().NotContain("<Version>3.5.0</Version>");
         props.Should().NotContain("<PackageVersion>3.5.0</PackageVersion>");
 
         // 2. Lyrow.App.csproj
         string csproj = File.ReadAllText(Path.Combine(root, "src", "Lyrow.App", "Lyrow.App.csproj"));
-        csproj.Should().Contain("<Version>4.7</Version>");
-        csproj.Should().Contain("<PackageVersion>4.7</PackageVersion>");
-        csproj.Should().Contain("<InformationalVersion>4.7</InformationalVersion>");
-        csproj.Should().Contain("<AssemblyVersion>4.7.0.0</AssemblyVersion>");
-        csproj.Should().Contain("<FileVersion>4.7.0.0</FileVersion>");
+        csproj.Should().Contain("<Version>5.0</Version>");
+        csproj.Should().Contain("<PackageVersion>5.0</PackageVersion>");
+        csproj.Should().Contain("<InformationalVersion>5.0</InformationalVersion>");
+        csproj.Should().Contain("<AssemblyVersion>5.0.0.0</AssemblyVersion>");
+        csproj.Should().Contain("<FileVersion>5.0.0.0</FileVersion>");
         csproj.Should().NotContain("<Version>3.5.0</Version>");
 
         // 3. app.manifest
@@ -278,11 +278,11 @@ public sealed class LyrowV31FeatureVerificationTests
 
         // 4. Inno Setup installer
         string iss = File.ReadAllText(Path.Combine(root, "installer", "setup.iss"));
-        iss.Should().Contain("#define MyAppVersion \"4.7\"");
+        iss.Should().Contain("#define MyAppVersion \"5.0\"");
         iss.Should().NotContain("#define MyAppVersion \"3.5.0\"");
 
         // 5. GitHubUpdateService
-        GitHubUpdateService.AppVersion.Should().Be("4.7");
+        GitHubUpdateService.AppVersion.Should().Be("5.0");
 
         // 6. Workflow release.yml
         string releaseYml = File.ReadAllText(Path.Combine(root, ".github", "workflows", "release.yml"));

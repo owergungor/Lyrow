@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Reflection;
 using Lyrow.Audio.Control;
 using Lyrow.Core.Contracts;
@@ -15,7 +15,7 @@ public sealed class LyrowV23FeatureVerificationTests
     [Fact]
     public void Versioning_IsStrictlyTwoPart_V23()
     {
-        Assert.Equal("4.7", GitHubUpdateService.AppVersion);
+        Assert.Equal("5.0", GitHubUpdateService.AppVersion);
         Assert.True(GitHubUpdateService.IsValidTwoPartVersionTag("v2.6"));
         Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("v2.6.0"));
         Assert.False(GitHubUpdateService.IsValidTwoPartVersionTag("2.6.0"));
@@ -49,7 +49,7 @@ public sealed class LyrowV23FeatureVerificationTests
             "Settings_Title", "Tab_General", "Tab_Playback", "Tab_Lyrics", "Tab_Glow", "Tab_Updates", "Tab_Shortcuts",
             "General_AppTheme", "General_Language", "General_Startup", "General_SystemTray",
             "Playback_Title", "Playback_ActiveSession", "Playback_SystemEndpoint",
-            "Lyrics_Title", "Lyrics_SyncOffset", "Lyrics_FocusedFontSize", "Lyrics_UnfocusedFontSize", "Lyrics_AutoCenter_Notice", "Lyrics_SeekFailed",
+            "Lyrics_Title", "Lyrics_FocusedFontSize", "Lyrics_UnfocusedFontSize", "Lyrics_AutoCenter_Notice", "Lyrics_SeekFailed",
             "Glow_Title", "Glow_AmbientGlow", "Glow_Intensity", "Glow_ArtworkSync", "Glow_ShutdownDelay",
             "Updates_Title", "Updates_AutoChecks", "Updates_Frequency", "Updates_CurrentVersion", "Updates_CheckNow", "Updates_DownloadAndInstall",
             "Shortcuts_Title", "Shortcuts_ToggleGlow", "Shortcuts_ToggleLyrics", "Shortcuts_Apply",

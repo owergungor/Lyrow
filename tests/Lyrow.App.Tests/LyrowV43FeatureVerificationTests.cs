@@ -142,16 +142,17 @@ public sealed class LyrowV43FeatureVerificationTests
         // Ghost button template honors HorizontalContentAlignment so sidebar items stay flush-left
         appXaml.Should().Contain("HorizontalAlignment=\"{TemplateBinding HorizontalContentAlignment}\"");
 
-        // Exactly 7 tabs in exact required order: General, Appearance, Lighting, Lyrics, System, Updates, About
+        // Exactly 7 tabs in exact v5.0 order: Overview, General, Appearance, Lighting, Lyrics, System, About (Updates inside About)
         SettingsNavigationModel.VisibleSettingsTabKeys.Should().Equal(
-            "General", "Appearance", "Lighting", "Lyrics", "System", "Updates", "About");
+            "Overview", "General", "Appearance", "Lighting", "Lyrics", "System", "About");
         SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("Shortcuts");
+        SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("Updates");
         SettingsNavigationModel.VisibleSettingsTabKeys.Should().NotContain("All");
 
         string[] tabButtons =
         {
-            "BtnModalTabGeneral", "BtnModalTabAppearance", "BtnModalTabLighting",
-            "BtnModalTabLyrics", "BtnModalTabSystem", "BtnModalTabUpdates", "BtnModalTabAbout"
+            "BtnModalTabOverview", "BtnModalTabGeneral", "BtnModalTabAppearance", "BtnModalTabLighting",
+            "BtnModalTabLyrics", "BtnModalTabSystem", "BtnModalTabAbout"
         };
 
         int prevPos = -1;
@@ -164,6 +165,7 @@ public sealed class LyrowV43FeatureVerificationTests
         }
 
         xaml.Should().NotContain("BtnModalTabShortcuts");
+        xaml.Should().NotContain("BtnModalTabUpdates");
         xaml.Should().NotContain("BtnModalTabAll");
 
         // Verify each of the 7 sections contains its designated settings
@@ -176,20 +178,28 @@ public sealed class LyrowV43FeatureVerificationTests
             return xaml.Substring(s, e - s);
         }
 
+        SliceSection("ModalSectionOverview", "ModalSectionGeneral").Should().Contain("TxtModalHotkeyGlow").And.Contain("TxtModalHotkeyLyrics");
         SliceSection("ModalSectionGeneral", "ModalSectionAppearance").Should().Contain("ComboModalLanguage").And.Contain("ComboModalTheme");
         SliceSection("ModalSectionAppearance", "ModalSectionLighting").Should().Contain("SliderModalMasterOpacity").And.Contain("SwitchModalArtworkDynamicBg").And.Contain("SliderModalArtworkCornerRadius");
         SliceSection("ModalSectionLighting", "ModalSectionLyrics").Should().Contain("SwitchModalAmbientEdgeGlow").And.Contain("SliderModalGlowThickness").And.Contain("ComboModalFftSize");
         SliceSection("ModalSectionLyrics", "ModalSectionSystem").Should().Contain("SwitchModalLyricsGlow").And.Contain("SliderModalBackdropOpacity").And.Contain("SliderModalFocusedFontSize");
-        SliceSection("ModalSectionSystem", "ModalSectionUpdates").Should().Contain("SwitchModalStartWithWindows").And.Contain("SwitchModalSystemTray").And.Contain("SwitchModalNotifications");
-        SliceSection("ModalSectionUpdates", "ModalSectionAbout").Should().Contain("SwitchModalAutoUpdate").And.Contain("ComboModalUpdateFrequency").And.Contain("BtnModalCheckUpdates");
-        SliceSection("ModalSectionAbout", null).Should().Contain("TxtModalHotkeyGlow").And.Contain("TxtModalHotkeyLyrics").And.Contain("BtnModalResetSettings").And.Contain("TxtModalAboutLicense");
+        SliceSection("ModalSectionSystem", "ModalSectionAbout").Should().Contain("SwitchModalStartWithWindows").And.Contain("SwitchModalSystemTray").And.Contain("SwitchModalNotifications");
+        SliceSection("ModalSectionAbout", null).Should()
+            .Contain("BtnModalShowWelcomeAbout")
+            .And.Contain("BtnModalResetSettings")
+            .And.Contain("TxtModalAboutLicense")
+            .And.Contain("SwitchModalAutoUpdate")
+            .And.Contain("ComboModalUpdateFrequency")
+            .And.Contain("BtnModalCheckUpdates");
 
-        // Fixed modal dimensions (Width + Height) prevent size jumping on tab switch
+        // Centered true modal separated from Windows title bar caption buttons
         string cardTag = ExtractOpeningTag(xaml, "SettingsModalCard");
-        cardTag.Should().Contain("Width=\"740\"");
-        cardTag.Should().Contain("Height=\"520\"");
-        v4Cs.Should().Contain("SettingsModalCard.Width = Math.Min(740, availableW);");
-        v4Cs.Should().Contain("SettingsModalCard.Height = Math.Min(520, availableH);");
+        cardTag.Should().Contain("VerticalAlignment=\"Center\"");
+        cardTag.Should().Contain("HorizontalAlignment=\"Center\"");
+        cardTag.Should().Contain("Margin=\"24,44,24,24\"");
+        cardTag.Should().Contain("TabFocusNavigation=\"Cycle\"");
+        v4Cs.Should().Contain("SettingsModalCard.Width = Math.Min(820, availableW);");
+        v4Cs.Should().Contain("SettingsModalCard.Height = Math.Min(560, availableH);");
 
         // Turkish and English tab labels match exact naming rules
         v4Cs.Should().Contain("string tabGeneral = isTr ? \"Genel\" : \"General\";");

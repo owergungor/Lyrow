@@ -4,7 +4,8 @@ using Lyrow.Core.Models;
 namespace Lyrow.Core.Services;
 
 /// <summary>
-/// Five-step onboarding sequence for the Lyrow v4.6 Welcome Experience.
+/// Five-step onboarding sequence for the Lyrow Welcome Experience (V4 tabs:
+/// Start, Appearance, Music Reactivity, Keyboard Shortcuts, Finish).
 /// </summary>
 public enum WelcomeStep
 {
@@ -26,9 +27,10 @@ public enum WelcomeCompletionReason
 }
 
 /// <summary>
-/// MVVM-friendly, UI-framework-independent coordinator for the 5-step First-Run Welcome Experience.
-/// Manages step navigation, live setting staging, safe audio output persistence, and atomic completion
-/// without overwriting existing user settings or causing UI-thread deadlocks.
+/// MVVM-friendly, UI-framework-independent coordinator for the 5-tab Welcome V4 Experience.
+/// Manages tab navigation, live setting staging (language, theme, appearance, music reactivity,
+/// keyboard shortcuts), validation, rollback on save failure, and atomic completion without
+/// overwriting existing user settings or breaking migration behavior.
 /// </summary>
 public sealed class WelcomeOnboardingCoordinator
 {
@@ -44,12 +46,18 @@ public sealed class WelcomeOnboardingCoordinator
     private readonly ThemeMode _initialTheme;
     private readonly bool _initialEdgeLight;
     private readonly bool _initialDynamicBackground;
+    private readonly int _initialFftSize;
+    private readonly string _initialShortcutGlow;
+    private readonly string _initialShortcutLyrics;
     private readonly string? _initialAudioDeviceId;
 
     private string _selectedLanguage;
     private ThemeMode _selectedTheme;
     private bool _enableEdgeLight;
     private bool _enableDynamicBackground;
+    private int _selectedFftSize;
+    private string _selectedShortcutGlow;
+    private string _selectedShortcutLyrics;
     private string? _selectedAudioDeviceId;
     private IReadOnlyList<AudioDeviceDescriptor> _availableDevices = Array.Empty<AudioDeviceDescriptor>();
     private bool _hasUserChangedAudioDevice;
@@ -65,12 +73,15 @@ public sealed class WelcomeOnboardingCoordinator
         _audioRoutingService = audioRoutingService;
         IsManualReopen = isManualReopen;
 
-        // Capture exact pre-Welcome snapshot so Customize Later / Window Close can discard temporary edits cleanly
+        // Capture exact pre-Welcome snapshot so Skip / Window Close / ESC / Save Error can roll back cleanly
         var current = _settingsManager.Current;
         _initialLanguage = string.IsNullOrWhiteSpace(current.Language) ? "en" : current.Language;
         _initialTheme = current.Theme;
         _initialEdgeLight = current.GlowEnabled;
         _initialDynamicBackground = current.VisualIntegrationEnabled;
+        _initialFftSize = NormalizeFftSize(current.Glow.FftSize);
+        _initialShortcutGlow = HotkeyValidator.NormalizeGesture(current.Hotkeys.ToggleGlow);
+        _initialShortcutLyrics = HotkeyValidator.NormalizeGesture(current.Hotkeys.ToggleLyrics);
         _initialAudioDeviceId = string.IsNullOrWhiteSpace(current.Glow.PreferredDeviceId)
             ? null
             : current.Glow.PreferredDeviceId;
@@ -80,8 +91,19 @@ public sealed class WelcomeOnboardingCoordinator
         _selectedTheme = _initialTheme;
         _enableEdgeLight = _initialEdgeLight;
         _enableDynamicBackground = _initialDynamicBackground;
+        _selectedFftSize = _initialFftSize;
+        _selectedShortcutGlow = _initialShortcutGlow;
+        _selectedShortcutLyrics = _initialShortcutLyrics;
         _selectedAudioDeviceId = _initialAudioDeviceId;
     }
+
+    private static int NormalizeFftSize(int fftSize) => fftSize switch
+    {
+        1024 => 1024,
+        2048 => 2048,
+        4096 => 4096,
+        _ => 1024
+    };
 
     public bool IsManualReopen { get; }
 
@@ -89,6 +111,11 @@ public sealed class WelcomeOnboardingCoordinator
     public ThemeMode InitialTheme => _initialTheme;
     public bool InitialEdgeLight => _initialEdgeLight;
     public bool InitialDynamicBackground => _initialDynamicBackground;
+    public int InitialFftSize => _initialFftSize;
+    public string InitialShortcutGlow => _initialShortcutGlow;
+    public string InitialShortcutLyrics => _initialShortcutLyrics;
+
+    public string? LastError { get; private set; }
 
     public WelcomeStep CurrentStep => _currentStep;
 
@@ -147,6 +174,46 @@ public sealed class WelcomeOnboardingCoordinator
         }
     }
 
+    /// <summary>
+    /// User-friendly Music Reactivity Sensitivity mapped accurately to the underlying DSP window:
+    /// 4096 = Calm (smoother transitions), 2048 = Balanced (default), 1024 = Expressive (fastest beat response).
+    /// </summary>
+    public int SelectedFftSize
+    {
+        get => _selectedFftSize;
+        set
+        {
+            int normalized = NormalizeFftSize(value);
+            if (_selectedFftSize == normalized) return;
+            _selectedFftSize = normalized;
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public string SelectedShortcutGlow
+    {
+        get => _selectedShortcutGlow;
+        set
+        {
+            string normalized = HotkeyValidator.NormalizeGesture(value);
+            if (string.Equals(_selectedShortcutGlow, normalized, StringComparison.OrdinalIgnoreCase)) return;
+            _selectedShortcutGlow = normalized;
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public string SelectedShortcutLyrics
+    {
+        get => _selectedShortcutLyrics;
+        set
+        {
+            string normalized = HotkeyValidator.NormalizeGesture(value);
+            if (string.Equals(_selectedShortcutLyrics, normalized, StringComparison.OrdinalIgnoreCase)) return;
+            _selectedShortcutLyrics = normalized;
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     public string? SelectedAudioDeviceId
     {
         get => _selectedAudioDeviceId;
@@ -179,6 +246,48 @@ public sealed class WelcomeOnboardingCoordinator
         ArgumentNullException.ThrowIfNull(settings);
         if (isSmokeTestMode) return false;
         return !settings.HasCompletedWelcome;
+    }
+
+    /// <summary>
+    /// Resets the staged keyboard shortcuts to the application's default values.
+    /// </summary>
+    public void ResetShortcutsToDefaults()
+    {
+        var defaults = LyrowSettings.CreateDefault();
+        _selectedShortcutGlow = HotkeyValidator.NormalizeGesture(defaults.Hotkeys.ToggleGlow);
+        _selectedShortcutLyrics = HotkeyValidator.NormalizeGesture(defaults.Hotkeys.ToggleLyrics);
+        StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Validates staged preferences (including hotkey syntax and internal collisions) before persisting.
+    /// </summary>
+    public bool ValidatePendingPreferences(out string? error)
+    {
+        if (!HotkeyValidator.IsValidGesture(_selectedShortcutGlow, out error))
+        {
+            return false;
+        }
+
+        if (!HotkeyValidator.IsValidGesture(_selectedShortcutLyrics, out error))
+        {
+            return false;
+        }
+
+        var candidate = new HotkeySettings
+        {
+            ToggleGlow = _selectedShortcutGlow,
+            ToggleLyrics = _selectedShortcutLyrics,
+            ToggleClickThrough = _settingsManager.Current.Hotkeys.ToggleClickThrough
+        };
+
+        if (!HotkeyValidator.CheckInternalCollisions(candidate, out error))
+        {
+            return false;
+        }
+
+        error = null;
+        return true;
     }
 
     /// <summary>
@@ -251,17 +360,30 @@ public sealed class WelcomeOnboardingCoordinator
     }
 
     /// <summary>
-    /// Commits all user selections made on the Welcome screen (Language, Theme, Edge Light,
-    /// Dynamic Background, Audio Output) and marks Welcome as completed.
+    /// Validates and commits all user selections made on the Welcome screen (Language, Theme,
+    /// Edge Light, Dynamic Background, Music Reactivity Sensitivity, Keyboard Shortcuts, Audio Output)
+    /// and marks Welcome as completed. If validation or persistence fails, rolls back in-memory state,
+    /// populates <see cref="LastError"/>, and returns false so Welcome stays open.
     /// </summary>
     public async Task<bool> CompleteAsync(CancellationToken cancellationToken = default)
     {
+        LastError = null;
+        if (!ValidatePendingPreferences(out string? validationError))
+        {
+            LastError = validationError;
+            return false;
+        }
+
         if (Interlocked.CompareExchange(ref _finishSignaled, 1, 0) != 0)
         {
             return false;
         }
 
         var settings = _settingsManager.Current;
+        bool prevCompletedWelcome = settings.HasCompletedWelcome;
+        bool prevCompletedFirstRun = settings.HasCompletedFirstRun;
+        int prevGlowThickness = settings.GlowThickness;
+
         settings.Language = _selectedLanguage;
         settings.Theme = _selectedTheme;
         settings.GlowEnabled = _enableEdgeLight;
@@ -271,11 +393,36 @@ public sealed class WelcomeOnboardingCoordinator
         }
 
         settings.VisualIntegrationEnabled = _enableDynamicBackground;
+        settings.Glow.FftSize = _selectedFftSize;
+        settings.Hotkeys.ToggleGlow = _selectedShortcutGlow;
+        settings.Hotkeys.ToggleLyrics = _selectedShortcutLyrics;
         settings.Glow.PreferredDeviceId = _selectedAudioDeviceId ?? string.Empty;
         settings.HasCompletedWelcome = true;
         settings.HasCompletedFirstRun = true;
 
-        await _settingsManager.SaveAsync(settings, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await _settingsManager.SaveAsync(settings, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // Roll back in-memory settings and allow retry without closing Welcome
+            settings.Language = _initialLanguage;
+            settings.Theme = _initialTheme;
+            settings.GlowEnabled = _initialEdgeLight;
+            settings.GlowThickness = prevGlowThickness;
+            settings.VisualIntegrationEnabled = _initialDynamicBackground;
+            settings.Glow.FftSize = _initialFftSize;
+            settings.Hotkeys.ToggleGlow = _initialShortcutGlow;
+            settings.Hotkeys.ToggleLyrics = _initialShortcutLyrics;
+            settings.Glow.PreferredDeviceId = _initialAudioDeviceId ?? string.Empty;
+            settings.HasCompletedWelcome = prevCompletedWelcome;
+            settings.HasCompletedFirstRun = prevCompletedFirstRun;
+
+            LastError = ex.Message;
+            Interlocked.Exchange(ref _finishSignaled, 0);
+            return false;
+        }
 
         // Apply optional audio endpoint change asynchronously without blocking caller
         if (_hasUserChangedAudioDevice && !string.IsNullOrWhiteSpace(_selectedAudioDeviceId))
@@ -327,6 +474,9 @@ public sealed class WelcomeOnboardingCoordinator
         _selectedTheme = _initialTheme;
         _enableEdgeLight = _initialEdgeLight;
         _enableDynamicBackground = _initialDynamicBackground;
+        _selectedFftSize = _initialFftSize;
+        _selectedShortcutGlow = _initialShortcutGlow;
+        _selectedShortcutLyrics = _initialShortcutLyrics;
         _selectedAudioDeviceId = _initialAudioDeviceId;
         _hasUserChangedAudioDevice = false;
 
@@ -335,6 +485,9 @@ public sealed class WelcomeOnboardingCoordinator
         settings.Theme = _initialTheme;
         settings.GlowEnabled = _initialEdgeLight;
         settings.VisualIntegrationEnabled = _initialDynamicBackground;
+        settings.Glow.FftSize = _initialFftSize;
+        settings.Hotkeys.ToggleGlow = _initialShortcutGlow;
+        settings.Hotkeys.ToggleLyrics = _initialShortcutLyrics;
         settings.Glow.PreferredDeviceId = _initialAudioDeviceId ?? string.Empty;
 
         OnboardingFinished?.Invoke(this, WelcomeCompletionReason.WindowClosed);
@@ -353,6 +506,9 @@ public sealed class WelcomeOnboardingCoordinator
         _selectedTheme = _initialTheme;
         _enableEdgeLight = _initialEdgeLight;
         _enableDynamicBackground = _initialDynamicBackground;
+        _selectedFftSize = _initialFftSize;
+        _selectedShortcutGlow = _initialShortcutGlow;
+        _selectedShortcutLyrics = _initialShortcutLyrics;
         _selectedAudioDeviceId = _initialAudioDeviceId;
         _hasUserChangedAudioDevice = false;
 
@@ -361,6 +517,9 @@ public sealed class WelcomeOnboardingCoordinator
         settings.Theme = _initialTheme;
         settings.GlowEnabled = _initialEdgeLight;
         settings.VisualIntegrationEnabled = _initialDynamicBackground;
+        settings.Glow.FftSize = _initialFftSize;
+        settings.Hotkeys.ToggleGlow = _initialShortcutGlow;
+        settings.Hotkeys.ToggleLyrics = _initialShortcutLyrics;
         settings.Glow.PreferredDeviceId = _initialAudioDeviceId ?? string.Empty;
         settings.HasCompletedWelcome = true;
         settings.HasCompletedFirstRun = true;
